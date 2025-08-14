@@ -1,0 +1,7 @@
+# igonre Files
+
+
+# Ignore Dirs
+.git/
+.zig-cache/
+zig-out/
