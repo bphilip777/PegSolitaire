@@ -15,8 +15,6 @@ pub fn main() !void {
     defer b.deinit();
 
     b.printBoard();
-
-    // b.play();
 }
 
 test "Run All Tests" {

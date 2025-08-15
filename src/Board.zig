@@ -37,19 +37,17 @@ pub fn createBoard(comptime n_rows: u16) type {
         }
 
         pub fn printBoard(self: *const Self) void {
+            const len = n_rows * 2 + 1;
+            var buffer: [len]u8 = [_]u8{' '} ** len;
+
             var i: u16 = 0;
-            var row_length: u16 = 1;
-            while (i < n_indices) {
-                const ends: u16 = (n_indices - row_length) / 2 + @as(u16, @intFromBool((row_length & 1) > 0));
-                for (0..ends) |_| print("  ", .{});
-                for (0..row_length) |j| {
-                    const k: u16 = @as(u16, @truncate(j)) + i;
-                    if (self.board.isSet(k)) print("| ", .{}) else print("- ", .{});
+            for (0..n_rows) |row| {
+                const start = n_rows - row;
+                for (0..row) |col| {
+                    buffer[start + col * 2] = if (self.board.isSet(i)) '|' else '-';
+                    i += 1;
                 }
-                for (0..ends) |_| print("  ", .{});
-                print("\n", .{});
-                i += row_length;
-                row_length += 1;
+                print("{s}\n", .{&buffer});
             }
         }
 
