@@ -45,6 +45,7 @@ pub fn createBoard(comptime n_rows: u16) type {
                 const start = n_rows - row;
                 for (0..row) |col| {
                     buffer[start + col * 2] = if (self.board.isSet(i)) '|' else '-';
+                    buffer[start + col * 2 - 1] = ' ';
                     i += 1;
                 }
                 print("{s}\n", .{&buffer});
