@@ -15,7 +15,7 @@ const Move: type = enum(u8) {
     DownRight,
     DownLeft,
 };
-const Moves: type = std.enums.EnumSet(Move);
+pub const Moves: type = std.enums.EnumSet(Move);
 
 pub fn createBoard(comptime n_rows: u16) type {
     if (n_rows == 0 or n_rows > 362) return error.NRowsMustBeGT0orLT362;
@@ -42,13 +42,14 @@ pub fn createBoard(comptime n_rows: u16) type {
             // const all_boards: std.ArrayList(u16) = .init(allo);
             // const all_moves: std.ArrayList(std.ArrayList(Move)) = .init(allo);
 
-            return Self{
+            var self: Self = .{
                 .allo = allo,
                 .board = board,
                 .moves = moves,
-                // .all_boards = all_boards,
-                // .all_moves = all_moves,
             };
+            self.updateMoves(start);
+
+            return self;
         }
 
         pub fn deinit(self: *Self) void {
@@ -58,14 +59,14 @@ pub fn createBoard(comptime n_rows: u16) type {
         pub fn printBoard(self: *const Self) void {
             const len = n_rows * 2 + 1;
             var buffer: [len]u8 = [_]u8{' '} ** len;
-
-            // found bug - not printing last row
             var i: u16 = 0;
-            for (0..n_rows) |row| {
+
+            for (0..n_rows + 1) |row| {
                 const start = n_rows - row;
                 for (0..row) |col| {
-                    buffer[start + col * 2] = if (self.board.isSet(i)) '|' else '-';
-                    buffer[start + col * 2 - 1] = ' ';
+                    const idx = start + col * 2;
+                    buffer[idx] = if (self.board.isSet(i)) '|' else '-';
+                    buffer[idx + 1] = ' ';
                     i += 1;
                 }
                 print("{s}\n", .{&buffer});
@@ -156,6 +157,11 @@ pub fn createBoard(comptime n_rows: u16) type {
             }
         }
 
+        // pub fn listOfMoves(self: *Self) !std.ArrayList(Moves) {
+        //     var moves: std.ArrayList(Moves) = .init(self.allo);
+        //     return moves;
+        // }
+
         pub fn chooseMove(self: *Self, idx: u16, move: Move) void {
             if (idx > self.board.count()) return;
             // remove all moves at current idx - always gets filled in
@@ -242,6 +248,10 @@ pub fn createBoard(comptime n_rows: u16) type {
                 if (move.count() > 0) break :blk false;
             } else break :blk false;
             return self.board.count() > 1 and no_moves;
+        }
+
+        pub fn isGameOver(self: *const Self) bool {
+            return self.isWon() or self.isLost();
         }
     };
 }
