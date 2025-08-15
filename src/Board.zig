@@ -69,41 +69,41 @@ pub fn createBoard(comptime n_rows: u16) type {
         pub fn updateMoves(self: *Self, idx: u16) !void {
             inline for (comptime std.meta.fieldNames(Move)) |fieldname| {
                 print("{s}\n", .{fieldname});
-                if (try self.hasMove(idx, @field(Move, fieldname)))
+                if (self.hasMoveFrom(idx, @field(Move, fieldname)))
                     self.moves.items[idx].insert(@field(Move, fieldname));
             }
             print("{any}", .{self.moves.items[idx]});
         }
 
-        fn hasMoveFrom(self: *const Self, idx: u16, move: Move) !bool {
+        fn hasMoveFrom(self: *const Self, idx: u16, move: Move) bool {
             if (idx > self.board.capacity()) return false;
             if (self.board.isSet(idx)) return false;
             const pos: Position = posFromIdx(idx);
             return switch (move) {
-                .Left => self.hasFromLeft(pos, move),
-                .UpLeft => self.hasFromUpLeft(pos, move),
-                .UpRight => self.hasFromUpRight(pos, move),
-                .Right => self.hasFromRight(pos, move),
-                .DownRight => self.hasFromDownRight(pos, move),
-                .DownLeft => self.hasFromDownLeft(pos, move),
+                .Left => self.hasFromLeft(pos),
+                .UpLeft => self.hasFromUpLeft(pos),
+                .UpRight => self.hasFromUpRight(pos),
+                .Right => self.hasFromRight(pos),
+                .DownRight => self.hasFromDownRight(pos),
+                .DownLeft => self.hasFromDownLeft(pos),
             };
         }
 
-        fn hasFromLeft(self: *const Self, pos: Position) bool {
+        inline fn hasFromLeft(self: *const Self, pos: Position) bool {
             if (pos.col < 2) return false;
             const idx1 = idxFromPos(pos) - 1;
             const idx2 = idx1 - 1;
             return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
 
-        fn hasFromUpLeft(self: *const Self, pos: Position) bool {
+        inline fn hasFromUpLeft(self: *const Self, pos: Position) bool {
             if (pos.row < 2 or pos.col < 2) return false;
             const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col - 1 });
             const idx2 = idxFromPos(Position{ .row = pos.row - 2, .col = pos.col - 2 });
             return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
 
-        fn hasFromUpRight(self: *const Self, pos: Position) bool {
+        inline fn hasFromUpRight(self: *const Self, pos: Position) bool {
             if (pos.row < 2) return false;
             if (pos.col + 2 > pos.row) return false;
             const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col });
@@ -111,21 +111,21 @@ pub fn createBoard(comptime n_rows: u16) type {
             return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
 
-        fn hasFromRight(self: *const Self, pos: Position) bool {
+        inline fn hasFromRight(self: *const Self, pos: Position) bool {
             if (pos.col + 2 > pos.row) return false;
             const idx1 = idxFromPos(Position{ .row = pos.row, .col = pos.col + 1 });
             const idx2 = idx1 + 1;
             return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
 
-        fn hasFromDownRight(self: *const Self, pos: Position) bool {
+        inline fn hasFromDownRight(self: *const Self, pos: Position) bool {
             if (pos.row + 2 > n_rows or pos.col + 2 > n_rows) return false;
             const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col + 1 });
             const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col + 2 });
             return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
 
-        fn hasFromDownLeft(self: *const Self, pos: Position) bool {
+        inline fn hasFromDownLeft(self: *const Self, pos: Position) bool {
             if (pos.row + 2 > n_rows) return false;
             const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col });
             const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col });
