@@ -25,9 +25,9 @@ pub fn createBoard(comptime n_rows: u16) type {
         const Self = @This();
         allo: Allocator,
         board: std.bit_set.IntegerBitSet(n_indices),
-        moves: std.ArrayList(Moves), // array of possible moves
+        moves: std.ArrayList(Moves),
 
-        all_boards: std.ArrayList(std.bit_set.IngtegerBitSet(n_indices)), // array of boards
+        all_boards: std.ArrayList(u16), // prob needs to be a hash fn - store board as just u16
         all_moves: std.ArrayList(std.ArrayList(Moves)),
 
         pub fn init(allo: Allocator, start: u16) !Self {
@@ -39,10 +39,15 @@ pub fn createBoard(comptime n_rows: u16) type {
             var moves: std.ArrayList(Moves) = try .initCapacity(allo, n_indices);
             for (0..n_indices) |_| moves.appendAssumeCapacity(Moves.initEmpty());
 
+            const all_boards: std.ArrayList(u16) = .init(allo);
+            const all_moves: std.ArrayList(std.ArrayList(Move)) = .init(allo);
+
             return Self{
                 .allo = allo,
                 .board = board,
                 .moves = moves,
+                .all_boards = all_boards,
+                .all_moves = all_moves,
             };
         }
 
@@ -66,10 +71,7 @@ pub fn createBoard(comptime n_rows: u16) type {
             }
         }
 
-        pub fn getPossibleMoves(self: *Self, idx: u16) !void {
-            // expected:
-            // go through all possible positions
-            // remove or add moves
+        pub fn updateMoves(self: *Self, idx: u16) void {
             if (idx > self.board.capacity()) return;
             var move: Moves = self.moves.items[idx];
             if (self.board.isSet(idx)) {
@@ -137,6 +139,91 @@ pub fn createBoard(comptime n_rows: u16) type {
             const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col });
             const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col });
             return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        pub fn printMoves(self: *const Self) void {
+            for (self.moves.items, 0..) |move, i| {
+                if (move.count() == 0) continue;
+                print("{}: ", .{i});
+                var it = move.iterator();
+                while (it.next()) |item| {
+                    print("{s} ", .{@tagName(item)});
+                }
+                print("\n", .{});
+            }
+        }
+
+        pub fn chooseMove(self: *Self) ?void {
+            const move: Move = blk: for (self.moves.items) |moves| {
+                if (moves.count() == 0) continue;
+                var it = moves.iterator();
+                break :blk it.next().?;
+            } else return; // how should i handle not finding a move?
+            self.board.set(idx);
+            self.updateMoves(pos);
+            switch (move) {
+                .Left => self.moveLeft(pos),
+                .UpLeft => self.moveUpLeft(pos),
+                .UpRight => self.moveUpRight(pos),
+                .Right => self.moveRight(pos),
+                .DownRight => self.moveDownRight(pos),
+                .DownLeft => self.moveDownLeft(pos),
+            }
+            try self.all_boards.append(self.board);
+        }
+
+        inline fn moveLeft(self: *Self, pos: Position) void {
+            const pos1 = Position{ .row = pos.row, .col = pos.col - 1 };
+            const pos2 = Position{ .row = pos.row, .col = pos.col - 2 };
+            self.board.unset(idxFromPos(pos1));
+            self.board.unset(idxFromPos(pos2));
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
+        }
+
+        inline fn moveUpLeft(self: *Self, pos: Position) void {
+            const pos1 = Position{ .row = pos.row - 1, .col = pos.col - 1 };
+            const pos2 = Position{ .row = pos.row - 2, .col = pos.col - 2 };
+            self.board.unset(idxFromPos(pos1));
+            self.board.unset(idxFromPos(pos2));
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
+        }
+
+        inline fn moveUpRight(self: *Self, pos: Position) void {
+            const pos1 = Position{ .row = pos.row - 1, .col = pos.col };
+            const pos2 = Position{ .row = pos.row - 2, .col = pos.col };
+            self.board.unset(idxFromPos(pos1));
+            self.board.unset(idxFromPos(pos2));
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
+        }
+
+        inline fn moveRight(self: *Self, pos: Position) {
+            const pos1 = Position{ .row = pos.row, .col = pos.col + 1 };
+            const pos2 = Position{ .row = pos.row, .col = pos.col + 2 };
+            self.board.unset(idxFromPos(pos1));
+            self.board.unset(idxFromPos(pos2));
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
+        }
+
+        inline fn moveDownRight(self: *Self, pos: Position) {
+            const pos1 = Position{ .row = pos.row + 1, .col = pos.col + 1 };
+            const pos2 = Position{ .row = pos.row + 2, .col = pos.col + 2 };
+            self.board.unset(pos1);
+            self.board.unset(pos2);
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
+        }
+
+        inline fn moveDownLeft(self: *Self, pos: Position) {
+            const pos1 = Position{ .row = pos.row + 1, .col = pos.col };
+            const pos2 = Position{ .row = pos.row + 2, .col = pos.col };
+            self.board.unset(pos1);
+            self.board.unset(pos2);
+            self.updateMoves(pos1);
+            self.updateMoves(pos2);
         }
 
         fn isWon(self: *const Self) bool {
