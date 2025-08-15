@@ -1,5 +1,13 @@
 # Peg Solitaire
 
+# How to play
+1. Download zig - add zig to path
+2. Download repo
+3. Run the following in your terminal:
+``` zig
+zig build -Drelease-fast run
+```
+
 ## GOALS:
 1. Play game to failure - Done
 2. Search algorithm - Done
@@ -12,6 +20,7 @@
 7. Data Structure
     - Array of Bools - uses u8s = memory inefficient
     - BitSet
+8. Add Version Control For Zig - At Least 0.15+
 
 
 # TODO:

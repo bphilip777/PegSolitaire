@@ -1,7 +1,21 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const print = std.debug.print;
+
+const Position: type = struct {
+    row: u16,
+    col: u16,
+};
 const Allocator: type = std.mem.Allocator;
+const Move: type = enum(u8) {
+    Left,
+    UpLeft,
+    UpRight,
+    Right,
+    DownRight,
+    DownLeft,
+};
+const Moves: type = std.enums.EnumSet(Move);
 
 pub fn createBoard(comptime n_rows: u16) type {
     if (n_rows == 0 or n_rows > 362) return error.NRowsMustBeGT0orLT362;
@@ -53,34 +67,72 @@ pub fn createBoard(comptime n_rows: u16) type {
         }
 
         pub fn updateMoves(self: *Self, idx: u16) !void {
-            // check l, ul, ur, r, dr, dl
-            self.moves.items[idx].insert(.left);
+            inline for (comptime std.meta.fieldNames(Move)) |fieldname| {
+                print("{s}\n", .{fieldname});
+                if (try self.hasMove(idx, @field(Move, fieldname)))
+                    self.moves.items[idx].insert(@field(Move, fieldname));
+            }
+            print("{any}", .{self.moves.items[idx]});
         }
 
-        fn hasMove(self: *Self, idx: u16, move: Move) !bool {
-            _ = self;
-            _ = idx;
-            _ = move;
-            // if (idx >= self.moves.items.len) return error.IdxOutOfBounds;
-            // var possible_moves: *Move = &self.moves.items[idx];
-            // switch (move) {
-            //     .Left => {
-            //         if ()
-            //     },
-            //     .UpLeft => {},
-            //     .UpRight => {},
-            //     .Right => {},
-            //     .DownRight => {},
-            //     .DownLeft => {},
-            // }
+        fn hasMoveFrom(self: *const Self, idx: u16, move: Move) !bool {
+            if (idx > self.board.capacity()) return false;
+            if (self.board.isSet(idx)) return false;
+            const pos: Position = posFromIdx(idx);
+            return switch (move) {
+                .Left => self.hasFromLeft(pos, move),
+                .UpLeft => self.hasFromUpLeft(pos, move),
+                .UpRight => self.hasFromUpRight(pos, move),
+                .Right => self.hasFromRight(pos, move),
+                .DownRight => self.hasFromDownRight(pos, move),
+                .DownLeft => self.hasFromDownLeft(pos, move),
+            };
+        }
+
+        fn hasFromLeft(self: *const Self, pos: Position) bool {
+            if (pos.col < 2) return false;
+            const idx1 = idxFromPos(pos) - 1;
+            const idx2 = idx1 - 1;
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn hasFromUpLeft(self: *const Self, pos: Position) bool {
+            if (pos.row < 2 or pos.col < 2) return false;
+            const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col - 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row - 2, .col = pos.col - 2 });
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn hasFromUpRight(self: *const Self, pos: Position) bool {
+            if (pos.row < 2) return false;
+            if (pos.col + 2 > pos.row) return false;
+            const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col });
+            const idx2 = idxFromPos(Position{ .row = pos.row - 2, .col = pos.col });
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn hasFromRight(self: *const Self, pos: Position) bool {
+            if (pos.col + 2 > pos.row) return false;
+            const idx1 = idxFromPos(Position{ .row = pos.row, .col = pos.col + 1 });
+            const idx2 = idx1 + 1;
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn hasFromDownRight(self: *const Self, pos: Position) bool {
+            if (pos.row + 2 > n_rows or pos.col + 2 > n_rows) return false;
+            const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col + 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col + 2 });
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn hasFromDownLeft(self: *const Self, pos: Position) bool {
+            if (pos.row + 2 > n_rows) return false;
+            const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col });
+            const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col });
+            return self.board.isSet(idx1) and self.board.isSet(idx2);
         }
     };
 }
-
-const Position = struct {
-    row: u16,
-    col: u16,
-};
 
 fn triNum(n: u16) u16 {
     return (n * (n + 1)) / 2;
@@ -90,7 +142,7 @@ fn invTriNum(n: u16) u16 {
     return @intFromFloat((@sqrt(8 * @as(f16, @floatFromInt(n)) + 1) - 1) / 2);
 }
 
-pub fn idx2pos(idx: u16) Position {
+pub fn posFromIdx(idx: u16) Position {
     const row = invTriNum(idx);
     const tri_num = triNum(row);
     const col = idx - tri_num;
@@ -116,12 +168,12 @@ test "Idx 2 Pos" {
         .{ .row = 4, .col = 4 },
     };
     for (0..expected_positions.len, expected_positions) |i, epos| {
-        const pos = idx2pos(@truncate(i));
+        const pos = posFromIdx(@truncate(i));
         try expect(pos.row == epos.row and pos.col == epos.col);
     }
 }
 
-pub fn pos2idx(pos: Position) u16 {
+pub fn idxFromPos(pos: Position) u16 {
     return triNum(pos.row) + pos.col;
 }
 
@@ -144,22 +196,9 @@ test "Pos 2 Idx" {
         .{ .row = 4, .col = 4 },
     };
     for (0..positions.len, positions) |expected_idx, pos| {
-        const idx = pos2idx(pos);
+        const idx = idxFromPos(pos);
         try expect(idx == @as(u16, @truncate(expected_idx)));
     }
 }
 
-const Move = enum(u8) {
-    Left,
-    UpLeft,
-    UpRight,
-    Right,
-    DownRight,
-    DownLeft,
-};
-
-const Moves: type = std.enums.EnumSet(Move);
-
-test "Print Board" {
-    // testing proper printing of board
-}
+test "Has Move" {}

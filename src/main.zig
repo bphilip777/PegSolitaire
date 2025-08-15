@@ -14,7 +14,8 @@ pub fn main() !void {
     var b: Board = try .init(allo, 0);
     defer b.deinit();
 
-    b.printBoard();
+    // b.printBoard();
+    try b.updateMoves(0);
 }
 
 test "Run All Tests" {
