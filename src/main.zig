@@ -15,7 +15,8 @@ pub fn main() !void {
     defer b.deinit();
 
     // b.printBoard();
-    try b.updateMoves(0);
+    try b.getPossibleMoves(0);
+    try b.chooseMove();
 }
 
 test "Run All Tests" {

@@ -25,7 +25,10 @@ pub fn createBoard(comptime n_rows: u16) type {
         const Self = @This();
         allo: Allocator,
         board: std.bit_set.IntegerBitSet(n_indices),
-        moves: std.ArrayList(Moves), // array of moves
+        moves: std.ArrayList(Moves), // array of possible moves
+
+        all_boards: std.ArrayList(std.bit_set.IngtegerBitSet(n_indices)), // array of boards
+        all_moves: std.ArrayList(std.ArrayList(Moves)),
 
         pub fn init(allo: Allocator, start: u16) !Self {
             if (start >= n_indices) return error.StartMustBeLTNIndices;
@@ -34,10 +37,7 @@ pub fn createBoard(comptime n_rows: u16) type {
             board.unset(start);
 
             var moves: std.ArrayList(Moves) = try .initCapacity(allo, n_indices);
-            var i: u16 = 0;
-            while (i < moves.items.len) : (i +%= 1) {
-                moves.items[i] = Moves.initEmpty();
-            }
+            for (0..n_indices) |_| moves.appendAssumeCapacity(Moves.initEmpty());
 
             return Self{
                 .allo = allo,
@@ -66,19 +66,26 @@ pub fn createBoard(comptime n_rows: u16) type {
             }
         }
 
-        pub fn updateMoves(self: *Self, idx: u16) !void {
-            inline for (comptime std.meta.fieldNames(Move)) |fieldname| {
-                print("{s}\n", .{fieldname});
-                if (self.hasMoveFrom(idx, @field(Move, fieldname)))
-                    self.moves.items[idx].insert(@field(Move, fieldname));
+        pub fn getPossibleMoves(self: *Self, idx: u16) !void {
+            // expected:
+            // go through all possible positions
+            // remove or add moves
+            if (idx > self.board.capacity()) return;
+            var move: Moves = self.moves.items[idx];
+            if (self.board.isSet(idx)) {
+                move = move.xorWith(move);
+                self.moves.items[idx] = move;
+                return;
             }
-            print("{any}", .{self.moves.items[idx]});
+            const pos: Position = posFromIdx(idx);
+            inline for (comptime std.meta.fieldNames(Move)) |fieldname| {
+                if (self.hasMoveFrom(pos, @field(Move, fieldname)))
+                    move.insert(@field(Move, fieldname));
+            }
+            self.moves.items[idx] = move;
         }
 
-        fn hasMoveFrom(self: *const Self, idx: u16, move: Move) bool {
-            if (idx > self.board.capacity()) return false;
-            if (self.board.isSet(idx)) return false;
-            const pos: Position = posFromIdx(idx);
+        fn hasMoveFrom(self: *const Self, pos: Position, move: Move) bool {
             return switch (move) {
                 .Left => self.hasFromLeft(pos),
                 .UpLeft => self.hasFromUpLeft(pos),
@@ -130,6 +137,17 @@ pub fn createBoard(comptime n_rows: u16) type {
             const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col });
             const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col });
             return self.board.isSet(idx1) and self.board.isSet(idx2);
+        }
+
+        fn isWon(self: *const Self) bool {
+            return self.board.count() == 1;
+        }
+
+        fn isLost(self: *const Self) bool {
+            const no_moves: bool = blk: for (self.moves.items) |move| {
+                if (move.count() > 0) break :blk false;
+            } else break :blk false;
+            return self.board.count() > 1 and no_moves;
         }
     };
 }
