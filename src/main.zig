@@ -14,9 +14,11 @@ pub fn main() !void {
     var b: Board = try .init(allo, 0);
     defer b.deinit();
 
-    // b.printBoard();
-    try b.updateMoves(0);
-    // try b.chooseMove();
+    b.printBoard();
+    b.printMoves();
+
+    b.chooseMove(0, .DownRight);
+    b.printBoard();
     b.printMoves();
 }
 

@@ -27,8 +27,8 @@ pub fn createBoard(comptime n_rows: u16) type {
         board: std.bit_set.IntegerBitSet(n_indices),
         moves: std.ArrayList(Moves),
 
-        all_boards: std.ArrayList(u16), // prob needs to be a hash fn - store board as just u16
-        all_moves: std.ArrayList(std.ArrayList(Moves)),
+        // all_boards: std.ArrayList(u16), // prob needs to be a hash fn - store board as just u16
+        // all_moves: std.ArrayList(std.ArrayList(Moves)),
 
         pub fn init(allo: Allocator, start: u16) !Self {
             if (start >= n_indices) return error.StartMustBeLTNIndices;
@@ -39,15 +39,15 @@ pub fn createBoard(comptime n_rows: u16) type {
             var moves: std.ArrayList(Moves) = try .initCapacity(allo, n_indices);
             for (0..n_indices) |_| moves.appendAssumeCapacity(Moves.initEmpty());
 
-            const all_boards: std.ArrayList(u16) = .init(allo);
-            const all_moves: std.ArrayList(std.ArrayList(Move)) = .init(allo);
+            // const all_boards: std.ArrayList(u16) = .init(allo);
+            // const all_moves: std.ArrayList(std.ArrayList(Move)) = .init(allo);
 
             return Self{
                 .allo = allo,
                 .board = board,
                 .moves = moves,
-                .all_boards = all_boards,
-                .all_moves = all_moves,
+                // .all_boards = all_boards,
+                // .all_moves = all_moves,
             };
         }
 
@@ -59,6 +59,7 @@ pub fn createBoard(comptime n_rows: u16) type {
             const len = n_rows * 2 + 1;
             var buffer: [len]u8 = [_]u8{' '} ** len;
 
+            // found bug - not printing last row
             var i: u16 = 0;
             for (0..n_rows) |row| {
                 const start = n_rows - row;
@@ -72,13 +73,15 @@ pub fn createBoard(comptime n_rows: u16) type {
         }
 
         pub fn updateMoves(self: *Self, idx: u16) void {
-            if (idx > self.board.capacity()) return;
+            if (idx > self.board.capacity()) return; // remove this line once fn is priv
             var move: Moves = self.moves.items[idx];
+            // if set, remove all moves
             if (self.board.isSet(idx)) {
                 move = move.xorWith(move);
                 self.moves.items[idx] = move;
                 return;
             }
+            // determine available moves
             const pos: Position = posFromIdx(idx);
             inline for (comptime std.meta.fieldNames(Move)) |fieldname| {
                 if (self.hasMoveFrom(pos, @field(Move, fieldname)))
@@ -153,77 +156,81 @@ pub fn createBoard(comptime n_rows: u16) type {
             }
         }
 
-        pub fn chooseMove(self: *Self) ?void {
-            const move: Move = blk: for (self.moves.items) |moves| {
-                if (moves.count() == 0) continue;
-                var it = moves.iterator();
-                break :blk it.next().?;
-            } else return; // how should i handle not finding a move?
+        pub fn chooseMove(self: *Self, idx: u16, move: Move) void {
+            if (idx > self.board.count()) return;
+            // remove all moves at current idx - always gets filled in
             self.board.set(idx);
-            self.updateMoves(pos);
+            self.updateMoves(idx);
+            // add possible new moves
             switch (move) {
-                .Left => self.moveLeft(pos),
-                .UpLeft => self.moveUpLeft(pos),
-                .UpRight => self.moveUpRight(pos),
-                .Right => self.moveRight(pos),
-                .DownRight => self.moveDownRight(pos),
-                .DownLeft => self.moveDownLeft(pos),
+                .Left => self.moveLeft(idx),
+                .UpLeft => self.moveUpLeft(idx),
+                .UpRight => self.moveUpRight(idx),
+                .Right => self.moveRight(idx),
+                .DownRight => self.moveDownRight(idx),
+                .DownLeft => self.moveDownLeft(idx),
             }
-            try self.all_boards.append(self.board);
+            // try self.all_boards.append(self.board);
         }
 
-        inline fn moveLeft(self: *Self, pos: Position) void {
-            const pos1 = Position{ .row = pos.row, .col = pos.col - 1 };
-            const pos2 = Position{ .row = pos.row, .col = pos.col - 2 };
-            self.board.unset(idxFromPos(pos1));
-            self.board.unset(idxFromPos(pos2));
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveLeft(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row, .col = pos.col - 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row, .col = pos.col - 2 });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
-        inline fn moveUpLeft(self: *Self, pos: Position) void {
-            const pos1 = Position{ .row = pos.row - 1, .col = pos.col - 1 };
-            const pos2 = Position{ .row = pos.row - 2, .col = pos.col - 2 };
-            self.board.unset(idxFromPos(pos1));
-            self.board.unset(idxFromPos(pos2));
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveUpLeft(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col - 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row - 2, .col = pos.col - 2 });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
-        inline fn moveUpRight(self: *Self, pos: Position) void {
-            const pos1 = Position{ .row = pos.row - 1, .col = pos.col };
-            const pos2 = Position{ .row = pos.row - 2, .col = pos.col };
-            self.board.unset(idxFromPos(pos1));
-            self.board.unset(idxFromPos(pos2));
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveUpRight(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row - 1, .col = pos.col });
+            const idx2 = idxFromPos(Position{ .row = pos.row - 2, .col = pos.col });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
-        inline fn moveRight(self: *Self, pos: Position) {
-            const pos1 = Position{ .row = pos.row, .col = pos.col + 1 };
-            const pos2 = Position{ .row = pos.row, .col = pos.col + 2 };
-            self.board.unset(idxFromPos(pos1));
-            self.board.unset(idxFromPos(pos2));
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveRight(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row, .col = pos.col + 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row, .col = pos.col + 2 });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
-        inline fn moveDownRight(self: *Self, pos: Position) {
-            const pos1 = Position{ .row = pos.row + 1, .col = pos.col + 1 };
-            const pos2 = Position{ .row = pos.row + 2, .col = pos.col + 2 };
-            self.board.unset(pos1);
-            self.board.unset(pos2);
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveDownRight(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col + 1 });
+            const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col + 2 });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
-        inline fn moveDownLeft(self: *Self, pos: Position) {
-            const pos1 = Position{ .row = pos.row + 1, .col = pos.col };
-            const pos2 = Position{ .row = pos.row + 2, .col = pos.col };
-            self.board.unset(pos1);
-            self.board.unset(pos2);
-            self.updateMoves(pos1);
-            self.updateMoves(pos2);
+        inline fn moveDownLeft(self: *Self, idx: u16) void {
+            const pos = posFromIdx(idx);
+            const idx1 = idxFromPos(Position{ .row = pos.row + 1, .col = pos.col });
+            const idx2 = idxFromPos(Position{ .row = pos.row + 2, .col = pos.col });
+            self.board.unset(idx1);
+            self.board.unset(idx2);
+            self.updateMoves(idx1);
+            self.updateMoves(idx2);
         }
 
         fn isWon(self: *const Self) bool {
@@ -307,3 +314,5 @@ test "Pos 2 Idx" {
 }
 
 test "Has Move" {}
+
+test "Make Move" {}
