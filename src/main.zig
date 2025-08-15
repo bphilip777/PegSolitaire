@@ -1,5 +1,9 @@
 const std = @import("std");
+
 const createBoard = @import("Board.zig").createBoard;
+const idx2pos = @import("Board.zig").idx2pos;
+const pos2idx = @import("Board.zig").pos2idx;
+const print = std.debug.print;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -11,5 +15,10 @@ pub fn main() !void {
     defer b.deinit();
 
     b.printBoard();
+
     // b.play();
+}
+
+test "Run All Tests" {
+    _ = @import("Board.zig");
 }

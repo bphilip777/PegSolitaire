@@ -1,11 +1,11 @@
 const std = @import("std");
+const expect = std.testing.expect;
 const print = std.debug.print;
 const Allocator: type = std.mem.Allocator;
-const EnumSet: type = std.enums.EnumSet;
 
 pub fn createBoard(comptime n_rows: u16) type {
     if (n_rows == 0 or n_rows > 362) return error.NRowsMustBeGT0orLT362;
-    const n_indices = triangleNumber(n_rows);
+    const n_indices = triNum(n_rows);
 
     return struct {
         const Self = @This();
@@ -19,8 +19,11 @@ pub fn createBoard(comptime n_rows: u16) type {
             var board: std.bit_set.IntegerBitSet(n_indices) = .initFull();
             board.unset(start);
 
-            const moves: std.ArrayList(std.ArrayList(Moves)) = try .initCapacity(allo, n_indices);
-            for (moves.items) |*move| move.init(allo);
+            var moves: std.ArrayList(Moves) = try .initCapacity(allo, n_indices);
+            var i: u16 = 0;
+            while (i < moves.items.len) : (i +%= 1) {
+                moves.items[i] = Moves.initEmpty();
+            }
 
             return Self{
                 .allo = allo,
@@ -30,7 +33,6 @@ pub fn createBoard(comptime n_rows: u16) type {
         }
 
         pub fn deinit(self: *Self) void {
-            for (self.moves.items) |*move| move.deinit();
             self.moves.deinit();
         }
 
@@ -52,24 +54,103 @@ pub fn createBoard(comptime n_rows: u16) type {
         }
 
         pub fn updateMoves(self: *Self, idx: u16) !void {
-            var moves = self.moves.items;
+            // check l, ul, ur, r, dr, dl
+            self.moves.items[idx].insert(.left);
         }
 
         fn hasMove(self: *Self, idx: u16, move: Move) !bool {
-            if (idx >= self.moves.items.len) return error.IdxOutOfBounds;
-            const moves = self.moves.items[idx];
-            for (moves.items) |move| {}
+            _ = self;
+            _ = idx;
+            _ = move;
+            // if (idx >= self.moves.items.len) return error.IdxOutOfBounds;
+            // var possible_moves: *Move = &self.moves.items[idx];
+            // switch (move) {
+            //     .Left => {
+            //         if ()
+            //     },
+            //     .UpLeft => {},
+            //     .UpRight => {},
+            //     .Right => {},
+            //     .DownRight => {},
+            //     .DownLeft => {},
+            // }
         }
     };
 }
 
-fn triangleNumber(n: u16) u16 {
+const Position = struct {
+    row: u16,
+    col: u16,
+};
+
+fn triNum(n: u16) u16 {
     return (n * (n + 1)) / 2;
 }
 
-// sqrt of possible things you want to view
+fn invTriNum(n: u16) u16 {
+    return @intFromFloat((@sqrt(8 * @as(f16, @floatFromInt(n)) + 1) - 1) / 2);
+}
 
-const Directions = enum(u8) {
+pub fn idx2pos(idx: u16) Position {
+    const row = invTriNum(idx);
+    const tri_num = triNum(row);
+    const col = idx - tri_num;
+    return Position{ .row = row, .col = col };
+}
+
+test "Idx 2 Pos" {
+    const expected_positions = [_]Position{
+        .{ .row = 0, .col = 0 },
+        .{ .row = 1, .col = 0 },
+        .{ .row = 1, .col = 1 },
+        .{ .row = 2, .col = 0 },
+        .{ .row = 2, .col = 1 },
+        .{ .row = 2, .col = 2 },
+        .{ .row = 3, .col = 0 },
+        .{ .row = 3, .col = 1 },
+        .{ .row = 3, .col = 2 },
+        .{ .row = 3, .col = 3 },
+        .{ .row = 4, .col = 0 },
+        .{ .row = 4, .col = 1 },
+        .{ .row = 4, .col = 2 },
+        .{ .row = 4, .col = 3 },
+        .{ .row = 4, .col = 4 },
+    };
+    for (0..expected_positions.len, expected_positions) |i, epos| {
+        const pos = idx2pos(@truncate(i));
+        try expect(pos.row == epos.row and pos.col == epos.col);
+    }
+}
+
+pub fn pos2idx(pos: Position) u16 {
+    return triNum(pos.row) + pos.col;
+}
+
+test "Pos 2 Idx" {
+    const positions = [_]Position{
+        .{ .row = 0, .col = 0 },
+        .{ .row = 1, .col = 0 },
+        .{ .row = 1, .col = 1 },
+        .{ .row = 2, .col = 0 },
+        .{ .row = 2, .col = 1 },
+        .{ .row = 2, .col = 2 },
+        .{ .row = 3, .col = 0 },
+        .{ .row = 3, .col = 1 },
+        .{ .row = 3, .col = 2 },
+        .{ .row = 3, .col = 3 },
+        .{ .row = 4, .col = 0 },
+        .{ .row = 4, .col = 1 },
+        .{ .row = 4, .col = 2 },
+        .{ .row = 4, .col = 3 },
+        .{ .row = 4, .col = 4 },
+    };
+    for (0..positions.len, positions) |expected_idx, pos| {
+        const idx = pos2idx(pos);
+        try expect(idx == @as(u16, @truncate(expected_idx)));
+    }
+}
+
+const Move = enum(u8) {
     Left,
     UpLeft,
     UpRight,
@@ -78,4 +159,8 @@ const Directions = enum(u8) {
     DownLeft,
 };
 
-const Moves: type = EnumSet(Directions);
+const Moves: type = std.enums.EnumSet(Move);
+
+test "Print Board" {
+    // testing proper printing of board
+}
