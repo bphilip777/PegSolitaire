@@ -7,7 +7,7 @@ const Position: type = struct {
     col: u16,
 };
 const Allocator: type = std.mem.Allocator;
-const Move: type = enum(u8) {
+pub const Move: type = enum(u8) {
     Left,
     UpLeft,
     UpRight,
@@ -71,6 +71,7 @@ pub fn createBoard(comptime n_rows: u16) type {
                 }
                 print("{s}\n", .{&buffer});
             }
+            print("\n", .{});
         }
 
         pub fn updateMoves(self: *Self, idx: u16) void {
@@ -239,11 +240,11 @@ pub fn createBoard(comptime n_rows: u16) type {
             self.updateMoves(idx2);
         }
 
-        fn isWon(self: *const Self) bool {
+        pub fn isWon(self: *const Self) bool {
             return self.board.count() == 1;
         }
 
-        fn isLost(self: *const Self) bool {
+        pub fn isLost(self: *const Self) bool {
             const no_moves: bool = blk: for (self.moves.items) |move| {
                 if (move.count() > 0) break :blk false;
             } else break :blk false;
