@@ -2,82 +2,64 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-const createBoard = @import("Board.zig").createBoard;
-const Board: type = createBoard(5);
-const Move = @import("Board.zig").Move;
-const Moves = @import("Board.zig").Moves;
-const IdxMoves = struct { idx: u16, moves: Moves }; // list of moves
-const IdxMove = struct { idx: u16, move: Move }; // idx + move
+const createBoard = @import("Board1.zig").createBoard;
+const N_ROWS = 5;
+const Board: type = createBoard(N_ROWS) catch unreachable;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
 
-    var b: Board = try .init(allo, 0);
-    defer b.deinit();
+    // make this a test - ensure each start + direction works
+    {
+        const start = 0;
+        var board: Board = try .init(allo, start);
+        defer board.deinit();
 
-    // DFS through all possible boards and moves to print win conditions
-    var all_boards = std.ArrayList(u16).init(allo);
-    defer all_boards.deinit();
-
-    var all_moves = std.ArrayList(*std.ArrayList(IdxMoves)).init(allo);
-    defer all_moves.deinit();
-
-    b.printBoard();
-    var new_moves: std.ArrayList(IdxMoves) = try getMoves(allo, &b);
-    defer new_moves.deinit();
-
-    const new_move: IdxMove = getMove(&new_moves);
-    print("Move: {s}\n", .{@tagName(new_move.move)});
-    b.chooseMove(new_move.idx, new_move.move);
-    b.printBoard();
-}
-
-fn getMoves(allo: Allocator, b: *const Board) !std.ArrayList(IdxMoves) {
-    var mps = std.ArrayList(IdxMoves).init(allo);
-    // defer mps.deinit();
-    for (b.moves.items, 0..) |moves, i| {
-        if (moves.count() == 0) continue;
-        const mp = IdxMoves{ .idx = @truncate(i), .moves = moves };
-        try mps.append(mp);
+        board.chooseMove(start, .DownLeft);
+        board.printBoard();
+        board.chooseMove(start, .DownRight);
+        board.printBoard();
     }
-    return mps;
-}
 
-fn getMove(mps: *std.ArrayList(IdxMoves)) IdxMove {
-    var mp = mps.*.items[mps.*.items.len - 1];
-    var it = mp.moves.iterator();
-    const move = it.next().?;
-    mp.moves.remove(move);
-    if (mp.moves.count() == 0) {
-        _ = mps.*.pop().?;
-    } else {
-        mps.*.items[mps.*.items.len - 1] = mp;
+    {
+        const start = 8;
+        var board: Board = try .init(allo, start);
+        defer board.deinit();
+        board.printBoard();
+
+        board.chooseMove(start, .Left);
+        board.printBoard();
+        // board.chooseMove(start, .UpLeft);
+        // board.printBoard();
     }
-    return .{
-        .idx = mp.idx,
-        .move = move,
-    };
-}
 
-fn reachedPreviousBoardState(all_boards: *const std.ArrayList(u16), b: *const Board) ?u16 {
-    const curr_board: u16 = @truncate(b.board.count());
-    for (all_boards.*.items, 0..) |prev_board, i| {
-        if (curr_board == prev_board) return @truncate(i);
-    } else return null;
-}
-
-fn printMPs(mps: *std.ArrayList(IdxMoves)) void {
-    print("MP List\n", .{});
-    for (mps.*.items) |mp| {
-        print("{}: ", .{mp.idx});
-        var it = mp.moves.iterator();
-        while (it.next()) |item| print("{s} ", .{@tagName(item)});
-        print("\n", .{});
+    {
+        const start = 3;
+        var board: Board = try .init(allo, start);
+        defer board.deinit();
+        board.chooseMove(start, .Right);
+        board.printBoard();
+        board.chooseMove(start, .UpRight);
+        board.printBoard();
     }
 }
+
+// test "Set + Unsets Correct Pieces" {
+//     // assumes board size of 5
+//     // const start: []const u16 =  &.{0, 3, 8};
+//     // const directions: []const []const Direction = &.{&.{.DownLeft, .DownRight}, &.{.UpLeft, .Left}, &.{.Right, .UpRight} };
+//     // const expected_count: []const [] const u16 =  &.{&.{111111}, &.{}, &.{}};
+//     // for (start, directions) |s, dirs| {
+//     //     for (dirs) {
+//     //         board.chooseMove(start, dir);
+//     //         try std.testing.expect(board.board.eql(expected_count));
+//     //     }
+//     // }
+// }
 
 test "Run All Tests" {
-    _ = @import("Board.zig");
+    _ = @import("Board1.zig");
 }
