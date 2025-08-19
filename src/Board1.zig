@@ -297,30 +297,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        pub fn updateDirections(self: *Self, idx: T) void {
+        pub fn updateMoves(self: *Self, idx: T) void {
             if (self.board.isSet(idx)) {
                 self.updatePosMoves(idx);
             } else {
                 self.updateNegMoves(idx);
             }
-            var dir: Directions = self.directions.items[idx];
-            if (self.board.isSet(idx)) {
-                dir = dir.xorWith(dir);
-                self.directions.items[idx] = dir;
-                return;
-            }
-            const pos: Position = posFromIdx(idx);
-            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |iter_dir| {
-                const pos1 = getRotation(pos, iter_dir, .full) orelse continue;
-                const pos2 = getRotation(pos, iter_dir, .full) orelse continue;
-                const idx1 = idxFromPos(pos1);
-                if (idx1 >= self.board.capacity()) continue;
-                const idx2 = idxFromPos(pos2);
-                if (idx2 >= self.board.capacity()) continue;
-                if (!self.board.isSet(idx1) or !self.board.isSet(idx2)) continue;
-                dir.insert(iter_dir);
-            }
-            self.directions.items[idx] = dir;
         }
 
         pub fn updatePosMove(self: *Self, idx: T) void {
@@ -334,11 +316,15 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const dir = @field(Direction, fieldname);
                 const pos_ring1 = getRotation(pos, dir, .full);
                 const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                // origin
                 if (pos_ring1 != null and pos_ring2 != null) {
+                    // origin
                     self.pos_moves[idx].insert(dir);
-                    const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
+                    // ring 1 neighbor
+                    const idx1 = idxFromPos(pos_ring1.?);
+                    self.neg_moves[idx1].insert(opp_dir);
+                    // ring 2 neighbor
+                    const idx2 = idxFromPos(pos_ring2.?);
                     self.neg_moves[idx2].insert(opp_dir);
                 }
             }
@@ -355,14 +341,15 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const dir = @field(Direction, fieldname);
                 const pos_ring1 = getRotation(pos, dir, .full);
                 const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                // origin
                 if (pos_ring1 != null and pos_ring2 != null) {
+                    // origin
                     self.neg_moves[idx].insert(dir);
+                    // ring 1 neighbor
+                    // ring 2 neighbor
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
                     self.pos_moves[idx2].insert(opp_dir);
                 }
-                // update non-origin
             }
         }
 
