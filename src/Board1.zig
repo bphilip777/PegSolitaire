@@ -153,7 +153,8 @@ pub fn createBoard(comptime n_rows: T) !type {
         const Self = @This();
         allo: Allocator,
         board: std.bit_set.IntegerBitSet(n_indices),
-        directions: std.ArrayList(Directions),
+        pos_moves: [n_indices]Directions,
+        neg_moves: [n_indices]Directions,
 
         pub fn init(allo: Allocator, start: T) !Self {
             if (start >= n_indices) return error.STartMustBeGT0OrLTNumIndices;
@@ -161,13 +162,19 @@ pub fn createBoard(comptime n_rows: T) !type {
             var board: std.bit_set.IntegerBitSet(n_indices) = .initFull();
             board.unset(@as(usize, @intCast(start)));
 
-            var directions: std.ArrayList(Directions) = try .initCapacity(allo, n_indices);
-            for (0..n_indices) |_| directions.appendAssumeCapacity(Directions.initEmpty());
+            // Directions
+            var pos_moves: [n_indices]Directions = undefined;
+            var neg_moves: [n_indices]Directions = undefined;
+            for (0..n_indices) |i| {
+                pos_moves[i] = .initEmpty();
+                neg_moves[i] = .initEmpty();
+            }
 
             return Self{
                 .allo = allo,
                 .board = board,
-                .directions = directions,
+                .pos_moves = pos_moves,
+                .neg_moves = neg_moves,
             };
         }
 
@@ -199,7 +206,8 @@ pub fn createBoard(comptime n_rows: T) !type {
             var positions: [25]?Position = undefined;
             // only ring 0 gauranteed!
             // Priority: Origin -> Origin Neighbors -> Ring +1 near origin -> Ring +1 near neighbors
-            // ring 0 (o): o o o -> 0 1 2
+            // ring 0 (o): Clockwise from 0 (origin)
+            // o o o -> 0 1 2
             // original position
             positions[0] = posFromIdx(idx);
             // get initial line
@@ -211,9 +219,9 @@ pub fn createBoard(comptime n_rows: T) !type {
                 if (!self.board.isSet(idxFromPos(new_pos)))
                     return GameErrors.InvalidMove;
             }
-            // ring 1 (x):
+            // ring 1 (x): Clockwise from 3
             //   x x x x      4 5 6 7
-            //  x o o o x -> 3 0 1 2 8
+            //  x o o o x -> 3 o o o 8
             //   x x x x      2 1 0 9
             // opposite direction
             positions[3] = getRotation(positions[0], dir, .one_eighty);
@@ -231,11 +239,11 @@ pub fn createBoard(comptime n_rows: T) !type {
             positions[11] = getRotation(positions[0], dir, .sixty);
             // +60 deg rot
             positions[12] = getRotation(positions[0], dir, .one_twenty);
-            // ring 2 (|):
+            // ring 2 (|): Clockwise from 3
             //   | | | | |         4 5 6 7 8
-            //    x x x x           4 5 6 7
-            // | x o o o x | ->  3 3 0 1 2 8 9
-            //    x x x x           2 1 0 9
+            //    x x x x           x x x x
+            // | x o o o x | ->  3 x o o o x 9
+            //    x x x x           x x x x
             //   | | | | |         4 3 2 1 0
             // opposite direction
             positions[13] = getRotation(positions[3], dir, .one_eighty);
