@@ -8,6 +8,17 @@ const Allocator = std.mem.Allocator;
 
 const T: type = u16;
 
+fn numCharsFromDigit(digit: T) T {
+    return @truncate(@max(@as(usize, @intFromFloat(@ceil(@log10(@as(f64, @floatFromInt(digit + 1)))))), 1));
+}
+
+fn numCharsFromIdx(idx: T) T {
+    const pos = posFromIdx(idx);
+    const row = numCharsFromDigit(pos.row);
+    const col = numCharsFromDigit(pos.col);
+    return row + col;
+}
+
 pub fn triNum(n: T) T {
     return (n * (n + 1)) / 2;
 }
@@ -507,28 +518,60 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn printMoves(self: *const Self) void {
-            print("Negative Moves:\n", .{});
-            for (self.neg_moves, 0..) |neg_move, i| {
-                const pos = posFromIdx(@truncate(i));
-                print("({}, {}): ", .{ pos.row, pos.col });
-                if (neg_move.count() > 0) {
-                    var it = neg_move.iterator();
-                    while (it.next()) |item| print("{s} ", .{@tagName(item)});
-                }
-                print("\n", .{});
+            // max # of chars
+            var max_moves_char: usize = 0;
+            for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
+                var move_char_count: usize = 0;
+                var it = neg_move.iterator();
+                while (it.next()) |item| move_char_count += @tagName(item).len + 1;
+                it = pos_move.iterator();
+                while (it.next()) |item| move_char_count += @tagName(item).len + 1;
+                max_moves_char = @max(move_char_count, max_moves_char);
             }
-            print("\n", .{});
-            print("Positive Moves:\n", .{});
-            for (self.pos_moves, 0..) |pos_move, i| {
-                const pos = posFromIdx(@truncate(i));
-                print("({}, {}): ", .{ pos.row, pos.col });
-                if (pos_move.count() > 0) {
-                    var it = pos_move.iterator();
-                    while (it.next()) |item| print("{s} ", .{@tagName(item)});
+            // num buffer
+            const num_buffer = numCharsFromIdx(n_indices) + 5;
+            // buffer
+            var buffer: [1024]u8 = undefined;
+            // header strings
+            const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
+            // loop
+            var start: usize = 0;
+            var end: usize = 0;
+            const buffers = [_]usize{ num_buffer, max_moves_char, 0 };
+            const column_buffer = " | ";
+            for (headers, buffers) |header, buffer_length| {
+                end += header.len;
+                @memcpy(buffer[start..end], header);
+                if (buffer_length > header.len) {
+                    start += header.len;
+                    end += (buffer_length - header.len);
+                    @memset(buffer[start..end], ' ');
+                    @memcpy(buffer[end .. end + column_buffer.len], column_buffer);
+                    start = end + column_buffer.len;
+                    end = start;
                 }
-                print("\n", .{});
             }
-            print("\n", .{});
+            print("{s}\n", .{buffer[0..end]});
+            // for (self.neg_moves, 0..) |neg_move, i| {
+            //     const pos = posFromIdx(@truncate(i));
+            //     print("({}, {}): ", .{ pos.row, pos.col });
+            //     if (neg_move.count() > 0) {
+            //         var it = neg_move.iterator();
+            //         while (it.next()) |item| print("{s} ", .{@tagName(item)});
+            //     }
+            //     print("\n", .{});
+            // }
+            // print("\n", .{});
+            // for (self.pos_moves, 0..) |pos_move, i| {
+            //     const pos = posFromIdx(@truncate(i));
+            //     print("({}, {}): ", .{ pos.row, pos.col });
+            //     if (pos_move.count() > 0) {
+            //         var it = pos_move.iterator();
+            //         while (it.next()) |item| print("{s} ", .{@tagName(item)});
+            //     }
+            //     print("\n", .{});
+            // }
+            // print("\n", .{});
         }
     };
 }
