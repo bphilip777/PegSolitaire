@@ -199,46 +199,6 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self;
         }
 
-        pub fn updatePosMove(self: *Self, idx: T) void {
-            if (!self.board.isSet(idx)) return;
-            const pos = posFromIdx(idx);
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
-                const dir = @field(Direction, fieldname);
-                const pos_ring1 = getRotation(pos, dir, .full);
-                const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                // origin
-                if (pos_ring1 != null and pos_ring2 != null) {
-                    self.pos_moves[idx].insert(dir);
-                    const idx2 = idxFromPos(pos_ring2.?);
-                    const opp_dir = Direction.opposite(dir);
-                    self.neg_moves[idx2].insert(opp_dir);
-                }
-            }
-        }
-
-        pub fn updateNegMove(self: *Self, idx: T) void {
-            // have hole at idx,
-            // check if next two neighbors:
-            // 1. exist
-            // 2. are set
-            // update neg for current idx + pos for 2 ring idx
-            if (self.board.isSet(idx)) return;
-            const pos = posFromIdx(idx);
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
-                const dir = @field(Direction, fieldname);
-                const pos_ring1 = getRotation(pos, dir, .full);
-                const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                // origin
-                if (pos_ring1 != null and pos_ring2 != null) {
-                    self.neg_moves[idx].insert(dir);
-                    const idx2 = idxFromPos(pos_ring2.?);
-                    const opp_dir = Direction.opposite(dir);
-                    self.pos_moves[idx2].insert(opp_dir);
-                }
-                // update non-origin
-            }
-        }
-
         pub fn deinit(self: *Self) void {
             _ = self;
         }
@@ -338,7 +298,11 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn updateDirections(self: *Self, idx: T) void {
-            if (idx >= self.board.capacity()) return;
+            if (self.board.isSet(idx)) {
+                self.updatePosMoves(idx);
+            } else {
+                self.updateNegMoves(idx);
+            }
             var dir: Directions = self.directions.items[idx];
             if (self.board.isSet(idx)) {
                 dir = dir.xorWith(dir);
@@ -357,6 +321,49 @@ pub fn createBoard(comptime n_rows: T) !type {
                 dir.insert(iter_dir);
             }
             self.directions.items[idx] = dir;
+        }
+
+        pub fn updatePosMove(self: *Self, idx: T) void {
+            // have peg at idx
+            // check if next two neighbors:
+            // neighbor = exist + set
+            // next to neighbor = exist + set
+            if (!self.board.isSet(idx)) return;
+            const pos = posFromIdx(idx);
+            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
+                const dir = @field(Direction, fieldname);
+                const pos_ring1 = getRotation(pos, dir, .full);
+                const pos_ring2 = getRotation(pos_ring1, dir, .full);
+                // origin
+                if (pos_ring1 != null and pos_ring2 != null) {
+                    self.pos_moves[idx].insert(dir);
+                    const idx2 = idxFromPos(pos_ring2.?);
+                    const opp_dir = Direction.opposite(dir);
+                    self.neg_moves[idx2].insert(opp_dir);
+                }
+            }
+        }
+
+        pub fn updateNegMove(self: *Self, idx: T) void {
+            // have hole at idx,
+            // check if next two neighbors:
+            // neighbor = exist + set
+            // next to neighbor = exist + set
+            if (self.board.isSet(idx)) return;
+            const pos = posFromIdx(idx);
+            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
+                const dir = @field(Direction, fieldname);
+                const pos_ring1 = getRotation(pos, dir, .full);
+                const pos_ring2 = getRotation(pos_ring1, dir, .full);
+                // origin
+                if (pos_ring1 != null and pos_ring2 != null) {
+                    self.neg_moves[idx].insert(dir);
+                    const idx2 = idxFromPos(pos_ring2.?);
+                    const opp_dir = Direction.opposite(dir);
+                    self.pos_moves[idx2].insert(opp_dir);
+                }
+                // update non-origin
+            }
         }
 
         fn getPosFromIdx(self: *const Self, idx: T) ?Position {
