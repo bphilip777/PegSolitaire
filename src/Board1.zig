@@ -127,6 +127,17 @@ const Rotation: type = enum {
     two_forty,
     three_hundo,
     full,
+
+    pub fn opposite(input: Rotation) Rotation {
+        return switch (input) {
+            .sixty => .two_forty,
+            .one_twenty => .three_hundo,
+            .one_eighty => .full,
+            .two_forty => .sixty,
+            .three_hundo => .one_twenty,
+            .full => .one_eighty,
+        };
+    }
 };
 
 const Direction: type = enum {
@@ -136,6 +147,17 @@ const Direction: type = enum {
     Right,
     DownRight,
     DownLeft,
+
+    pub fn opposite(input: Direction) Direction {
+        return switch (input) {
+            .Left => .Right,
+            .UpLeft => .DownRight,
+            .UpRight => .DownLeft,
+            .Right => .Left,
+            .DownRight => .UpLeft,
+            .DownLeft => .UpRight,
+        };
+    }
 };
 
 pub const Directions: type = std.enums.EnumSet(Direction);
@@ -169,13 +191,54 @@ pub fn createBoard(comptime n_rows: T) !type {
                 pos_moves[i] = .initEmpty();
                 neg_moves[i] = .initEmpty();
             }
-
-            return Self{
+            var self = Self{
                 .allo = allo,
                 .board = board,
                 .pos_moves = pos_moves,
                 .neg_moves = neg_moves,
             };
+
+            // Initial moves
+            self.updateNegMove(start);
+            self.updatePosMove();
+
+            return self;
+        }
+
+        pub fn updatePosMove(self: *const Self, idx: T) void {
+            if (!self.board.isSet(idx)) return;
+            const pos = posFromIdx(idx);
+            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
+                const dir = @field(Direction, fieldname);
+                const pos_ring1 = getRotation(pos, dir, .full);
+                const pos_ring2 = getRotation(pos_ring1, dir, .full);
+                // origin
+                if (pos_ring1 != null and pos_ring2 != null) {
+                    self.pos_moves[idx].insert(dir);
+                }
+            }
+        }
+
+        pub fn updateNegMove(self: *const Self, idx: T) void {
+            // have hole at idx,
+            // check if next two neighbors:
+            // 1. exist
+            // 2. are set
+            // update neg for current idx + pos for 2 ring idx
+            if (self.board.isSet(idx)) return;
+            const pos = posFromIdx(idx);
+            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
+                const dir = @field(Direction, fieldname);
+                const pos_ring1 = getRotation(pos, dir, .full);
+                const pos_ring2 = getRotation(pos_ring1, dir, .full);
+                // origin
+                if (pos_ring1 != null and pos_ring2 != null) {
+                    self.neg_moves[idx].insert(dir);
+                    const idx2 = idxFromPos(pos_ring2.?);
+                    self.pos_moves[idx2].insert();
+                }
+                // update non-origin
+            }
         }
 
         pub fn deinit(self: *Self) void {
