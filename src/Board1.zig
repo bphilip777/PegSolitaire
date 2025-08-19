@@ -193,8 +193,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 .neg_moves = neg_moves,
             };
 
-            // Initial moves
-            self.updateNegMove(start);
+            // Init move
+            for (0..n_indices) |i| self.updateMoves(@truncate(i));
 
             return self;
         }
@@ -222,7 +222,6 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn chooseMove(self: *Self, idx: T, dir: Direction) !void {
-            // TODO: double check self.directions on whether the move can be taken
             if (self.board.isSet(idx)) return GameErrors.InvalidMove;
             var positions: [25]?Position = undefined;
             // only ring 0 gauranteed!
@@ -329,13 +328,16 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const idx1 = idxFromPos(pos_ring1.?);
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
-                    if (self.board.isSet(idx1) and !self.board.isSet(idx2)) {
-                        // add dir to origin + next to neighbor
-                        self.pos_moves[idx].insert(dir);
-                        self.neg_moves[idx2].insert(opp_dir);
-                    } else {
-                        self.pos_moves[idx].remove(dir);
-                        self.neg_moves[idx2].remove(opp_dir);
+                    if (self.isValid(idx1) and self.isValid(idx2)) {
+                        if (self.board.isSet(idx1) and !self.board.isSet(idx2)) {
+                            // add move
+                            self.pos_moves[idx].insert(dir);
+                            self.neg_moves[idx2].insert(opp_dir);
+                        } else {
+                            // remove move
+                            self.pos_moves[idx].remove(dir);
+                            self.neg_moves[idx2].remove(opp_dir);
+                        }
                     }
                 }
             }
@@ -345,6 +347,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // 1. check hole at idx,
             // 2. check all rotations
             // 3. check both neighbors exist + set
+            // 4. if not, unset the values
 
             // check hole at idx
             if (self.board.isSet(idx)) {
@@ -362,15 +365,23 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const idx1 = idxFromPos(pos_ring1.?);
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
-                    if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
-                        self.neg_moves[idx].insert(dir);
-                        self.pos_moves[idx2].insert(opp_dir);
-                    } else {
-                        self.neg_moves[idx].insert(dir);
-                        self.pos_moves[idx2].remove(opp_dir);
+                    if (self.isValid(idx1) and self.isValid(idx2)) {
+                        if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
+                            // add move
+                            self.neg_moves[idx].insert(dir);
+                            self.pos_moves[idx2].insert(opp_dir);
+                        } else {
+                            // remove move
+                            self.neg_moves[idx].remove(dir);
+                            self.pos_moves[idx2].remove(opp_dir);
+                        }
                     }
                 }
             }
+        }
+
+        fn isValid(self: *const Self, idx: T) bool {
+            return idx < self.board.capacity();
         }
 
         fn getPosFromIdx(self: *const Self, idx: T) ?Position {
@@ -498,12 +509,26 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn printMoves(self: *const Self) void {
             print("Negative Moves:\n", .{});
             for (self.neg_moves, 0..) |neg_move, i| {
-                print("{}: {}\n", .{ i, neg_move.count() });
+                const pos = posFromIdx(@truncate(i));
+                print("({}, {}): ", .{ pos.row, pos.col });
+                if (neg_move.count() > 0) {
+                    var it = neg_move.iterator();
+                    while (it.next()) |item| print("{s} ", .{@tagName(item)});
+                }
+                print("\n", .{});
             }
-            print("Positive Moves\n", .{});
+            print("\n", .{});
+            print("Positive Moves:\n", .{});
             for (self.pos_moves, 0..) |pos_move, i| {
-                print("{}: {}\n", .{ i, pos_move.count() });
+                const pos = posFromIdx(@truncate(i));
+                print("({}, {}): ", .{ pos.row, pos.col });
+                if (pos_move.count() > 0) {
+                    var it = pos_move.iterator();
+                    while (it.next()) |item| print("{s} ", .{@tagName(item)});
+                }
+                print("\n", .{});
             }
+            print("\n", .{});
         }
     };
 }
