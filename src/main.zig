@@ -12,54 +12,51 @@ pub fn main() !void {
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
 
-    // make this a test - ensure each start + direction works
-    {
-        const start = 0;
-        var board: Board = try .init(allo, start);
-        defer board.deinit();
+    // test win/loss conditions
+    const start = 0;
+    var board: Board = try .init(allo, start);
+    defer board.deinit();
+    board.printBoard();
 
-        board.chooseMove(start, .DownLeft);
-        board.printBoard();
-        board.chooseMove(start, .DownRight);
-        board.printBoard();
-    }
+    try board.chooseMove(start, .DownLeft);
+    board.printBoard();
+    board.printMoves();
+    // try board.chooseMove(3, .Right);
+    // board.printBoard();
+    // try board.chooseMove(5, .UpLeft);
+    // board.printBoard();
+    // try board.chooseMove(1, .DownLeft);
+    // board.printBoard();
+    // try board.chooseMove(2, .DownRight);
+    // board.printBoard();
+    // try board.chooseMove(3, .DownRight);
+    // board.printBoard();
+    // try board.chooseMove(0, .DownLeft);
+    // board.printBoard();
+    // try board.chooseMove(5, .UpLeft);
+    // board.printBoard();
+    // try board.chooseMove(12, .Left);
+    // board.printBoard();
+    // try board.chooseMove(11, .Right);
+    // board.printBoard();
+    // try board.chooseMove(12, .UpRight);
+    // board.printBoard();
+    // try board.chooseMove(10, .Right);
+    // board.printBoard();
 
-    {
-        const start = 8;
-        var board: Board = try .init(allo, start);
-        defer board.deinit();
-        board.printBoard();
-
-        board.chooseMove(start, .Left);
-        board.printBoard();
-        // board.chooseMove(start, .UpLeft);
-        // board.printBoard();
-    }
-
-    {
-        const start = 3;
-        var board: Board = try .init(allo, start);
-        defer board.deinit();
-        board.chooseMove(start, .Right);
-        board.printBoard();
-        board.chooseMove(start, .UpRight);
-        board.printBoard();
-    }
+    // print("{}\n", .{board.isLost()});
 }
 
-// test "Set + Unsets Correct Pieces" {
-//     // assumes board size of 5
-//     // const start: []const u16 =  &.{0, 3, 8};
-//     // const directions: []const []const Direction = &.{&.{.DownLeft, .DownRight}, &.{.UpLeft, .Left}, &.{.Right, .UpRight} };
-//     // const expected_count: []const [] const u16 =  &.{&.{111111}, &.{}, &.{}};
-//     // for (start, directions) |s, dirs| {
-//     //     for (dirs) {
-//     //         board.chooseMove(start, dir);
-//     //         try std.testing.expect(board.board.eql(expected_count));
-//     //     }
-//     // }
+// test "Lose Condition" {
+//
 // }
 
 test "Run All Tests" {
     _ = @import("Board1.zig");
 }
+
+// 0
+// 1 2
+// 3 4 5
+// 6 7 8 9
+// 0 1 2 3 4

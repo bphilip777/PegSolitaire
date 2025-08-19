@@ -3,9 +3,8 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
 // TODO:
-// 1. Update moves
-// 2. Print Moves
-// 3. Play through base game
+// Enable positive and negative moves
+// - currently only negative moves
 
 const T: type = u16;
 
@@ -141,6 +140,11 @@ const Direction: type = enum {
 
 pub const Directions: type = std.enums.EnumSet(Direction);
 
+const GameErrors = error{
+    InvalidMove,
+    InvalidPosition,
+};
+
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows <= 0 or n_rows > MAX_INPUT_SIZE) return error.NRowsTooSmallOrTooLarge;
     const n_indices = triNum(n_rows);
@@ -189,8 +193,9 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        pub fn chooseMove(self: *Self, idx: T, dir: Direction) void {
-            self.board.set(idx);
+        pub fn chooseMove(self: *Self, idx: T, dir: Direction) !void {
+            // TODO: double check self.directions on whether the move can be taken
+            if (self.board.isSet(idx)) return GameErrors.InvalidMove;
             var positions: [25]?Position = undefined;
             // only ring 0 gauranteed!
             // Priority: Origin -> Origin Neighbors -> Ring +1 near origin -> Ring +1 near neighbors
@@ -200,6 +205,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             // get initial line
             positions[1] = getRotation(positions[0], dir, .full);
             positions[2] = getRotation(positions[1], dir, .full);
+            for (positions[1..3]) |new_position| {
+                const new_pos = new_position orelse
+                    return GameErrors.InvalidPosition;
+                if (!self.board.isSet(idxFromPos(new_pos)))
+                    return GameErrors.InvalidMove;
+            }
             // ring 1 (x):
             //   x x x x      4 5 6 7
             //  x o o o x -> 3 0 1 2 8
@@ -245,9 +256,9 @@ pub fn createBoard(comptime n_rows: T) !type {
             positions[23] = getRotation(positions[12], dir, .sixty);
             positions[24] = getRotation(positions[12], dir, .one_twenty);
             // set ring 0 values
-            self.board.unset(idxFromPos(positions[0].?));
+            self.board.set(idxFromPos(positions[0].?));
             self.board.unset(idxFromPos(positions[1].?));
-            self.board.set(idxFromPos(positions[2].?));
+            self.board.unset(idxFromPos(positions[2].?));
             // Redundancies: TODO
             // Update directions
             for (positions) |position| {
@@ -258,7 +269,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn updateDirections(self: *Self, idx: T) void {
-            if (idx > self.board.capacity()) return;
+            if (idx >= self.board.capacity()) return;
             var dir: Directions = self.directions.items[idx];
             if (self.board.isSet(idx)) {
                 dir = dir.xorWith(dir);
@@ -266,18 +277,17 @@ pub fn createBoard(comptime n_rows: T) !type {
                 return;
             }
             const pos: Position = posFromIdx(idx);
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
-                if (getRotation(pos, @field(Direction, fieldname), .full)) |pos1| {
-                    if (getRotation(pos1, @field(Direction, fieldname), .full)) |pos2| {
-                        const idx1 = idxFromPos(pos1);
-                        const idx2 = idxFromPos(pos2);
-                        print("({}, {})\n", .{ idx1, idx2 });
-                        if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
-                            dir.insert(@field(Direction, fieldname));
-                        }
-                    }
-                }
+            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |iter_dir| {
+                const pos1 = getRotation(pos, iter_dir, .full) orelse continue;
+                const pos2 = getRotation(pos, iter_dir, .full) orelse continue;
+                const idx1 = idxFromPos(pos1);
+                if (idx1 >= self.board.capacity()) continue;
+                const idx2 = idxFromPos(pos2);
+                if (idx2 >= self.board.capacity()) continue;
+                if (!self.board.isSet(idx1) or !self.board.isSet(idx2)) continue;
+                dir.insert(iter_dir);
             }
+            self.directions.items[idx] = dir;
         }
 
         fn getPosFromIdx(self: *const Self, idx: T) ?Position {
@@ -388,5 +398,75 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             return null;
         }
+
+        pub fn isWon(self: *const Self) bool {
+            return self.board.count() == 1;
+        }
+
+        pub fn isLost(self: *const Self) bool {
+            for (self.directions.items) |dir| {
+                print("{}\n", .{dir.count()}); // not correct
+                // if (dir.count() > 0) return false;
+            }
+            return false;
+            // return self.board.count() > 0;
+        }
+
+        pub fn printMoves(self: *const Self) void {
+            for (self.directions.items, 0..) |dir, i| {
+                print("{}: {}\n", .{ i, dir.count() });
+            }
+        }
     };
+}
+
+test "Set + Unsets Correct Pieces" {
+    // needs to be fixed
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    const starts = [_]T{ 0, 3, 8 };
+    const directions: []const []const Direction = &.{
+        &.{ .DownLeft, .DownRight },
+        &.{ .Right, .UpRight },
+        &.{ .UpLeft, .Left },
+    };
+    const expected_counts = [_]T{ 32760, 32741, 32367 };
+
+    for (starts, directions, expected_counts) |start, dirs, expected_count| {
+        var board: Board = try .init(allo, start);
+        defer board.deinit();
+        for (dirs) |dir| {
+            try board.chooseMove(start, dir);
+        }
+        try std.testing.expectEqual(board.board.mask, expected_count);
+    }
+}
+
+test "Win Condition" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    const start = 0;
+
+    var board: Board = try .init(allo, start);
+    defer board.deinit();
+
+    try board.chooseMove(start, .DownLeft);
+    try board.chooseMove(3, .Right);
+    try board.chooseMove(5, .UpLeft);
+    try board.chooseMove(1, .DownLeft);
+    try board.chooseMove(2, .DownRight);
+    try board.chooseMove(3, .DownRight);
+    try board.chooseMove(0, .DownLeft);
+    try board.chooseMove(5, .UpLeft);
+    try board.chooseMove(12, .Left);
+    try board.chooseMove(11, .Right);
+    try board.chooseMove(12, .UpRight);
+    try board.chooseMove(13, .Left);
+    try board.chooseMove(12, .Right);
+
+    try std.testing.expect(board.isWon());
 }
