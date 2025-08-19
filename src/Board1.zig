@@ -215,6 +215,9 @@ pub fn createBoard(comptime n_rows: T) !type {
                 // origin
                 if (pos_ring1 != null and pos_ring2 != null) {
                     self.pos_moves[idx].insert(dir);
+                    const idx2 = idxFromPos(pos_ring2.?);
+                    const opp_dir = Direction.opposite(dir);
+                    self.neg_moves[idx2].insert(opp_dir);
                 }
             }
         }
@@ -235,7 +238,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 if (pos_ring1 != null and pos_ring2 != null) {
                     self.neg_moves[idx].insert(dir);
                     const idx2 = idxFromPos(pos_ring2.?);
-                    self.pos_moves[idx2].insert();
+                    const opp_dir = Direction.opposite(dir);
+                    self.pos_moves[idx2].insert(opp_dir);
                 }
                 // update non-origin
             }
