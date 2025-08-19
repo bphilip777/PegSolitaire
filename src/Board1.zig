@@ -292,63 +292,83 @@ pub fn createBoard(comptime n_rows: T) !type {
             // Update directions
             for (positions) |position| {
                 if (position) |pos| {
-                    self.updateDirections(idxFromPos(pos));
+                    self.updateMoves(idxFromPos(pos));
                 }
             }
         }
 
         pub fn updateMoves(self: *Self, idx: T) void {
             if (self.board.isSet(idx)) {
-                self.updatePosMoves(idx);
+                self.updatePosMove(idx);
             } else {
-                self.updateNegMoves(idx);
+                self.updateNegMove(idx);
             }
         }
 
         pub fn updatePosMove(self: *Self, idx: T) void {
-            // have peg at idx
-            // check if next two neighbors:
-            // neighbor = exist + set
-            // next to neighbor = exist + set
-            if (!self.board.isSet(idx)) return;
+            // 1. check for peg at idx
+            // 2. Check all rotations
+            // 3. check that both neighbors exist
+            // 4. neighbor = set
+            // 5. next to neighbor = unset
+
+            // check that peg exists
+            if (!self.board.isSet(idx)) {
+                self.pos_moves[idx] = self.pos_moves[idx].xorWith(self.pos_moves[idx]);
+                return;
+            }
             const pos = posFromIdx(idx);
+            // check all rotations
             inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
                 const dir = @field(Direction, fieldname);
+                // check that both neighbors exist
                 const pos_ring1 = getRotation(pos, dir, .full);
                 const pos_ring2 = getRotation(pos_ring1, dir, .full);
                 if (pos_ring1 != null and pos_ring2 != null) {
-                    // origin
-                    self.pos_moves[idx].insert(dir);
-                    const opp_dir = Direction.opposite(dir);
-                    // ring 1 neighbor
+                    // check that neighbor is set and next to neigbor is unset
                     const idx1 = idxFromPos(pos_ring1.?);
-                    self.neg_moves[idx1].insert(opp_dir);
-                    // ring 2 neighbor
                     const idx2 = idxFromPos(pos_ring2.?);
-                    self.neg_moves[idx2].insert(opp_dir);
+                    const opp_dir = Direction.opposite(dir);
+                    if (self.board.isSet(idx1) and !self.board.isSet(idx2)) {
+                        // add dir to origin + next to neighbor
+                        self.pos_moves[idx].insert(dir);
+                        self.neg_moves[idx2].insert(opp_dir);
+                    } else {
+                        self.pos_moves[idx].remove(dir);
+                        self.neg_moves[idx2].remove(opp_dir);
+                    }
                 }
             }
         }
 
         pub fn updateNegMove(self: *Self, idx: T) void {
-            // have hole at idx,
-            // check if next two neighbors:
-            // neighbor = exist + set
-            // next to neighbor = exist + set
-            if (self.board.isSet(idx)) return;
+            // 1. check hole at idx,
+            // 2. check all rotations
+            // 3. check both neighbors exist + set
+
+            // check hole at idx
+            if (self.board.isSet(idx)) {
+                self.neg_moves[idx] = self.neg_moves[idx].xorWith(self.neg_moves[idx]);
+                return;
+            }
             const pos = posFromIdx(idx);
+            // check all rotations
             inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
                 const dir = @field(Direction, fieldname);
+                // check both neighbors exist + set
                 const pos_ring1 = getRotation(pos, dir, .full);
                 const pos_ring2 = getRotation(pos_ring1, dir, .full);
                 if (pos_ring1 != null and pos_ring2 != null) {
-                    // origin
-                    self.neg_moves[idx].insert(dir);
-                    // ring 1 neighbor
-                    // ring 2 neighbor
+                    const idx1 = idxFromPos(pos_ring1.?);
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
-                    self.pos_moves[idx2].insert(opp_dir);
+                    if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
+                        self.neg_moves[idx].insert(dir);
+                        self.pos_moves[idx2].insert(opp_dir);
+                    } else {
+                        self.neg_moves[idx].insert(dir);
+                        self.pos_moves[idx2].remove(opp_dir);
+                    }
                 }
             }
         }
