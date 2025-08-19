@@ -199,7 +199,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self;
         }
 
-        pub fn updatePosMove(self: *const Self, idx: T) void {
+        pub fn updatePosMove(self: *Self, idx: T) void {
             if (!self.board.isSet(idx)) return;
             const pos = posFromIdx(idx);
             inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
@@ -216,7 +216,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        pub fn updateNegMove(self: *const Self, idx: T) void {
+        pub fn updateNegMove(self: *Self, idx: T) void {
             // have hole at idx,
             // check if next two neighbors:
             // 1. exist
@@ -240,7 +240,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn deinit(self: *Self) void {
-            self.directions.deinit();
+            _ = self;
         }
 
         pub fn printBoard(self: *const Self) void {
@@ -473,17 +473,22 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn isLost(self: *const Self) bool {
-            for (self.directions.items) |dir| {
-                print("{}\n", .{dir.count()}); // not correct
-                // if (dir.count() > 0) return false;
+            const len = self.board.capacity();
+            for (0..len) |i| {
+                print("{}\n", .{i});
             }
             return false;
             // return self.board.count() > 0;
         }
 
         pub fn printMoves(self: *const Self) void {
-            for (self.directions.items, 0..) |dir, i| {
-                print("{}: {}\n", .{ i, dir.count() });
+            print("Negative Moves:\n", .{});
+            for (self.neg_moves, 0..) |neg_move, i| {
+                print("{}: {}\n", .{ i, neg_move.count() });
+            }
+            print("Positive Moves\n", .{});
+            for (self.pos_moves, 0..) |pos_move, i| {
+                print("{}: {}\n", .{ i, pos_move.count() });
             }
         }
     };
@@ -539,3 +544,5 @@ test "Win Condition" {
 
     try std.testing.expect(board.isWon());
 }
+
+test "Lose Condition" {}
