@@ -580,19 +580,30 @@ pub fn createBoard(comptime n_rows: T) !type {
             // recompute start moves
         }
 
+        fn getNumChars(move: Directions) T {
+            var num_chars: T = 0;
+            inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+                const dir = @field(Direction, field_name);
+                num_chars += @as(T, @intFromBool(move.contains(dir))) * @as(T, @truncate(field_name.len));
+                num_chars += 1;
+            }
+            return num_chars;
+        }
+
         pub fn printMoves(self: *Self) !void {
             // max # of chars
             var max_moves_char: T = 0;
             for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
-                var move_char_count: T = 0;
-                var it = neg_move.iterator();
-                while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
-                it = pos_move.iterator();
-                while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
-                max_moves_char = @max(move_char_count, max_moves_char);
+                max_moves_char = @max(max_moves_char, getNumChars(neg_move));
+                max_moves_char = @max(max_moves_char, getNumChars(pos_move));
+                // var it = neg_move.iterator();
+                // while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
+                // it = pos_move.iterator();
+                // while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
             }
+            print("Max Moves Char: {}\n", .{max_moves_char});
             // headers
-            const headers = [_][]const u8{ "Coords", "Pos Moves", "Neg Moves" };
+            const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
             const column_buffer = " | ";
             // num buffer
             // const num_buffer = numCharsFromIdx(n_indices);
@@ -611,7 +622,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const pos = posFromIdx(@truncate(i));
                 const coords_str = try std.fmt.allocPrint(
                     self.allo,
-                    "({}, {}): ",
+                    "({}, {}) ",
                     .{ pos.row, pos.col },
                 );
                 defer self.allo.free(coords_str);
@@ -646,25 +657,47 @@ pub fn createBoard(comptime n_rows: T) !type {
             const empty_buffer = [_]u8{' '} ** 1024;
             // const n_items = getNumMoves(move);
 
-            var moves_str: []u8 = undefined;
+            var moves_str: []u8 = try std.fmt.allocPrint(allo, "", .{});
             var tmp: []u8 = undefined;
 
-            var it = move.iterator();
-            if (it.next()) |item1| {
-                moves_str = try std.fmt.allocPrint(allo, "{s}, ", .{@tagName(item1)});
-                while (it.next()) |item2| {
-                    if (@tagName(item2).len == 0) continue;
-                    tmp = try std.fmt.allocPrint(allo, "{s}, {s}", .{ moves_str, @tagName(item2) });
-                    allo.free(moves_str);
-                    moves_str = tmp;
+            var n_items: T = getNumMoves(move);
+            var first: bool = true;
+            if (n_items > 0) {
+                inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+                    const dir = @field(Direction, field_name);
+                    if (move.contains(dir)) {
+                        if (first) {
+                            tmp = try std.fmt.allocPrint(allo, " {s}", .{field_name});
+                            first = false;
+                        } else {
+                            tmp = try std.fmt.allocPrint(
+                                allo,
+                                "{s}, {s}",
+                                .{ moves_str, field_name },
+                            );
+                        }
+                        allo.free(moves_str);
+                        moves_str = tmp;
+                        n_items -= 1;
+                    }
                 }
-            } else {
-                moves_str = try std.fmt.allocPrint(
-                    allo,
-                    "{s}",
-                    .{empty_buffer[0..max_moves_char]},
-                );
             }
+            // var it = move.iterator();
+            // if (it.next()) |item1| {
+            //     moves_str = try std.fmt.allocPrint(allo, "{s}, ", .{@tagName(item1)});
+            //     while (it.next()) |item2| {
+            //         if (@tagName(item2).len == 0) continue;
+            //         tmp = try std.fmt.allocPrint(allo, "{s}, {s}", .{ moves_str, @tagName(item2) });
+            //         allo.free(moves_str);
+            //         moves_str = tmp;
+            //     }
+            // } else {
+            //     moves_str = try std.fmt.allocPrint(
+            //         allo,
+            //         "{s}",
+            //         .{empty_buffer[0..max_moves_char]},
+            //     );
+            // }
             if (moves_str.len < max_moves_char) {
                 const diff = max_moves_char - moves_str.len;
                 tmp = try std.fmt.allocPrint(allo, "{s}{s}", .{ moves_str, empty_buffer[0..diff] });
