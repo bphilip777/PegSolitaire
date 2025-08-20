@@ -185,6 +185,26 @@ const Direction: type = enum {
 
 pub const Directions: type = std.enums.EnumSet(Direction);
 
+fn getNumMoves(move: Directions) T {
+    var n_items: T = 0;
+    inline for (comptime std.meta.fieldNames(Direction)) |fieldName| {
+        n_items += @intFromBool(move.contains(@field(Direction, fieldName)));
+    }
+    return n_items;
+}
+
+test "Get Number Of Moves" {
+    const a: Directions = .initFull();
+    const a_moves = getNumMoves(a);
+    try std.testing.expectEqual(6, a_moves);
+
+    var b: Directions = .initEmpty();
+    b.insert(.Left);
+    b.insert(.Right);
+    const b_moves = getNumMoves(b);
+    try std.testing.expectEqual(2, b_moves);
+}
+
 const GameErrors = error{
     InvalidMove,
     InvalidPosition,
@@ -616,14 +636,6 @@ pub fn createBoard(comptime n_rows: T) !type {
                     },
                 );
             }
-        }
-
-        fn getNumMoves(move: Directions) T {
-            var n_items: T = 0;
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldName| {
-                n_items += @intFromBool(move.contains(@field(Direction, fieldName)));
-            }
-            return n_items;
         }
 
         fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
