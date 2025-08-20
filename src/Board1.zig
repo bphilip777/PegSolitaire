@@ -206,13 +206,14 @@ test "Get Number Of Moves" {
 }
 
 fn getNumChars(move: Directions) T {
+    const n_items = getNumMoves(move);
+    if (n_items == 0) return 0;
     var num_chars: T = 0;
     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
         const dir = @field(Direction, field_name);
         num_chars += @as(T, @intFromBool(move.contains(dir))) * @as(T, @truncate(field_name.len));
     }
-    const n_items = getNumMoves(move);
-    return num_chars + n_items - 1;
+    return if (n_items == 1) num_chars else num_chars + (2 * n_items);
 }
 
 test "Get Number of Characters" {
