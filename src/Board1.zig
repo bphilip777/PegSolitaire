@@ -28,6 +28,13 @@ fn numCharsFromIdx(idx: T) T {
     return row + col;
 }
 
+test "Num Chars From Idx" {
+    for (0..15) |i| {
+        const n = numCharsFromIdx(@truncate(i));
+        print("{}:{}\n", .{i, n});
+    }
+}
+
 pub fn triNum(n: T) T {
     return (n * (n + 1)) / 2;
 }
@@ -513,6 +520,10 @@ pub fn createBoard(comptime n_rows: T) !type {
             return null;
         }
 
+        pub fn isGameOver(self: *const Self) bool {
+            return self.isWon() or self.isLost();
+        }
+
         pub fn isWon(self: *const Self) bool {
             return self.board.count() == 1;
         }
@@ -524,6 +535,13 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             return false;
             // return self.board.count() > 0;
+        }
+
+        pub fn reset(self: *Self) void {
+            for (0..self.board.capacity()) |i| {
+                self.board.set(i);
+            }
+            self.board.unset(self.start);
         }
 
         pub fn printMoves(self: *const Self) void {
