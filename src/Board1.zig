@@ -12,6 +12,15 @@ fn numCharsFromDigit(digit: T) T {
     return @truncate(@max(@as(usize, @intFromFloat(@ceil(@log10(@as(f64, @floatFromInt(digit + 1)))))), 1));
 }
 
+test "Num Chars From Digit" {
+    const inputs = [_]T{1, 10, 100, 1_000, 10_000};
+    const expected = [_]T{1, 2, 3, 4, 5};
+    for (inputs, expected) |input, expects| {
+        const digits = numCharsFromDigit(input);
+        try std.testing.expectEqual(expected, digits);
+    }
+}
+
 fn numCharsFromIdx(idx: T) T {
     const pos = posFromIdx(idx);
     const row = numCharsFromDigit(pos.row);
@@ -538,8 +547,9 @@ pub fn createBoard(comptime n_rows: T) !type {
             var start: usize = 0;
             var end: usize = 0;
             const buffers = [_]usize{ num_buffer, max_moves_char, 0 };
+            var splits = [_]usize{ 0, 0, 0 };
             const column_buffer = " | ";
-            for (headers, buffers) |header, buffer_length| {
+            for (headers, buffers, 0..) |header, buffer_length, i| {
                 end += header.len;
                 @memcpy(buffer[start..end], header);
                 if (buffer_length > header.len) {
@@ -550,8 +560,17 @@ pub fn createBoard(comptime n_rows: T) !type {
                     start = end + column_buffer.len;
                     end = start;
                 }
+                splits[i] = end;
             }
             print("{s}\n", .{buffer[0..end]});
+            start = 0;
+            end = 0;
+            for (self.neg_moves, self.pos_moves, 0..) |neg_move, pos_move, i| {
+                const pos = posFromIdx(@truncate(i));
+                // construct coords
+                const new_str = try std.fmt.allocPrint("({}, {})", .{ pos.row, pos.col });
+                @memcpy(buffer[0..new_str.len], new_str);
+            }
             // for (self.neg_moves, 0..) |neg_move, i| {
             //     const pos = posFromIdx(@truncate(i));
             //     print("({}, {}): ", .{ pos.row, pos.col });
@@ -628,3 +647,9 @@ test "Win Condition" {
 }
 
 test "Lose Condition" {}
+
+fn printDigits(pos: Position, buffer: []u8) void {
+    const n_chars = numCharsFromDigit(pos.row);
+    const n_chars
+    for ()
+}
