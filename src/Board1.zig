@@ -13,8 +13,8 @@ fn numCharsFromDigit(digit: T) T {
 }
 
 test "Num Chars From Digit" {
-    const inputs = [_]T{1, 10, 100, 1_000, 10_000};
-    const expected = [_]T{1, 2, 3, 4, 5};
+    const inputs = [_]T{ 1, 10, 100, 1_000, 10_000 };
+    const expected = [_]T{ 1, 2, 3, 4, 5 };
     for (inputs, expected) |input, expects| {
         const digits = numCharsFromDigit(input);
         try std.testing.expectEqual(expected, digits);
@@ -31,7 +31,7 @@ fn numCharsFromIdx(idx: T) T {
 test "Num Chars From Idx" {
     for (0..15) |i| {
         const n = numCharsFromIdx(@truncate(i));
-        print("{}:{}\n", .{i, n});
+        print("{}:{}\n", .{ i, n });
     }
 }
 
@@ -83,6 +83,7 @@ test "Inv Tri Num 2 - Brute Force" {
         try std.testing.expectEqual(itn, row);
     }
 
+    // used to ensure first version is correct and how to use it
     for (inputs) |input| {
         const itn1 = invTriNum(input);
         const itn2 = invTriNum2(input);
@@ -544,7 +545,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // set start position off
             // undo all moves
             // recompute start moves
-            
+
             // set board to all on
             for (0..self.board.capacity()) |i| self.board.set(i);
             // set start pposition off
@@ -680,9 +681,3 @@ test "Win Condition" {
 }
 
 test "Lose Condition" {}
-
-fn printDigits(pos: Position, buffer: []u8) void {
-    const n_chars = numCharsFromDigit(pos.row);
-    const n_chars
-    for ()
-}
