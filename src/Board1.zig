@@ -199,6 +199,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices),
         pos_moves: [n_indices]Directions,
         neg_moves: [n_indices]Directions,
+        start: T,
 
         pub fn init(allo: Allocator, start: T) !Self {
             if (start >= n_indices) return error.STartMustBeGT0OrLTNumIndices;
@@ -218,6 +219,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 .board = board,
                 .pos_moves = pos_moves,
                 .neg_moves = neg_moves,
+                .start = start,
             };
 
             // Init move
