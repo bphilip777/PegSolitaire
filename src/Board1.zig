@@ -540,10 +540,23 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn reset(self: *Self) void {
-            for (0..self.board.capacity()) |i| {
-                self.board.set(i);
-            }
+            // set board to all on
+            // set start position off
+            // undo all moves
+            // recompute start moves
+            
+            // set board to all on
+            for (0..self.board.capacity()) |i| self.board.set(i);
+            // set start pposition off
             self.board.unset(self.start);
+            // undo all moves
+            for (0..self.board.capacity()) |i| {
+                var it = self.pos_moves[i].iterator();
+                while (it.next()) |item| self.pos_moves[i].remove(item);
+                it = self.neg_moves[i].iterator();
+                while (it.next()) |item| self.neg_moves[i].remove(item);
+            }
+            // recompute start moves
         }
 
         pub fn printMoves(self: *const Self) void {
