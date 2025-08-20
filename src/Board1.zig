@@ -213,7 +213,7 @@ fn getNumChars(move: Directions) T {
         const dir = @field(Direction, field_name);
         num_chars += @as(T, @intFromBool(move.contains(dir))) * @as(T, @truncate(field_name.len));
     }
-    return if (n_items == 1) num_chars else num_chars + (2 * n_items);
+    return if (n_items == 1) num_chars else num_chars + (2 * (n_items - 1));
 }
 
 test "Get Number of Characters" {
@@ -224,11 +224,66 @@ test "Get Number of Characters" {
 
     a.insert(.Left);
     num_chars = getNumChars(a);
-    try std.testing.expectEqual(num_chars, 10);
+    try std.testing.expectEqual(num_chars, 11);
 
     a.insert(.UpLeft);
     num_chars = getNumChars(a);
-    try std.testing.expectEqual(num_chars, 17);
+    try std.testing.expectEqual(num_chars, 19);
+}
+
+fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
+    // 2 problems to fix:
+    // header spacing
+    // removing trailing ,
+    // empty strings
+    const empty_buffer = [_]u8{' '} ** 1024;
+    var moves_str: []u8 = try std.fmt.allocPrint(allo, "", .{});
+    var tmp: []u8 = undefined;
+
+    const n_items: T = getNumMoves(move);
+    var first: bool = true;
+    if (n_items > 0) {
+        inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+            const dir = @field(Direction, field_name);
+            if (move.contains(dir)) {
+                if (first) {
+                    tmp = try std.fmt.allocPrint(allo, "{s}", .{field_name});
+                    first = false;
+                } else {
+                    tmp = try std.fmt.allocPrint(
+                        allo,
+                        "{s}, {s}",
+                        .{ moves_str, field_name },
+                    );
+                }
+                allo.free(moves_str);
+                moves_str = tmp;
+            }
+        }
+    }
+    if (moves_str.len < max_moves_char) {
+        const diff = max_moves_char - moves_str.len;
+        tmp = try std.fmt.allocPrint(allo, "{s}{s}", .{ moves_str, empty_buffer[0..diff] });
+        allo.free(moves_str);
+        moves_str = tmp;
+    }
+
+    return moves_str;
+}
+
+test "Format Move" {
+    const allo = std.testing.allocator;
+
+    var move: Directions = .initEmpty();
+    move.insert(.Right);
+    move.insert(.DownRight);
+    move.insert(.DownLeft);
+
+    const max_moves_char = getNumChars(move);
+
+    const moves_str = try formatMove(allo, move, max_moves_char);
+    defer allo.free(moves_str);
+    try std.testing.expectEqualStrings(moves_str, "Right, DownRight, DownLeft");
 }
 
 const GameErrors = error{
@@ -613,13 +668,12 @@ pub fn createBoard(comptime n_rows: T) !type {
                 max_moves_char = @max(max_moves_char, getNumChars(neg_move));
                 max_moves_char = @max(max_moves_char, getNumChars(pos_move));
             }
-            print("Max Moves Char: {}\n", .{max_moves_char});
             // headers
             const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
             const column_buffer = " | ";
             // num buffer
-            // const num_buffer = numCharsFromIdx(n_indices);
-
+            const num_buffer = numCharsFromIdx(n_indices);
+            print("Num Buffer: {}\n", .{num_buffer});
             {
                 // const diff1 = num_buffer - headers[0];
                 // const coord_str = try std.fmt.allocPrint(self.allo, "{s}", .{});
@@ -659,65 +713,6 @@ pub fn createBoard(comptime n_rows: T) !type {
                     },
                 );
             }
-        }
-
-        fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
-            // 2 problems to fix:
-            // header spacing
-            // removing trailing ,
-            // empty strings
-            const empty_buffer = [_]u8{' '} ** 1024;
-            // const n_items = getNumMoves(move);
-
-            var moves_str: []u8 = try std.fmt.allocPrint(allo, "", .{});
-            var tmp: []u8 = undefined;
-
-            var n_items: T = getNumMoves(move);
-            var first: bool = true;
-            if (n_items > 0) {
-                inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
-                    const dir = @field(Direction, field_name);
-                    if (move.contains(dir)) {
-                        if (first) {
-                            tmp = try std.fmt.allocPrint(allo, " {s}", .{field_name});
-                            first = false;
-                        } else {
-                            tmp = try std.fmt.allocPrint(
-                                allo,
-                                "{s}, {s}",
-                                .{ moves_str, field_name },
-                            );
-                        }
-                        allo.free(moves_str);
-                        moves_str = tmp;
-                        n_items -= 1;
-                    }
-                }
-            }
-            // var it = move.iterator();
-            // if (it.next()) |item1| {
-            //     moves_str = try std.fmt.allocPrint(allo, "{s}, ", .{@tagName(item1)});
-            //     while (it.next()) |item2| {
-            //         if (@tagName(item2).len == 0) continue;
-            //         tmp = try std.fmt.allocPrint(allo, "{s}, {s}", .{ moves_str, @tagName(item2) });
-            //         allo.free(moves_str);
-            //         moves_str = tmp;
-            //     }
-            // } else {
-            //     moves_str = try std.fmt.allocPrint(
-            //         allo,
-            //         "{s}",
-            //         .{empty_buffer[0..max_moves_char]},
-            //     );
-            // }
-            if (moves_str.len < max_moves_char) {
-                const diff = max_moves_char - moves_str.len;
-                tmp = try std.fmt.allocPrint(allo, "{s}{s}", .{ moves_str, empty_buffer[0..diff] });
-                allo.free(moves_str);
-                moves_str = tmp;
-            }
-
-            return moves_str;
         }
     };
 }
