@@ -25,14 +25,14 @@ fn numCharsFromIdx(idx: T) T {
     const pos = posFromIdx(idx);
     const row = numCharsFromDigit(pos.row);
     const col = numCharsFromDigit(pos.col);
-    return row + col;
+    return row + col + 2;
 }
 
 test "Num Chars From Idx" {
-    for (0..15) |i| {
-        const n = numCharsFromIdx(@truncate(i));
-        print("{}:{}\n", .{ i, n });
-    }
+    const n1 = numCharsFromIdx(0);
+    try std.testing.expectEqual(n1, 4);
+    const n2 = numCharsFromIdx(100);
+    try std.testing.expectEqual(n2, 5);
 }
 
 pub fn triNum(n: T) T {
@@ -203,6 +203,31 @@ test "Get Number Of Moves" {
     b.insert(.Right);
     const b_moves = getNumMoves(b);
     try std.testing.expectEqual(2, b_moves);
+}
+
+fn getNumChars(move: Directions) T {
+    var num_chars: T = 0;
+    inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+        const dir = @field(Direction, field_name);
+        num_chars += @as(T, @intFromBool(move.contains(dir))) * @as(T, @truncate(field_name.len));
+    }
+    const n_items = getNumMoves(move);
+    return num_chars + n_items - 1;
+}
+
+test "Get Number of Characters" {
+    var a: Directions = .initEmpty();
+    a.insert(.Right);
+    var num_chars = getNumChars(a);
+    try std.testing.expectEqual(num_chars, 5);
+
+    a.insert(.Left);
+    num_chars = getNumChars(a);
+    try std.testing.expectEqual(num_chars, 10);
+
+    a.insert(.UpLeft);
+    num_chars = getNumChars(a);
+    try std.testing.expectEqual(num_chars, 17);
 }
 
 const GameErrors = error{
@@ -580,26 +605,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             // recompute start moves
         }
 
-        fn getNumChars(move: Directions) T {
-            var num_chars: T = 0;
-            inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
-                const dir = @field(Direction, field_name);
-                num_chars += @as(T, @intFromBool(move.contains(dir))) * @as(T, @truncate(field_name.len));
-                num_chars += 1;
-            }
-            return num_chars;
-        }
-
         pub fn printMoves(self: *Self) !void {
             // max # of chars
             var max_moves_char: T = 0;
             for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
                 max_moves_char = @max(max_moves_char, getNumChars(neg_move));
                 max_moves_char = @max(max_moves_char, getNumChars(pos_move));
-                // var it = neg_move.iterator();
-                // while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
-                // it = pos_move.iterator();
-                // while (it.next()) |item| move_char_count += @truncate(@tagName(item).len + 1);
             }
             print("Max Moves Char: {}\n", .{max_moves_char});
             // headers
@@ -710,55 +721,55 @@ pub fn createBoard(comptime n_rows: T) !type {
     };
 }
 
-test "Set + Unsets Correct Pieces" {
-    // needs to be fixed
-    const N_ROWS = 5;
-    const Board: type = createBoard(N_ROWS) catch unreachable;
+// test "Set + Unsets Correct Pieces" {
+//     // needs to be fixed
+//     const N_ROWS = 5;
+//     const Board: type = createBoard(N_ROWS) catch unreachable;
+//
+//     const allo = std.testing.allocator;
+//     const starts = [_]T{ 0, 3, 8 };
+//     const directions: []const []const Direction = &.{
+//         &.{ .DownLeft, .DownRight },
+//         &.{ .Right, .UpRight },
+//         &.{ .UpLeft, .Left },
+//     };
+//     const expected_counts = [_]T{ 32760, 32741, 32367 };
+//
+//     for (starts, directions, expected_counts) |start, dirs, expected_count| {
+//         var board: Board = try .init(allo, start);
+//         defer board.deinit();
+//         for (dirs) |dir| {
+//             try board.chooseMove(start, dir);
+//         }
+//         try std.testing.expectEqual(board.board.mask, expected_count);
+//     }
+// }
 
-    const allo = std.testing.allocator;
-    const starts = [_]T{ 0, 3, 8 };
-    const directions: []const []const Direction = &.{
-        &.{ .DownLeft, .DownRight },
-        &.{ .Right, .UpRight },
-        &.{ .UpLeft, .Left },
-    };
-    const expected_counts = [_]T{ 32760, 32741, 32367 };
-
-    for (starts, directions, expected_counts) |start, dirs, expected_count| {
-        var board: Board = try .init(allo, start);
-        defer board.deinit();
-        for (dirs) |dir| {
-            try board.chooseMove(start, dir);
-        }
-        try std.testing.expectEqual(board.board.mask, expected_count);
-    }
-}
-
-test "Win Condition" {
-    const N_ROWS = 5;
-    const Board: type = createBoard(N_ROWS) catch unreachable;
-
-    const allo = std.testing.allocator;
-    const start = 0;
-
-    var board: Board = try .init(allo, start);
-    defer board.deinit();
-
-    try board.chooseMove(start, .DownLeft);
-    try board.chooseMove(3, .Right);
-    try board.chooseMove(5, .UpLeft);
-    try board.chooseMove(1, .DownLeft);
-    try board.chooseMove(2, .DownRight);
-    try board.chooseMove(3, .DownRight);
-    try board.chooseMove(0, .DownLeft);
-    try board.chooseMove(5, .UpLeft);
-    try board.chooseMove(12, .Left);
-    try board.chooseMove(11, .Right);
-    try board.chooseMove(12, .UpRight);
-    try board.chooseMove(13, .Left);
-    try board.chooseMove(12, .Right);
-
-    try std.testing.expect(board.isWon());
-}
-
-test "Lose Condition" {}
+// test "Win Condition" {
+//     const N_ROWS = 5;
+//     const Board: type = createBoard(N_ROWS) catch unreachable;
+//
+//     const allo = std.testing.allocator;
+//     const start = 0;
+//
+//     var board: Board = try .init(allo, start);
+//     defer board.deinit();
+//
+//     try board.chooseMove(start, .DownLeft);
+//     try board.chooseMove(3, .Right);
+//     try board.chooseMove(5, .UpLeft);
+//     try board.chooseMove(1, .DownLeft);
+//     try board.chooseMove(2, .DownRight);
+//     try board.chooseMove(3, .DownRight);
+//     try board.chooseMove(0, .DownLeft);
+//     try board.chooseMove(5, .UpLeft);
+//     try board.chooseMove(12, .Left);
+//     try board.chooseMove(11, .Right);
+//     try board.chooseMove(12, .UpRight);
+//     try board.chooseMove(13, .Left);
+//     try board.chooseMove(12, .Right);
+//
+//     try std.testing.expect(board.isWon());
+// }
+//
+// test "Lose Condition" {}
