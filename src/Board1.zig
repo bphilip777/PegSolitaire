@@ -597,10 +597,12 @@ pub fn createBoard(comptime n_rows: T) !type {
                 defer self.allo.free(coords_str);
 
                 // convert below into a function
-                const neg_moves_str = try formatMove(self.allo, neg_move, max_moves_char);
-                const pos_moves_str = try formatMove(self.allo, pos_move, max_moves_char);
+                if (getNumMoves(neg_move) == 0 and getNumMoves(pos_move) == 0) continue;
 
+                const neg_moves_str = try formatMove(self.allo, neg_move, max_moves_char);
                 defer self.allo.free(neg_moves_str);
+
+                const pos_moves_str = try formatMove(self.allo, pos_move, max_moves_char);
                 defer self.allo.free(pos_moves_str);
 
                 print(
@@ -616,8 +618,21 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
+        fn getNumMoves(move: Directions) T {
+            var n_items: T = 0;
+            inline for (comptime std.meta.fieldNames(Direction)) |fieldName| {
+                n_items += @intFromBool(move.contains(@field(Direction, fieldName)));
+            }
+            return n_items;
+        }
+
         fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
+            // 2 problems to fix:
+            // header spacing
+            // removing trailing ,
+            // empty strings
             const empty_buffer = [_]u8{' '} ** 1024;
+            // const n_items = getNumMoves(move);
 
             var moves_str: []u8 = undefined;
             var tmp: []u8 = undefined;
@@ -626,6 +641,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (it.next()) |item1| {
                 moves_str = try std.fmt.allocPrint(allo, "{s}, ", .{@tagName(item1)});
                 while (it.next()) |item2| {
+                    if (@tagName(item2).len == 0) continue;
                     tmp = try std.fmt.allocPrint(allo, "{s}, {s}", .{ moves_str, @tagName(item2) });
                     allo.free(moves_str);
                     moves_str = tmp;
