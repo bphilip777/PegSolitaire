@@ -459,7 +459,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const idx1 = idxFromPos(pos_ring1.?);
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
-                    if (self.isValid(idx1) and self.isValid(idx2)) {
+                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
                         if (self.board.isSet(idx1) and !self.board.isSet(idx2)) {
                             // add move
                             self.pos_moves[idx].insert(dir);
@@ -496,7 +496,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const idx1 = idxFromPos(pos_ring1.?);
                     const idx2 = idxFromPos(pos_ring2.?);
                     const opp_dir = Direction.opposite(dir);
-                    if (self.isValid(idx1) and self.isValid(idx2)) {
+                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
                         if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
                             // add move
                             self.neg_moves[idx].insert(dir);
@@ -511,7 +511,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn isValid(self: *const Self, idx: T) bool {
+        fn isValidIdx(self: *const Self, idx: T) bool {
             return idx < self.board.capacity();
         }
 
@@ -671,16 +671,21 @@ pub fn createBoard(comptime n_rows: T) !type {
             // headers
             const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
             const column_buffer = " | ";
-            // num buffer
-            const num_buffer = numCharsFromIdx(n_indices);
-            print("Num Buffer: {}\n", .{num_buffer});
             {
-                // const diff1 = num_buffer - headers[0];
-                // const coord_str = try std.fmt.allocPrint(self.allo, "{s}", .{});
-                // defer self.allo.free(coord_str);
+                const coords_extra = "() ";
+                const num_buffer = numCharsFromIdx(n_indices) + coords_extra.len;
+                const diff = num_buffer - headers[0].len;
+                const empty_buffer = [_]u8{' '} ** 1024;
                 print(
-                    "{s}{s}{s}{s}{s}\n",
-                    .{ headers[0], column_buffer, headers[1], column_buffer, headers[2] },
+                    "{s}{s}{s}{s}{s}{s}\n",
+                    .{
+                        headers[0],
+                        empty_buffer[0..diff],
+                        column_buffer,
+                        headers[1],
+                        column_buffer,
+                        headers[2],
+                    },
                 );
             }
             // loop
