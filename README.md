@@ -3,18 +3,21 @@
 # -- This repo is still experimental --
 
 # Aim: To learn zig by:
-# - creating a game
+# - creating a simple text game
 # - handle user interfaces
 # - auto-solver
 # - Implement different data structures
+# - Always follow functions with tests to convey how to use functions
+# - Should I have pos and negative moves - all positive moves are negative moves
+    - instead have a list of moves -> convert positive or negative on input
 
 # TODO:
 1. Create a Board - DONE
 2. Choose Moves - DONE
 3. Manual Mode:
     - parse CLI arguments
-    - check for win/lost conditions
-    - reset board/game
+    - check for win/lost conditions - DONE
+    - reset board/game - DONE
 3. Automatic Mode:
     - search through all move space for all solutions
     - reduce seach space by using symmetries - 4 unique win conditions for a board with 5 rows
@@ -32,3 +35,5 @@ zig build -Drelease-fast run
 ```
 
 # Functions List:
+createBoard - takes in
+

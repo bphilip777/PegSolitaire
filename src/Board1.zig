@@ -734,6 +734,8 @@ pub fn createBoard(comptime n_rows: T) !type {
     };
 }
 
+// test: num pos moves must equal number of negative moves
+
 // test "Set + Unsets Correct Pieces" {
 //     // needs to be fixed
 //     const N_ROWS = 5;
