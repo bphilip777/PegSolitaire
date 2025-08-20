@@ -662,37 +662,43 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn printMoves(self: *Self) !void {
-            // max # of chars
-            var max_moves_char: T = 0;
-            for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
-                max_moves_char = @max(max_moves_char, getNumChars(neg_move));
-                max_moves_char = @max(max_moves_char, getNumChars(pos_move));
-            }
-            // headers
             const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
+
+            var max_pos_moves_char: T = 0;
+            var max_neg_moves_char: T = 0;
+            for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
+                max_neg_moves_char = @max(max_neg_moves_char, getNumChars(neg_move));
+                max_pos_moves_char = @max(max_pos_moves_char, getNumChars(pos_move));
+            }
+            max_neg_moves_char = @max(headers[1].len, max_neg_moves_char);
+            max_pos_moves_char = @max(headers[2].len, max_pos_moves_char);
+            const max_moves_char: T = @max(max_neg_moves_char, max_pos_moves_char);
+
             const column_buffer = " | ";
             {
                 // coords header
                 const coords_extra = "() ";
                 const num_buffer = numCharsFromIdx(n_indices) + coords_extra.len;
-                const diff = num_buffer - headers[0].len;
+                const coord_diff = num_buffer - headers[0].len;
 
-                // neg moves header
-                const diff1 = max_moves_char - headers[1].len;
+                const neg_diff = max_neg_moves_char - headers[1].len;
 
                 const empty_buffer = [_]u8{' '} ** 1024;
+                const underline_buffer = [_]u8{'-'} ** 1024;
                 print(
                     "{s}{s}{s}{s}{s}{s}{s}\n",
                     .{
                         headers[0],
-                        empty_buffer[0..diff],
+                        empty_buffer[0..coord_diff],
                         column_buffer,
                         headers[1],
-                        empty_buffer[0..diff1],
+                        empty_buffer[0..neg_diff],
                         column_buffer,
                         headers[2],
                     },
                 );
+                const full_length = num_buffer + (column_buffer.len * 2) + @max(max_neg_moves_char, headers[1].len) + max_pos_moves_char;
+                print("{s}\n", .{underline_buffer[0..full_length]});
             }
             // loop
             for (self.neg_moves, self.pos_moves, 0..) |neg_move, pos_move, i| {
