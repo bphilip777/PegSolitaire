@@ -672,17 +672,23 @@ pub fn createBoard(comptime n_rows: T) !type {
             const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
             const column_buffer = " | ";
             {
+                // coords header
                 const coords_extra = "() ";
                 const num_buffer = numCharsFromIdx(n_indices) + coords_extra.len;
                 const diff = num_buffer - headers[0].len;
+
+                // neg moves header
+                const diff1 = max_moves_char - headers[1].len;
+
                 const empty_buffer = [_]u8{' '} ** 1024;
                 print(
-                    "{s}{s}{s}{s}{s}{s}\n",
+                    "{s}{s}{s}{s}{s}{s}{s}\n",
                     .{
                         headers[0],
                         empty_buffer[0..diff],
                         column_buffer,
                         headers[1],
+                        empty_buffer[0..diff1],
                         column_buffer,
                         headers[2],
                     },
