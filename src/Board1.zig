@@ -17,7 +17,7 @@ test "Num Chars From Digit" {
     const expected = [_]T{ 1, 2, 3, 4, 5 };
     for (inputs, expected) |input, expects| {
         const digits = numCharsFromDigit(input);
-        try std.testing.expectEqual(expected, digits);
+        try std.testing.expectEqual(expects, digits);
     }
 }
 
@@ -560,7 +560,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // recompute start moves
         }
 
-        pub fn printMoves(self: *const Self) void {
+        pub fn printMoves(self: *Self) !void {
             // max # of chars
             var max_moves_char: usize = 0;
             for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
@@ -571,60 +571,112 @@ pub fn createBoard(comptime n_rows: T) !type {
                 while (it.next()) |item| move_char_count += @tagName(item).len + 1;
                 max_moves_char = @max(move_char_count, max_moves_char);
             }
-            // num buffer
-            const num_buffer = numCharsFromIdx(n_indices) + 5;
-            // buffer
-            var buffer: [1024]u8 = undefined;
-            // header strings
-            const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
-            // loop
-            var start: usize = 0;
-            var end: usize = 0;
-            const buffers = [_]usize{ num_buffer, max_moves_char, 0 };
-            var splits = [_]usize{ 0, 0, 0 };
+            // headers
+            const headers = [_][]const u8{ "Coords", "Pos Moves", "Neg Moves" };
             const column_buffer = " | ";
-            for (headers, buffers, 0..) |header, buffer_length, i| {
-                end += header.len;
-                @memcpy(buffer[start..end], header);
-                if (buffer_length > header.len) {
-                    start += header.len;
-                    end += (buffer_length - header.len);
-                    @memset(buffer[start..end], ' ');
-                    @memcpy(buffer[end .. end + column_buffer.len], column_buffer);
-                    start = end + column_buffer.len;
-                    end = start;
-                }
-                splits[i] = end;
+            // num buffer
+            const num_buffer = numCharsFromIdx(n_indices);
+
+            {
+                const diff1 = num_buffer - headers[0];
+                const coord_str = try std.fmt.allocPrint(self.allo, "{s}", .{});
+                defer self.allo.free(coord_str);
+                print(
+                    "{s}{s}{s}{s}{s}\n",
+                    .{ headers[0], column_buffer, headers[1], column_buffer, headers[2] },
+                );
             }
-            print("{s}\n", .{buffer[0..end]});
-            start = 0;
-            end = 0;
+            // empty buffer
+            const empty_buffer = [_]u8{' '} ** 1024;
+            // loop
             for (self.neg_moves, self.pos_moves, 0..) |neg_move, pos_move, i| {
                 const pos = posFromIdx(@truncate(i));
-                // construct coords
-                const new_str = try std.fmt.allocPrint("({}, {})", .{ pos.row, pos.col });
-                @memcpy(buffer[0..new_str.len], new_str);
+                const coords_str = try std.fmt.allocPrint(
+                    self.allo,
+                    "({}, {}): ",
+                    .{ pos.row, pos.col },
+                );
+                defer self.allo.free(coords_str);
+
+                var neg_moves_str: []u8 = undefined;
+                var pos_moves_str: []u8 = undefined;
+
+                defer self.allo.free(neg_moves_str);
+                defer self.allo.free(pos_moves_str);
+
+                var tmp: []u8 = undefined;
+
+                var it = neg_move.iterator();
+                if (it.next()) |item1| {
+                    neg_moves_str = try std.fmt.allocPrint(self.allo, "{s}, ", .{@tagName(item1)});
+                    while (it.next()) |item2| {
+                        tmp = try std.fmt.allocPrint(
+                            self.allo,
+                            "{s}, {s}",
+                            .{ neg_moves_str, @tagName(item2) },
+                        );
+                        self.allo.free(neg_moves_str);
+                        neg_moves_str = tmp;
+                    }
+                } else {
+                    neg_moves_str = try std.fmt.allocPrint(
+                        self.allo,
+                        "{s}",
+                        .{empty_buffer[0..max_moves_char]},
+                    );
+                }
+                if (neg_moves_str.len < max_moves_char) {
+                    const diff = max_moves_char - neg_moves_str.len;
+                    tmp = try std.fmt.allocPrint(
+                        self.allo,
+                        "{s}{s}",
+                        .{ neg_moves_str, empty_buffer[0..diff] },
+                    );
+                    self.allo.free(neg_moves_str);
+                    neg_moves_str = tmp;
+                }
+
+                it = pos_move.iterator();
+                if (it.next()) |item1| {
+                    pos_moves_str = try std.fmt.allocPrint(self.allo, "{s}, ", .{@tagName(item1)});
+                    while (it.next()) |item2| {
+                        tmp = try std.fmt.allocPrint(
+                            self.allo,
+                            "{s}, {s}",
+                            .{ pos_moves_str, @tagName(item2) },
+                        );
+                        self.allo.free(pos_moves_str);
+                        pos_moves_str = tmp;
+                    }
+                } else {
+                    pos_moves_str = try std.fmt.allocPrint(
+                        self.allo,
+                        "{s}",
+                        .{empty_buffer[0..max_moves_char]},
+                    );
+                }
+                if (pos_moves_str.len < max_moves_char) {
+                    const diff = max_moves_char - pos_moves_str.len;
+                    tmp = try std.fmt.allocPrint(
+                        self.allo,
+                        "{s}{s}",
+                        .{ pos_moves_str, empty_buffer[0..diff] },
+                    );
+                    self.allo.free(pos_moves_str);
+                    pos_moves_str = tmp;
+                }
+
+                print(
+                    "{s}{s}{s}{s}{s}\n",
+                    .{
+                        coords_str,
+                        column_buffer,
+                        neg_moves_str,
+                        column_buffer,
+                        pos_moves_str,
+                    },
+                );
             }
-            // for (self.neg_moves, 0..) |neg_move, i| {
-            //     const pos = posFromIdx(@truncate(i));
-            //     print("({}, {}): ", .{ pos.row, pos.col });
-            //     if (neg_move.count() > 0) {
-            //         var it = neg_move.iterator();
-            //         while (it.next()) |item| print("{s} ", .{@tagName(item)});
-            //     }
-            //     print("\n", .{});
-            // }
-            // print("\n", .{});
-            // for (self.pos_moves, 0..) |pos_move, i| {
-            //     const pos = posFromIdx(@truncate(i));
-            //     print("({}, {}): ", .{ pos.row, pos.col });
-            //     if (pos_move.count() > 0) {
-            //         var it = pos_move.iterator();
-            //         while (it.next()) |item| print("{s} ", .{@tagName(item)});
-            //     }
-            //     print("\n", .{});
-            // }
-            // print("\n", .{});
         }
     };
 }

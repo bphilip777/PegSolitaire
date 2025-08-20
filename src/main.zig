@@ -20,7 +20,7 @@ pub fn main() !void {
 
     try board.chooseMove(start, .DownLeft);
     board.printBoard();
-    board.printMoves();
+    try board.printMoves();
     // try board.chooseMove(3, .Right);
     // board.printBoard();
     // try board.chooseMove(5, .UpLeft);
