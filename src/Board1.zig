@@ -299,34 +299,27 @@ pub fn createBoard(comptime n_rows: T) !type {
         const Self = @This();
         allo: Allocator,
         board: std.bit_set.IntegerBitSet(n_indices),
-        pos_moves: [n_indices]Directions,
-        neg_moves: [n_indices]Directions,
+        moves: [n_indices]Directions, // always calculate based on neg, convert pos to neg
         start: T,
 
         pub fn init(allo: Allocator, start: T) !Self {
-            if (start >= n_indices) return error.STartMustBeGT0OrLTNumIndices;
-
+            // Validity Check
+            if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
+            // create board
             var board: std.bit_set.IntegerBitSet(n_indices) = .initFull();
             board.unset(@as(usize, @intCast(start)));
-
             // Directions
-            var pos_moves: [n_indices]Directions = undefined;
-            var neg_moves: [n_indices]Directions = undefined;
-            for (0..n_indices) |i| {
-                pos_moves[i] = .initEmpty();
-                neg_moves[i] = .initEmpty();
-            }
+            var moves: [n_indices]Directions = undefined;
+            for (0..n_indices) |i| moves[i] = .initEmpty();
             var self = Self{
                 .allo = allo,
                 .board = board,
-                .pos_moves = pos_moves,
-                .neg_moves = neg_moves,
+                .moves = moves,
                 .start = start,
             };
-
             // Init move
             for (0..n_indices) |i| self.updateMoves(@truncate(i));
-
+            // return
             return self;
         }
 
@@ -423,90 +416,6 @@ pub fn createBoard(comptime n_rows: T) !type {
             for (positions) |position| {
                 if (position) |pos| {
                     self.updateMoves(idxFromPos(pos));
-                }
-            }
-        }
-
-        pub fn updateMoves(self: *Self, idx: T) void {
-            if (self.board.isSet(idx)) {
-                self.updatePosMove(idx);
-            } else {
-                self.updateNegMove(idx);
-            }
-        }
-
-        pub fn updatePosMove(self: *Self, idx: T) void {
-            // 1. check for peg at idx
-            // 2. Check all rotations
-            // 3. check that both neighbors exist
-            // 4. neighbor = set
-            // 5. next to neighbor = unset
-
-            // check that peg exists
-            if (!self.board.isSet(idx)) {
-                self.pos_moves[idx] = self.pos_moves[idx].xorWith(self.pos_moves[idx]);
-                return;
-            }
-            const pos = posFromIdx(idx);
-            // check all rotations
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
-                const dir = @field(Direction, fieldname);
-                // check that both neighbors exist
-                const pos_ring1 = getRotation(pos, dir, .full);
-                const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                if (pos_ring1 != null and pos_ring2 != null) {
-                    // check that neighbor is set and next to neigbor is unset
-                    const idx1 = idxFromPos(pos_ring1.?);
-                    const idx2 = idxFromPos(pos_ring2.?);
-                    const opp_dir = Direction.opposite(dir);
-                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
-                        if (self.board.isSet(idx1) and !self.board.isSet(idx2)) {
-                            // add move
-                            self.pos_moves[idx].insert(dir);
-                            self.neg_moves[idx2].insert(opp_dir);
-                        } else {
-                            // remove move
-                            self.pos_moves[idx].remove(dir);
-                            self.neg_moves[idx2].remove(opp_dir);
-                        }
-                    }
-                }
-            }
-        }
-
-        pub fn updateNegMove(self: *Self, idx: T) void {
-            // 1. check hole at idx,
-            // 2. check all rotations
-            // 3. check both neighbors exist + set
-            // 4. if not, unset the values
-
-            // check hole at idx
-            if (self.board.isSet(idx)) {
-                self.neg_moves[idx] = self.neg_moves[idx].xorWith(self.neg_moves[idx]);
-                return;
-            }
-            const pos = posFromIdx(idx);
-            // check all rotations
-            inline for (comptime std.meta.fieldNames(Direction)) |fieldname| {
-                const dir = @field(Direction, fieldname);
-                // check both neighbors exist + set
-                const pos_ring1 = getRotation(pos, dir, .full);
-                const pos_ring2 = getRotation(pos_ring1, dir, .full);
-                if (pos_ring1 != null and pos_ring2 != null) {
-                    const idx1 = idxFromPos(pos_ring1.?);
-                    const idx2 = idxFromPos(pos_ring2.?);
-                    const opp_dir = Direction.opposite(dir);
-                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
-                        if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
-                            // add move
-                            self.neg_moves[idx].insert(dir);
-                            self.pos_moves[idx2].insert(opp_dir);
-                        } else {
-                            // remove move
-                            self.neg_moves[idx].remove(dir);
-                            self.pos_moves[idx2].remove(opp_dir);
-                        }
-                    }
                 }
             }
         }
