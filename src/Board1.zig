@@ -349,7 +349,8 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         fn computeAllMoves(self: *Self) void {
             for (0..n_indices) |i| {
-                const pos0 = posFromIdx(i);
+                const idx0: T = @truncate(i);
+                const pos0 = posFromIdx(idx0);
                 for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
                     const pos1 = getRotation(pos0, dir, .full) orelse {
                         self.moves[i].remove(dir);
