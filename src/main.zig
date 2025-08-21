@@ -18,31 +18,34 @@ pub fn main() !void {
     defer board.deinit();
     board.printBoard();
 
-    // try board.chooseMove(start, .DownLeft);
+    // const list_of_idxs = {start, 3, 5, 1, 2, 3, 0, 5, 12, 11, 12, };
+    // const list_of_dirs = {}
+    board.chooseMove(start, .DownLeft);
+    board.printBoard();
+    try board.printMoves();
+    // board.chooseMove(3, .Right);
     // board.printBoard();
-    // try board.printMoves();
-    // try board.chooseMove(3, .Right);
+    // board.chooseMove(5, .UpLeft);
     // board.printBoard();
-    // try board.chooseMove(5, .UpLeft);
+    // board.chooseMove(1, .DownLeft);
     // board.printBoard();
-    // try board.chooseMove(1, .DownLeft);
+    // board.chooseMove(2, .DownRight);
     // board.printBoard();
-    // try board.chooseMove(2, .DownRight);
+    // board.chooseMove(3, .DownRight);
     // board.printBoard();
-    // try board.chooseMove(3, .DownRight);
+    // board.chooseMove(0, .DownLeft);
     // board.printBoard();
-    // try board.chooseMove(0, .DownLeft);
+    // board.chooseMove(5, .UpLeft);
     // board.printBoard();
-    // try board.chooseMove(5, .UpLeft);
+    // board.chooseMove(12, .Left);
     // board.printBoard();
-    // try board.chooseMove(12, .Left);
+    // board.chooseMove(11, .Right);
     // board.printBoard();
-    // try board.chooseMove(11, .Right);
+    // board.chooseMove(12, .UpRight);
     // board.printBoard();
-    // try board.chooseMove(12, .UpRight);
+    // board.chooseMove(10, .Right);
     // board.printBoard();
-    // try board.chooseMove(10, .Right);
-    // board.printBoard();
+    print("{}\n", .{board.isLost()});
 
     // print("{}\n", .{board.isLost()});
 }

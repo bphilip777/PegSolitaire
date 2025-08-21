@@ -319,8 +319,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 .moves = moves,
                 .start = start,
             };
-            // Init move
-            for (0..n_indices) |i| self.updateMoves(@truncate(i));
+            // Compute moves
+            self.computeAllMoves();
             // return
             return self;
         }
@@ -347,7 +347,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        pub fn computeAllMoves(self: *Self) void {
+        fn computeAllMoves(self: *Self) void {
             // Brute Force:
             // Check All Pegs For All Moves
             for (0..self.board.capacity()) |i| {
@@ -366,12 +366,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        pub fn computeOptimizedMoves(self: *Self) void {
+        fn computeOptimizedMoves(self: *Self) void {
             // compute specific moves
             _ = self;
         }
 
-        pub fn chosseMove(self: *Self, idx0: T, move: Direction) void {
+        pub fn chooseMove(self: *Self, idx0: T, move: Direction) void {
             // if idx is not valid return
             if (!self.isValidIdx(idx0)) return;
             // get positions
@@ -514,12 +514,16 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn isLost(self: *const Self) bool {
-            const len = self.board.capacity();
-            for (0..len) |i| {
-                print("{}\n", .{i});
+            var n_moves: usize = 0;
+            for (0..self.board.capacity()) |i| {
+                inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+                    const dir = @field(Direction, field_name);
+                    n_moves += @intFromBool(self.moves[i].contains(dir));
+                }
+                if (n_moves > 0) break;
             }
-            return false;
-            // return self.board.count() > 0;
+            print("Moves: {}\nPegs Left: {}\n", .{ n_moves, self.board.count() });
+            return (n_moves == 0 and self.board.count() > 1);
         }
 
         pub fn reset(self: *Self) void {
@@ -543,17 +547,13 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn printMoves(self: *Self) !void {
-            const headers = [_][]const u8{ "Coords", "Neg Moves", "Pos Moves" };
-
-            var max_pos_moves_char: T = 0;
-            var max_neg_moves_char: T = 0;
-            for (self.neg_moves, self.pos_moves) |neg_move, pos_move| {
-                max_neg_moves_char = @max(max_neg_moves_char, getNumChars(neg_move));
-                max_pos_moves_char = @max(max_pos_moves_char, getNumChars(pos_move));
+            // TODO: convert to hidden function - for testing purposes only
+            const headers = [_][]const u8{ "Coords", "Moves" };
+            var max_moves_char: T = 0;
+            for (self.moves) |move| {
+                max_moves_char = @max(max_moves_char, getNumChars(move));
             }
-            max_neg_moves_char = @max(headers[1].len, max_neg_moves_char);
-            max_pos_moves_char = @max(headers[2].len, max_pos_moves_char);
-            const max_moves_char: T = @max(max_neg_moves_char, max_pos_moves_char);
+            max_moves_char = @max(headers[1].len, max_moves_char);
 
             const column_buffer = " | ";
             {
@@ -562,7 +562,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const num_buffer = numCharsFromIdx(n_indices) + coords_extra.len;
                 const coord_diff = num_buffer - headers[0].len;
 
-                const neg_diff = max_neg_moves_char - headers[1].len;
+                const diff = max_moves_char - headers[1].len;
 
                 const empty_buffer = [_]u8{' '} ** 1024;
                 const underline_buffer = [_]u8{'-'} ** 1024;
@@ -573,16 +573,14 @@ pub fn createBoard(comptime n_rows: T) !type {
                         empty_buffer[0..coord_diff],
                         column_buffer,
                         headers[1],
-                        empty_buffer[0..neg_diff],
-                        column_buffer,
-                        headers[2],
+                        empty_buffer[0..diff],
                     },
                 );
-                const full_length = num_buffer + (column_buffer.len * 2) + @max(max_neg_moves_char, headers[1].len) + max_pos_moves_char;
+                const full_length = num_buffer + (column_buffer.len * 2) + max_moves_char;
                 print("{s}\n", .{underline_buffer[0..full_length]});
             }
             // loop
-            for (self.neg_moves, self.pos_moves, 0..) |neg_move, pos_move, i| {
+            for (self.moves, 0..) |move, i| {
                 const pos = posFromIdx(@truncate(i));
                 const coords_str = try std.fmt.allocPrint(
                     self.allo,
@@ -592,24 +590,12 @@ pub fn createBoard(comptime n_rows: T) !type {
                 defer self.allo.free(coords_str);
 
                 // convert below into a function
-                if (getNumMoves(neg_move) == 0 and getNumMoves(pos_move) == 0) continue;
+                if (getNumMoves(move)) continue;
 
-                const neg_moves_str = try formatMove(self.allo, neg_move, max_moves_char);
-                defer self.allo.free(neg_moves_str);
+                const moves_str = try formatMove(self.allo, move, max_moves_char);
+                defer self.allo.free(moves_str);
 
-                const pos_moves_str = try formatMove(self.allo, pos_move, max_moves_char);
-                defer self.allo.free(pos_moves_str);
-
-                print(
-                    "{s}{s}{s}{s}{s}\n",
-                    .{
-                        coords_str,
-                        column_buffer,
-                        neg_moves_str,
-                        column_buffer,
-                        pos_moves_str,
-                    },
-                );
+                print("{s}{s}{s}\n", .{ coords_str, column_buffer, moves_str });
             }
         }
     };
