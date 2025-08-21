@@ -594,7 +594,6 @@ pub fn createBoard(comptime n_rows: T) !type {
 
                 const moves_str = try formatMove(self.allo, move, max_moves_char);
                 defer self.allo.free(moves_str);
-
                 print("{s}{s}{s}\n", .{ coords_str, column_buffer, moves_str });
             }
         }
