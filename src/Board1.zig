@@ -311,6 +311,8 @@ pub fn createBoard(comptime n_rows: T) !type {
             // Directions
             var moves: [n_indices]Directions = undefined;
             for (0..n_indices) |i| moves[i] = .initEmpty();
+            // compute all moves
+
             var self = Self{
                 .allo = allo,
                 .board = board,
@@ -345,88 +347,32 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        pub fn chooseMove(self: *Self, idx: T, dir: Direction) !void {
-            if (self.board.isSet(idx)) return GameErrors.InvalidMove;
-            var positions: [25]?Position = undefined;
-            // only ring 0 gauranteed!
-            // Priority: Origin -> Origin Neighbors -> Ring +1 near origin -> Ring +1 near neighbors
-            // ring 0 (o): Clockwise from 0 (origin)
-            // o o o -> 0 1 2
-            // original position
-            positions[0] = posFromIdx(idx);
-            // get initial line
-            positions[1] = getRotation(positions[0], dir, .full);
-            positions[2] = getRotation(positions[1], dir, .full);
-            for (positions[1..3]) |new_position| {
-                const new_pos = new_position orelse
-                    return GameErrors.InvalidPosition;
-                if (!self.board.isSet(idxFromPos(new_pos)))
-                    return GameErrors.InvalidMove;
-            }
-            // ring 1 (x): Clockwise from 3
-            //   x x x x      4 5 6 7
-            //  x o o o x -> 3 o o o 8
-            //   x x x x      2 1 0 9
-            // opposite direction
-            positions[3] = getRotation(positions[0], dir, .one_eighty);
-            // +60 rot
-            positions[4] = getRotation(positions[0], dir, .two_forty);
-            // straight line above
-            positions[5] = getRotation(positions[0], dir, .three_hundo);
-            positions[6] = getRotation(positions[1], dir, .three_hundo);
-            positions[7] = getRotation(positions[2], dir, .three_hundo);
-            // same direction
-            positions[8] = getRotation(positions[2], dir, .full);
-            // straight line below
-            positions[9] = getRotation(positions[2], dir, .sixty);
-            positions[10] = getRotation(positions[1], dir, .sixty);
-            positions[11] = getRotation(positions[0], dir, .sixty);
-            // +60 deg rot
-            positions[12] = getRotation(positions[0], dir, .one_twenty);
-            // ring 2 (|): Clockwise from 3
-            //   | | | | |         4 5 6 7 8
-            //    x x x x           x x x x
-            // | x o o o x | ->  3 x o o o x 9
-            //    x x x x           x x x x
-            //   | | | | |         4 3 2 1 0
-            // opposite direction
-            positions[13] = getRotation(positions[3], dir, .one_eighty);
-            // +60 rot
-            positions[14] = getRotation(positions[4], dir, .two_forty);
-            // straight line
-            positions[15] = getRotation(positions[4], dir, .three_hundo);
-            positions[16] = getRotation(positions[5], dir, .three_hundo);
-            positions[17] = getRotation(positions[6], dir, .three_hundo);
-            positions[18] = getRotation(positions[7], dir, .three_hundo);
-            // same dir
-            positions[19] = getRotation(positions[8], dir, .full);
-            // +60
-            positions[20] = getRotation(positions[9], dir, .sixty);
-            // straight line
-            positions[21] = getRotation(positions[10], dir, .sixty);
-            positions[22] = getRotation(positions[11], dir, .sixty);
-            positions[23] = getRotation(positions[12], dir, .sixty);
-            positions[24] = getRotation(positions[12], dir, .one_twenty);
-            // set ring 0 values
-            self.board.set(idxFromPos(positions[0].?));
-            self.board.unset(idxFromPos(positions[1].?));
-            self.board.unset(idxFromPos(positions[2].?));
-            // Redundancies: TODO
-            // Update directions
-            for (positions) |position| {
-                if (position) |pos| {
-                    self.updateMoves(idxFromPos(pos));
+        pub fn computeAllMoves(self: *Self) void {
+            // Brute Force:
+            // Check All Pegs For All Moves
+            for (0..self.board.capacity()) |i| {
+                if (self.board.isSet(i)) continue;
+                const pos = posFromIdx(@truncate(i));
+                // check all positions
+                const fields = comptime std.meta.fieldNames(Direction);
+                inline for (fields) |field_name| {
+                    const dir = @field(Direction, field_name);
+                    const p1 = getRotation(pos, dir, .full);
+                    const p2 = getRotation(pos, dir, .full);
+                    if (p1 != null and p2 != null and !self.moves[i].contains(dir)) {
+                        self.moves[i].insert(dir);
+                    }
                 }
             }
         }
 
-        fn isValidIdx(self: *const Self, idx: T) bool {
-            return idx < self.board.capacity();
+        pub fn computeOptimizedMoves(self: *Self) void {
+            // compute specific moves
+            _ = self;
         }
 
-        fn getPosFromIdx(self: *const Self, idx: T) ?Position {
-            if (idx > self.board.capacity()) return null;
-            return posFromIdx(idx);
+        fn isValidIdx(self: *const Self, idx: T) bool {
+            return idx < self.board.capacity();
         }
 
         fn getLeft(pos: Position) ?Position {
