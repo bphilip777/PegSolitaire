@@ -304,8 +304,8 @@ pub fn createBoard(comptime n_rows: T) !type {
         const Self = @This();
         allo: Allocator = undefined,
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
-        moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
         start: T = 0,
+        moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
         prev_moves: [n_indices]?Moves = undefined, // holds last 5 moves
         next_moves: [n_indices]?Moves = undefined, // holds last 5 future move after undoing
 
@@ -316,15 +316,17 @@ pub fn createBoard(comptime n_rows: T) !type {
             var moves: [n_indices]Directions = undefined;
             var prev_moves: [n_indices]?Moves = undefined;
             var next_moves: [n_indices]?Moves = undefined;
+
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
                 prev_moves[i] = null;
                 next_moves[i] = null;
             }
+
             var self = Self{
                 .allo = allo,
-                .moves = moves,
                 .start = start,
+                .moves = moves,
                 .prev_moves = prev_moves,
                 .next_moves = next_moves,
             };
