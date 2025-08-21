@@ -22,24 +22,24 @@ pub fn main() !void {
     const Instruction = struct { idx: u16, dir: Direction };
     const list_of_instructions = [_]Instruction{
         .{ .idx = 0, .dir = .DownLeft },
-        // .{ .idx = 3, .dir = .Right },
-        // .{ .idx = 5, .dir = .UpLeft },
-        // .{ .idx = 1, .dir = .DownLeft },
-        // .{ .idx = 2, .dir = .DownRight },
-        // .{ .idx = 3, .dir = .DownRight },
-        // .{ .idx = 0, .dir = .DownLeft },
-        // .{ .idx = 5, .dir = .UpLeft },
-        // .{ .idx = 12, .dir = .Left },
-        // .{ .idx = 11, .dir = .Right },
-        // .{ .idx = 12, .dir = .UpRight },
-        // .{ .idx = 10, .dir = .Right },
+        .{ .idx = 3, .dir = .Right },
+        .{ .idx = 5, .dir = .UpLeft },
+        .{ .idx = 1, .dir = .DownLeft },
+        .{ .idx = 2, .dir = .DownRight },
+        .{ .idx = 3, .dir = .DownRight },
+        .{ .idx = 0, .dir = .DownLeft },
+        .{ .idx = 5, .dir = .UpLeft },
+        .{ .idx = 12, .dir = .Left },
+        .{ .idx = 11, .dir = .Right },
+        .{ .idx = 12, .dir = .UpRight },
+        .{ .idx = 10, .dir = .Right },
     };
     for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
-        board.printBoard();
-        try board.printMoves();
-        print("{}\n", .{board.isLost()});
     }
+    board.printBoard();
+    try board.printMoves();
+    print("{}\n", .{board.isLost()});
 }
 
 // test "Lose Condition" {

@@ -291,37 +291,45 @@ const GameErrors = error{
     InvalidPosition,
 };
 
+const Moves = struct {
+    idx: T,
+    dir: Direction,
+};
+
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows <= 0 or n_rows > MAX_INPUT_SIZE) return error.NRowsTooSmallOrTooLarge;
     const n_indices = triNum(n_rows);
 
     return struct {
         const Self = @This();
-        allo: Allocator,
-        board: std.bit_set.IntegerBitSet(n_indices),
-        moves: [n_indices]Directions, // always calculate based on neg, convert pos to neg
-        start: T,
+        allo: Allocator = undefined,
+        board: std.bit_set.IntegerBitSet(n_indices) = .initEmpty(),
+        moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
+        start: T = 0,
+        prev_moves: [n_indices]?Moves = undefined, // holds last 5 moves
+        next_moves: [n_indices]?Moves = undefined, // holds last 5 future move after undoing
 
         pub fn init(allo: Allocator, start: T) !Self {
             // Validity Check
             if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
-            // create board
-            var board: std.bit_set.IntegerBitSet(n_indices) = .initFull();
-            board.unset(@as(usize, @intCast(start)));
-            // Directions
+            // moves
             var moves: [n_indices]Directions = undefined;
-            for (0..n_indices) |i| moves[i] = .initEmpty();
-            // compute all moves
-
+            var prev_moves: [n_indices]?Moves = undefined;
+            var next_moves: [n_indices]?Moves = undefined;
+            for (0..n_indices) |i| {
+                moves[i] = .initEmpty();
+                prev_moves[i] = null;
+                next_moves[i] = null;
+            }
             var self = Self{
                 .allo = allo,
-                .board = board,
+                .board = std.bit_set.IntegerBitSet(n_indices).initFull(),
                 .moves = moves,
                 .start = start,
+                .prev_moves = prev_moves,
+                .next_moves = next_moves,
             };
-            // Compute moves
-            self.computeAllMoves();
-            // return
+            self.resetBoard();
             return self;
         }
 
@@ -413,6 +421,21 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             // update moves
             self.computeAllMoves();
+        }
+
+        pub fn resetBoard(self: *Self) void {
+            // set board to all 1s
+            // set start position to 0
+            // set moves to empty
+            for (0..n_indices) |i| {
+                self.board.set(i);
+            }
+            self.board.unset(self.start);
+            self.computeAllMoves();
+        }
+
+        pub fn undoMove(self: *Self) void {
+            _ = self;
         }
 
         fn isValidIdx(self: *const Self, idx: T) bool {
