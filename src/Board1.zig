@@ -360,9 +360,15 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const p1 = getRotation(pos, dir, .full);
                     const p2 = getRotation(pos, dir, .full);
                     if (p1 != null and p2 != null) {
-                        self.moves[i].insert(dir);
+                        const idx1 = idxFromPos(p1.?);
+                        const idx2 = idxFromPos(p2.?);
+                        if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
+                            self.moves[i].insert(dir);
+                        } else if (self.moves[i].contains(dir)) {
+                            self.moves[i].remove(dir);
+                        }
                     } else {
-                        self.moves[i].remove(dir);
+                        if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                     }
                 }
             }
@@ -522,7 +528,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const dir = @field(Direction, field_name);
                     n_moves += @intFromBool(self.moves[i].contains(dir));
                 }
-                if (n_moves > 0) break;
+                // if (n_moves > 0) break;
             }
             print("Moves: {}\nPegs Left: {}\n", .{ n_moves, self.board.count() });
             return (n_moves == 0 and self.board.count() > 1);
@@ -549,7 +555,6 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn printMoves(self: *Self) !void {
-            // TODO: convert to hidden function - for testing purposes only
             const headers = [_][]const u8{ "Coords", "Moves" };
             var max_moves_char: T = 0;
             for (self.moves) |move| {
