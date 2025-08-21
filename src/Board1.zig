@@ -163,7 +163,7 @@ const Rotation: type = enum {
     }
 };
 
-const Direction: type = enum {
+pub const Direction: type = enum {
     Left,
     UpLeft,
     UpRight,
@@ -359,8 +359,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const dir = @field(Direction, field_name);
                     const p1 = getRotation(pos, dir, .full);
                     const p2 = getRotation(pos, dir, .full);
-                    if (p1 != null and p2 != null and !self.moves[i].contains(dir)) {
+                    if (p1 != null and p2 != null) {
                         self.moves[i].insert(dir);
+                    } else {
+                        self.moves[i].remove(dir);
                     }
                 }
             }
@@ -567,7 +569,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const empty_buffer = [_]u8{' '} ** 1024;
                 const underline_buffer = [_]u8{'-'} ** 1024;
                 print(
-                    "{s}{s}{s}{s}{s}{s}{s}\n",
+                    "{s}{s}{s}{s}{s}\n",
                     .{
                         headers[0],
                         empty_buffer[0..coord_diff],
@@ -589,8 +591,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 );
                 defer self.allo.free(coords_str);
 
-                // convert below into a function
-                if (getNumMoves(move)) continue;
+                if (getNumMoves(move) == 0) continue;
 
                 const moves_str = try formatMove(self.allo, move, max_moves_char);
                 defer self.allo.free(moves_str);

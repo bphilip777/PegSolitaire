@@ -5,6 +5,7 @@ const Allocator = std.mem.Allocator;
 const createBoard = @import("Board1.zig").createBoard;
 const N_ROWS = 5;
 const Board: type = createBoard(N_ROWS) catch unreachable;
+const Direction = @import("Board1.zig").Direction;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -18,36 +19,27 @@ pub fn main() !void {
     defer board.deinit();
     board.printBoard();
 
-    // const list_of_idxs = {start, 3, 5, 1, 2, 3, 0, 5, 12, 11, 12, };
-    // const list_of_dirs = {}
-    board.chooseMove(start, .DownLeft);
-    board.printBoard();
-    try board.printMoves();
-    // board.chooseMove(3, .Right);
-    // board.printBoard();
-    // board.chooseMove(5, .UpLeft);
-    // board.printBoard();
-    // board.chooseMove(1, .DownLeft);
-    // board.printBoard();
-    // board.chooseMove(2, .DownRight);
-    // board.printBoard();
-    // board.chooseMove(3, .DownRight);
-    // board.printBoard();
-    // board.chooseMove(0, .DownLeft);
-    // board.printBoard();
-    // board.chooseMove(5, .UpLeft);
-    // board.printBoard();
-    // board.chooseMove(12, .Left);
-    // board.printBoard();
-    // board.chooseMove(11, .Right);
-    // board.printBoard();
-    // board.chooseMove(12, .UpRight);
-    // board.printBoard();
-    // board.chooseMove(10, .Right);
-    // board.printBoard();
-    print("{}\n", .{board.isLost()});
-
-    // print("{}\n", .{board.isLost()});
+    const Instruction = struct { idx: u16, dir: Direction };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft },
+        // .{ .idx = 3, .dir = .Right },
+        // .{ .idx = 5, .dir = .UpLeft },
+        // .{ .idx = 1, .dir = .DownLeft },
+        // .{ .idx = 2, .dir = .DownRight },
+        // .{ .idx = 3, .dir = .DownRight },
+        // .{ .idx = 0, .dir = .DownLeft },
+        // .{ .idx = 5, .dir = .UpLeft },
+        // .{ .idx = 12, .dir = .Left },
+        // .{ .idx = 11, .dir = .Right },
+        // .{ .idx = 12, .dir = .UpRight },
+        // .{ .idx = 10, .dir = .Right },
+    };
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        board.printBoard();
+        try board.printMoves();
+        print("{}\n", .{board.isLost()});
+    }
 }
 
 // test "Lose Condition" {
