@@ -371,6 +371,32 @@ pub fn createBoard(comptime n_rows: T) !type {
             _ = self;
         }
 
+        pub fn chosseMove(self: *Self, idx0: T, move: Direction) void {
+            // if idx is not valid return
+            if (!self.isValidIdx(idx0)) return;
+            // get positions
+            const p0 = posFromIdx(idx0);
+            const p1 = getRotation(p0, move, .full) orelse return;
+            const p2 = getRotation(p1, move, .full) orelse return;
+            // get idxs
+            const idx1 = idxFromPos(p1);
+            const idx2 = idxFromPos(p2);
+            // check move -> apply move = update board
+            if (self.board.isSet(idx0)) {
+                if (!self.moves[idx2].contains(Direction.opposite(move))) return;
+                self.board.unset(idx0);
+                self.board.unset(idx1);
+                self.board.set(idx2);
+            } else {
+                if (!self.moves[idx0].contains(move)) return;
+                self.board.set(idx0);
+                self.board.unset(idx1);
+                self.board.unset(idx2);
+            }
+            // update moves
+            self.computeAllMoves();
+        }
+
         fn isValidIdx(self: *const Self, idx: T) bool {
             return idx < self.board.capacity();
         }

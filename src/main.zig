@@ -18,9 +18,9 @@ pub fn main() !void {
     defer board.deinit();
     board.printBoard();
 
-    try board.chooseMove(start, .DownLeft);
-    board.printBoard();
-    try board.printMoves();
+    // try board.chooseMove(start, .DownLeft);
+    // board.printBoard();
+    // try board.printMoves();
     // try board.chooseMove(3, .Right);
     // board.printBoard();
     // try board.chooseMove(5, .UpLeft);
