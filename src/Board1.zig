@@ -362,6 +362,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     };
                     const idx1 = idxFromPos(pos1);
                     const idx2 = idxFromPos(pos2);
+                    if (!self.isValidIdx(pos1) or !self.isValidIdx(pos2)) {
+                        if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
+                        continue;
+                    }
                     if (self.board.isSet(i)) { // positive
                         if ((self.board.isSet(idx1) and !self.board.isSet(idx2)) and !self.moves[i].contains(dir)) {
                             self.moves[i].insert(dir);
