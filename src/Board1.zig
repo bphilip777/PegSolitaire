@@ -348,27 +348,32 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         fn computeAllMoves(self: *Self) void {
-            // Brute Force:
-            // Check All Pegs For All Moves
-            for (0..self.board.capacity()) |i| {
-                if (self.board.isSet(i)) continue;
-                const pos = posFromIdx(@truncate(i));
-                // check all positions
-                const fields = comptime std.meta.fieldNames(Direction);
-                inline for (fields) |field_name| {
-                    const dir = @field(Direction, field_name);
-                    const p1 = getRotation(pos, dir, .full);
-                    const p2 = getRotation(pos, dir, .full);
-                    if (p1 != null and p2 != null) {
-                        const idx1 = idxFromPos(p1.?);
-                        const idx2 = idxFromPos(p2.?);
-                        if (self.board.isSet(idx1) and self.board.isSet(idx2)) {
+            for (0..n_indices) |i| {
+                const pos0 = posFromIdx(i);
+                for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                    const pos1 = getRotation(pos0, dir, .full) orelse {
+                        self.moves[i].remove(dir);
+                        continue;
+                    };
+                    const pos2 = getRotation(pos1, dir, .full) orelse {
+                        self.moves[i].remove(dir);
+                        continue;
+                    };
+                    const idx1 = idxFromPos(pos1);
+                    const idx2 = idxFromPos(pos2);
+                    if (self.board.isSet(i)) { // positive
+                        if ((self.board.isSet(idx1) and !self.board.isSet(idx2)) and !self.moves[i].contains(dir)) {
                             self.moves[i].insert(dir);
-                        } else if (self.moves[i].contains(dir)) {
+                        } else if ((!self.board.isSet(idx1) or self.board.isSet(idx2)) and self.moves[i].contains(dir)) {
                             self.moves[i].remove(dir);
                         }
-                    } else {
-                        if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
+                    } else { // negative
+                        // pos1 = set, pos2 = set
+                        if ((self.board.isSet(idx1) and self.board.isSet(idx2)) and !self.moves[i].contains(dir)) {
+                            self.moves[i].insert(dir);
+                        } else if ((!self.board.isSet(idx1) or !self.board.isSet(idx2)) and self.moves[i].contains(dir)) {
+                            self.moves[i].remove(dir);
+                        }
                     }
                 }
             }
