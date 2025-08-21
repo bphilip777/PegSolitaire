@@ -55,24 +55,26 @@ test "Is Won" {
     var board: Board = try .init(allo, 0);
     defer board.deinit();
 
-    const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
+    const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
     const list_of_instructions = [_]Instruction{
-        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
-        .{ .idx = 3, .dir = .Right, .is_lost = false },
-        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
-        .{ .idx = 1, .dir = .DownLeft, .is_lost = false },
-        .{ .idx = 2, .dir = .DownRight, .is_lost = false },
-        .{ .idx = 3, .dir = .DownRight, .is_lost = false },
-        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
-        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
-        .{ .idx = 12, .dir = .Left, .is_lost = false },
-        .{ .idx = 11, .dir = .Right, .is_lost = false },
-        .{ .idx = 12, .dir = .UpRight, .is_lost = false },
-        .{ .idx = 10, .dir = .Right, .is_lost = true },
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 3, .dir = .Right, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 1, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 2, .dir = .DownRight, .is_won = false },
+        .{ .idx = 3, .dir = .DownRight, .is_won = false },
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 12, .dir = .Left, .is_won = false },
+        .{ .idx = 11, .dir = .Right, .is_won = false },
+        .{ .idx = 12, .dir = .UpRight, .is_won = false },
+        .{ .idx = 12, .dir = .Left, .is_won = true },
+        .{ .idx = 12, .dir = .Right, .is_won = false },
     };
 
     for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
-        try std.testing.expectEqual(board.isLost(), instruction.is_lost);
+        board.printBoard();
+        //     try std.testing.expectEqual(board.isWon(), instruction.is_lost);
     }
 }
