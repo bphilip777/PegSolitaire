@@ -163,7 +163,7 @@ const Rotation: type = enum {
     }
 };
 
-pub const Direction: type = enum {
+const Direction: type = enum {
     Left,
     UpLeft,
     UpRight,
