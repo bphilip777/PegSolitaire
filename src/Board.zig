@@ -400,38 +400,43 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         fn computeOptimally(self: *Self, idx0: T, dir: Direction) void {
-            // compute specific moves
-            if (!self.isValidIdx(idx0)) return;
-            // critical original directions
-            const pos0 = posFromIdx(idx0);
-            const pos1 = getRotation(pos0, dir, .full) orelse {
-                print(
-                    "Pos: ({}, {}), Dir: {s}, Does Not Exist",
-                    .{ pos0.row, pos0.col, @tagName(dir) },
-                );
-                return;
-            };
-            const pos2 = getRotation(pos1, dir, .full) orelse {
-                print(
-                    "Pos: ({}, {}), Dir: {s}, Does Not Exist",
-                    .{ pos1.row, pos1.col, @tagName(dir) },
-                );
-                return;
-            };
-            const idx1 = idxFromPos(pos1);
-            const idx2 = idxFromPos(pos2);
+            // only origin gauranteed
+            // start from left most -> go clockwise
+            // get positions multiple ways until success
+            //  Ring 0 (Origin):
+            //     o o o -> 0 1 2
+            //  Ring 1:
+            //    x x x x      4 5 6 7
+            //   x o o o x -> 3 o o o 8
+            //    x x x x      2 1 0 9
+            //  Ring 2:
+            //    | | | | |        5 6 7 8 9
+            //   | x x x x |      4 x x x x 0
+            //  | x o o o x | -> 3 x o o o x 1
+            //   | x x x x |      8 x x x x 2
+            //    | | | | |        7 6 5 4 3
 
-            // rotate around each idx - set values
-            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |new_dir| {
-                const p1 = getRotation(pos0, dir, .full) orelse {
-                    self.moves[idx].remove(dir);
-                    continue;
-                };
-                const p2 = getRotation(p1, dir, .full) orelse {
-                    self.moves[idx].remove(dir);
-                    continue;
-                };
-            }
+            // Edge case, original position is not valid
+            if (!self.isValidIdx(idx0)) return;
+            // origin = 3
+            const pos0 = posFromIdx(idx0);
+            const pos1 = getRotation(pos0, dir, .full);
+            const pos2 = getRotation(pos1, dir, .full);
+            // ring 1
+            const pos3 = getRotation(pos0, dir, .one_eighty);
+            const pos4 = getRotation(pos0, dir, .two_forty) // one
+                orelse getRotation(pos1, dir, .two_forty);
+            const pos5 = getRotation(pos0, dir, .three_hundo);
+            const pos6 = getRotation(pos1, dir, .three_hundo);
+            const pos7 = getRotation(pos2, dir, .three_hundo);
+            const pos8 = getRotation(pos2, dir, .full);
+            const pos9 = getRotation(pos2, dir, .sixty);
+            const pos10 = getRotation(pos1, dir, .sixty);
+            const pos11 = getRotation(pos0, dir, .sixty);
+            const pos12 = getRotation(pos0, dir, .one_twenty);
+            // ring 2
+            const pos13 = getRotation(pos3, dir, .one_eighty);
+            const pos14 = getRotation(pos4, dir, .two_forty);
         }
 
         pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
