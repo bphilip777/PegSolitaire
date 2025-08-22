@@ -307,14 +307,12 @@ pub fn createBoard(comptime n_rows: T) !type {
     const n_indices = triNum(n_rows);
 
     return struct {
-        const Self = @This();
-        allo: Allocator = undefined,
-        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
-        start: T = 0,
-        moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg
-        chosen_moves: [n_indices]?Move = undefined, // store neg move, max moves = n_indices - 1
+        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
+        start: T = 0, // 2 bytes
+        moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
+        chosen_moves: [n_indices]?Move = undefined, // store neg move, max moves = n_indices - 1, 1 byte,
 
-        pub fn init(allo: Allocator, start: T) !Self {
+        pub fn init(start: T) !@This() {
             // Validity Check
             if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
             // moves
@@ -326,8 +324,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 chosen_moves[i] = null;
             }
 
-            var self = Self{
-                .allo = allo,
+            var self = @This(){
                 .start = start,
                 .moves = moves,
                 .chosen_moves = chosen_moves,
@@ -336,11 +333,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self;
         }
 
-        pub fn deinit(self: *Self) void {
-            _ = self;
-        }
-
-        pub fn printBoard(self: *const Self) void {
+        pub fn printBoard(self: *const @This()) void {
             const len = n_rows * 2 + 1;
             var buffer: [len]u8 = [_]u8{' '} ** len;
             var i: T = 0;
@@ -358,7 +351,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        fn computeAllMoves(self: *Self) void {
+        fn computeAllMoves(self: *@This()) void {
             for (0..n_indices) |i| {
                 const idx0: T = @truncate(i);
                 const pos0 = posFromIdx(idx0);
@@ -395,7 +388,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn computeOptimally(self: *Self, idx: T, dir: Direction) void {
+        fn computeOptimally(self: *@This(), idx: T, dir: Direction) void {
             // assumes idx0 is valid + dir is valid!
             // start form origin -> loop around it through rest of origins
             // for ring 2: get positions multiple ways
@@ -465,13 +458,13 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn hasMove(self: *const Self, idxs: [3]T) bool {
+        fn hasMove(self: *const @This(), idxs: [3]T) bool {
             // assumes each idx is valid
             // assumes negative movement
             return !self.board.isSet(idxs[0]) and self.board.isSet(idxs[1]) and self.board.isSet(idxs[2]);
         }
 
-        pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
+        pub fn chooseMove(self: *@This(), idx0: T, dir: Direction) void {
             // if idx is not valid return
             if (!self.isValidIdx(idx0)) {
                 print("Idx: {} not valid\n", .{idx0});
@@ -533,13 +526,13 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeOptimally(idx0, dir);
         }
 
-        pub fn chooseMovePos(self: *Self, pos: Position, dir: Direction) void {
+        pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
             const idx = idxFromPos(pos);
             if (!self.isValidIdx(idx)) return;
             self.chooseMove(idx, dir);
         }
 
-        pub fn resetBoard(self: *Self) void {
+        pub fn resetBoard(self: *@This()) void {
             // set board to all 1s
             // set start position to 0
             // set moves to empty
@@ -550,7 +543,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *Self) void {
+        pub fn undoMove(self: *@This()) void {
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
@@ -570,13 +563,13 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn redoMove(self: *Self) void {
+        pub fn redoMove(self: *@This()) void {
             const idx = self.board.count();
             const move = self.chosen_moves[idx].?;
             self.chooseMove(move.idx, move.dir);
         }
 
-        fn isValidIdx(self: *const Self, idx: T) bool {
+        fn isValidIdx(self: *const @This(), idx: T) bool {
             return idx < self.board.capacity();
         }
 
@@ -684,15 +677,15 @@ pub fn createBoard(comptime n_rows: T) !type {
             return null;
         }
 
-        pub fn isGameOver(self: *const Self) bool {
+        pub fn isGameOver(self: *const @This()) bool {
             return self.isWon() or self.isLost();
         }
 
-        pub fn isWon(self: *const Self) bool {
+        pub fn isWon(self: *const @This()) bool {
             return self.board.count() == 1;
         }
 
-        pub fn isLost(self: *const Self) bool {
+        pub fn isLost(self: *const @This()) bool {
             var n_moves: usize = 0;
             for (0..self.board.capacity()) |i| {
                 inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
@@ -704,7 +697,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             return (n_moves == 0 and self.board.count() > 1);
         }
 
-        pub fn reset(self: *Self) void {
+        pub fn reset(self: *@This()) void {
             // set board to all on
             // set start position off
             // undo all moves
@@ -725,7 +718,8 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn printMoves(self: *Self) !void {
+        pub fn printMoves(self: *@This(), allo: Allocator) !void {
+            // allocator is passed in instead
             const headers = [_][]const u8{ "Coords", "Moves" };
             var max_moves_char: T = 0;
             for (self.moves) |move| {
@@ -763,16 +757,16 @@ pub fn createBoard(comptime n_rows: T) !type {
             for (self.moves, 0..) |move, i| {
                 const pos = posFromIdx(@truncate(i));
                 const coords_str = try std.fmt.allocPrint(
-                    self.allo,
+                    allo,
                     "({}, {}) ",
                     .{ pos.row, pos.col },
                 );
-                defer self.allo.free(coords_str);
+                defer allo.free(coords_str);
 
                 if (getNumMoves(move) == 0) continue;
 
-                const moves_str = try formatMove(self.allo, move, max_moves_char);
-                defer self.allo.free(moves_str);
+                const moves_str = try formatMove(allo, move, max_moves_char);
+                defer allo.free(moves_str);
                 print("{s}{s}{s}\n", .{ coords_str, column_buffer, moves_str });
             }
         }
