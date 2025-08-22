@@ -643,14 +643,15 @@ pub fn createBoard(comptime n_rows: T) !type {
             for (0..self.board.capacity()) |i| self.board.set(i);
             // set start pposition off
             self.board.unset(self.start);
-            // undo all moves
-            for (0..self.board.capacity()) |i| {
-                var it = self.pos_moves[i].iterator();
-                while (it.next()) |item| self.pos_moves[i].remove(item);
-                it = self.neg_moves[i].iterator();
-                while (it.next()) |item| self.neg_moves[i].remove(item);
+
+            for (0..n_indices) |i| {
+                // undo all moves
+                self.moves[i] = .initEmpty();
+                // reset chosen_moves
+                self.chosen_moves = null;
             }
             // recompute start moves
+            self.computeAllMoves();
         }
 
         pub fn printMoves(self: *Self) !void {
