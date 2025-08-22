@@ -416,7 +416,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             //   | x x x x |        x x x x
             //    | | | | |        4 3 2 1 0
             // compute origins
-            const start0 = idxFromPos(idx);
+            const start0 = posFromIdx(idx);
             const start1 = getRotation(start0, dir, .full);
             const start2 = getRotation(start1, dir, .full);
             const origins = [_]?Position{ start0, start1, start2 };
@@ -437,27 +437,31 @@ pub fn createBoard(comptime n_rows: T) !type {
                         if (pos1 != null and pos2 != null) {
                             const idx1 = idxFromPos(pos1.?);
                             const idx2 = idxFromPos(pos2.?);
-                            // forwards
-                            if (self.hasMove(idx0, idx1, idx2)) {
-                                self.moves[idx0].insert(new_dir);
-                            } else if (self.moves[idx0].contains(new_dir)) {
-                                self.moves[idx0].remove(new_dir);
-                            }
-                            // backwards
-                            if (self.hasMove(idx2, idx1, idx0)) {
-                                self.moves[idx2].insert(opp_dir);
-                            } else if (self.moves[idx2].contains(opp_dir)) {
-                                self.moves[idx2].remove(opp_dir);
+                            if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
+                                // forwards
+                                if (self.hasMove([_]T{ idx0, idx1, idx2 })) {
+                                    self.moves[idx0].insert(new_dir);
+                                } else if (self.moves[idx0].contains(new_dir)) {
+                                    self.moves[idx0].remove(new_dir);
+                                }
+                                // backwards
+                                if (self.hasMove([_]T{ idx2, idx1, idx0 })) {
+                                    self.moves[idx2].insert(opp_dir);
+                                } else if (self.moves[idx2].contains(opp_dir)) {
+                                    self.moves[idx2].remove(opp_dir);
+                                }
                             }
                         }
                         if (pos1 != null and pos3 != null) {
                             const idx1 = idxFromPos(pos1.?);
                             const idx3 = idxFromPos(pos3.?);
-                            // centered
-                            if (self.hasMove(idx1, idx0, idx3)) {
-                                self.moves[idx1].insert(opp_dir);
-                            } else if (self.moves[idx1].contains[opp_dir]) {
-                                self.moves[idx1].remove(opp_dir);
+                            if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
+                                // centered
+                                if (self.hasMove([_]T{ idx1, idx0, idx3 })) {
+                                    self.moves[idx1].insert(opp_dir);
+                                } else if (self.moves[idx1].contains(opp_dir)) {
+                                    self.moves[idx1].remove(opp_dir);
+                                }
                             }
                         }
                     }
@@ -529,8 +533,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.unset(idx2);
             }
             // update moves
-            // TODO: need to create optimized compute all moves
-            self.computeAllMoves();
+            // self.computeAllMoves();
+            self.computeOptimally(idx0, dir);
         }
 
         pub fn resetBoard(self: *Self) void {
