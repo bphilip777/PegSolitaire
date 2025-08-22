@@ -401,8 +401,9 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         fn computeOptimally(self: *Self, idx0: T, dir: Direction) void {
             // only origin gauranteed
+            // compute from more likely position to less likely
             // start from left most -> go clockwise
-            // get positions multiple ways until success
+            // for ring 2: get positions multiple ways
             //  Ring 0 (Origin):
             //     o o o -> 0 1 2
             //  Ring 1:
@@ -415,7 +416,6 @@ pub fn createBoard(comptime n_rows: T) !type {
             //  | x o o o x | -> 3 x o o o x 1
             //   | x x x x |      8 x x x x 2
             //    | | | | |        7 6 5 4 3
-
             // Edge case, original position is not valid
             if (!self.isValidIdx(idx0)) return;
             // origin = 3
@@ -424,8 +424,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const pos2 = getRotation(pos1, dir, .full);
             // ring 1
             const pos3 = getRotation(pos0, dir, .one_eighty);
-            const pos4 = getRotation(pos0, dir, .two_forty) // one
-                orelse getRotation(pos1, dir, .two_forty);
+            const pos4 = getRotation(pos0, dir, .two_forty);
             const pos5 = getRotation(pos0, dir, .three_hundo);
             const pos6 = getRotation(pos1, dir, .three_hundo);
             const pos7 = getRotation(pos2, dir, .three_hundo);
@@ -436,7 +435,30 @@ pub fn createBoard(comptime n_rows: T) !type {
             const pos12 = getRotation(pos0, dir, .one_twenty);
             // ring 2
             const pos13 = getRotation(pos3, dir, .one_eighty);
-            const pos14 = getRotation(pos4, dir, .two_forty);
+            const pos14 = getRotation(pos3, dir, .two_forty) //
+                orelse getRotation(pos4, dir, .one_eighty);
+            const pos15 = getRotation(pos4, dir, .two_forty);
+            const pos16 = getRotation(pos4, dir, .three_hundo) //
+                orelse getRotation(pos5, dir, .two_forty);
+            const pos17 = getRotation(pos5, dir, .three_hundo) //
+                orelse getRotation(pos6, dir, .two_forty);
+            const pos18 = getRotation(pos6, dir, .three_hundo) //
+                orelse getRotation(pos7, dir, .two_forty);
+            const pos19 = getRotation(pos7, dir, .three_hundo);
+            const pos20 = getRotation(pos7, dir, .full) //
+                orelse getRotation(pos8, dir, .three_hundo);
+            const pos21 = getRotation(pos8, dir, .full);
+            const pos22 = getRotation(pos8, dir, .sixty) //
+                orelse getRotation(pos9, dir, .full);
+            const pos23 = getRotation(pos9, dir, .sixty);
+            const pos24 = getRotation(pos10, dir, .sixty) //
+                orelse getRotation(pos9, dir, .one_twenty);
+            const pos25 = getRotation(pos11, dir, .sixty) //
+                orelse getRotation(pos10, dir, .one_twenty);
+            const pos26 = getRotation(pos12, dir, .sixty) //
+                orelse getRotation(pos11, dir, .one_twenty);
+            const pos27 = getRotation();
+            const pos28 = getRotation();
         }
 
         pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
