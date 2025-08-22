@@ -410,15 +410,21 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx1 = idxFromPos(p1);
             const idx2 = idxFromPos(p2);
             // check move -> apply move = update board
-            if (self.board.isSet(idx0)) {
+            if (self.board.isSet(idx0)) { // pos
                 if (!self.moves[idx2].contains(Direction.opposite(dir))) return;
-                self.chosen_moves[self.board.count()] = Move { .idx = idx0, .dir = move };
+                self.chosen_moves[self.board.count()] = Move { 
+                    .idx = idx2, 
+                    .dir = Direction.opposite(dir), 
+                };
                 self.board.unset(idx0);
                 self.board.unset(idx1);
                 self.board.set(idx2);
-            } else {
+            } else { // neg
                 if (!self.moves[idx0].contains(dir)) return;
-                self.chosen_moves[self.board.count()] = Move { .idx = idx0, .dir = move };
+                self.chosen_moves[self.board.count()] = Move { 
+                    .idx = idx0, 
+                    .dir = move, 
+                };
                 self.board.set(idx0);
                 self.board.unset(idx1);
                 self.board.unset(idx2);
@@ -440,7 +446,10 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn undoMove(self: *Self) void {
-            _ = self;
+            const idx = self.board.count();
+            if (idx < n_indices - 1) {
+                const move = self.chosen_moves[idx];
+            }
         }
 
         fn isValidIdx(self: *const Self, idx: T) bool {
