@@ -444,19 +444,13 @@ pub fn createBoard(comptime n_rows: T) !type {
                             const idx1 = idxFromPos(pos1.?);
                             const idx2 = idxFromPos(pos2.?);
                             // forwards
-                            if (!self.board.isSet(idx0) and //
-                                self.board.isSet(idx1) and //
-                                self.board.isSet(idx2))
-                            {
+                            if (self.hasMove(idx0, idx1, idx2)) {
                                 self.moves[idx0].insert(new_dir);
                             } else if (self.moves[idx0].contains(new_dir)) {
                                 self.moves[idx0].remove(new_dir);
                             }
                             // backwards
-                            if (!self.board.isSet(idx2) and //
-                                self.board.isSet(idx1) and //
-                                self.board.isSet(idx0))
-                            {
+                            if (self.hasMove(idx2, idx1, idx0)) {
                                 self.moves[idx2].insert(opp_dir);
                             } else if (self.moves[idx2].contains(opp_dir)) {
                                 self.moves[idx2].remove(opp_dir);
@@ -466,10 +460,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                             const idx1 = idxFromPos(pos1.?);
                             const idx3 = idxFromPos(pos3.?);
                             // centered
-                            if (!self.board.isSet(idx1) and //
-                                self.board.isSet(idx0) and //
-                                self.board.isSet(idx3))
-                            {
+                            if (self.hasMove(idx1, idx0, idx3)) {
                                 self.moves[idx1].insert(opp_dir);
                             } else if (self.moves[idx1].contains[opp_dir]) {
                                 self.moves[idx1].remove(opp_dir);
@@ -522,6 +513,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             // }
             // // compute moves
             // if (idxs[0] != null and idxs[1] != null and idxs[2] != null) {}
+        }
+
+        fn hasMove(self: *const Self, idxs: [3]T) bool {
+            // assumes each idx is valid
+            // assumes negative movement
+            return !self.board.isSet(idxs[0]) and self.board.isSet(idxs[1]) and self.board.isSet(idxs[2]);
         }
 
         pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
