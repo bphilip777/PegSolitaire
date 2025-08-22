@@ -266,6 +266,7 @@ fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
             }
         }
     }
+
     if (moves_str.len < max_moves_char) {
         const diff = max_moves_char - moves_str.len;
         tmp = try std.fmt.allocPrint(allo, "{s}{s}", .{ moves_str, empty_buffer[0..diff] });
