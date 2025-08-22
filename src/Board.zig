@@ -3,8 +3,8 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
 // TODO:
-// Enable positive and negative moves
-// - currently only negative moves
+// Compute Moves Optimally
+// Compute
 
 const T: type = u16;
 
@@ -399,11 +399,39 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn computeOptimizedMoves(self: *Self, idx: T, dir: Direction) void {
+        fn computeOptimally(self: *Self, idx0: T, dir: Direction) void {
             // compute specific moves
-            _ = self;
-            _ = idx;
-            _ = dir;
+            if (!self.isValidIdx(idx0)) return;
+            // critical original directions
+            const pos0 = posFromIdx(idx0);
+            const pos1 = getRotation(pos0, dir, .full) orelse {
+                print(
+                    "Pos: ({}, {}), Dir: {s}, Does Not Exist",
+                    .{ pos0.row, pos0.col, @tagName(dir) },
+                );
+                return;
+            };
+            const pos2 = getRotation(pos1, dir, .full) orelse {
+                print(
+                    "Pos: ({}, {}), Dir: {s}, Does Not Exist",
+                    .{ pos1.row, pos1.col, @tagName(dir) },
+                );
+                return;
+            };
+            const idx1 = idxFromPos(pos1);
+            const idx2 = idxFromPos(pos2);
+
+            // rotate around each idx - set values
+            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |new_dir| {
+                const p1 = getRotation(pos0, dir, .full) orelse {
+                    self.moves[idx].remove(dir);
+                    continue;
+                };
+                const p2 = getRotation(p1, dir, .full) orelse {
+                    self.moves[idx].remove(dir);
+                    continue;
+                };
+            }
         }
 
         pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
