@@ -30,9 +30,11 @@ test "Undo Move" {
         .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
         .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
     };
+
     for (list_of_instructions) |instruction| {
         try board.chooseMove(instruction.idx, instruction.dir);
     }
+
     for (0..list_of_instructions.len - 1) |i| {
         const j = list_of_instructions.len - 1 - i;
         const instruction = list_of_instructions[j];

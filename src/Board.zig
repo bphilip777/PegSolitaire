@@ -306,29 +306,25 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
         start: T = 0,
         moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
-        prev_moves: [n_indices]?Moves = undefined, // holds last 5 moves
-        next_moves: [n_indices]?Moves = undefined, // holds last 5 future move after undoing
+        chosen_moves: [n_indices]Directions = undefined,
 
         pub fn init(allo: Allocator, start: T) !Self {
             // Validity Check
             if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
-            var prev_moves: [n_indices]?Moves = undefined;
-            var next_moves: [n_indices]?Moves = undefined;
+            var chosen_moves: [n_indices]Directions = undefined;
 
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
-                prev_moves[i] = null;
-                next_moves[i] = null;
+                chosen_moves[i] = null;
             }
 
-            var self = Self{
+            var self = Self {
                 .allo = allo,
                 .start = start,
                 .moves = moves,
-                .prev_moves = prev_moves,
-                .next_moves = next_moves,
+                .chosen_moves = chosen_moves;
             };
             self.resetBoard();
             return self;
