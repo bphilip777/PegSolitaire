@@ -311,7 +311,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
         start: T = 0,
         moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
-        chosen_moves: [n_indices]?Move = undefined,
+        chosen_moves: [n_indices]?Move = undefined, // always stored as its negative
 
         pub fn init(allo: Allocator, start: T) !Self {
             // Validity Check
@@ -448,7 +448,26 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn undoMove(self: *Self) void {
             const idx = self.board.count();
             if (idx < n_indices - 1) {
-                const move = self.chosen_moves[idx];
+                const move = self.chosen_moves[idx].?;
+
+                const pos0 = posFromIdx(move.idx);
+                const pos1 = getRotation(pos0, move.dir, .full).?;
+                const pos2 = getRotation(pos1, move.dir, .full).?;
+
+                const idx1 = idxFromPos(pos1);
+                const idx2 = idxFromPos(pos2);
+
+                self.board.set(move.idx);
+                self.board.set(idx1);
+                self.board.unset(idx2);
+            }
+        }
+
+        pub fn redoMove(self: *Self) void {
+            const idx = self.board.count();
+            if (idx < n_indices) {
+                const move = self.chosen_moves[idx + 1];
+                self.chooseMove(move.idx, move.dir);
             }
         }
 
