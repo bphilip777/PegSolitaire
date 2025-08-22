@@ -724,6 +724,6 @@ test "Is Won" {
     for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
         board.printBoard();
-        //     try std.testing.expectEqual(board.isWon(), instruction.is_lost);
+        try std.testing.expectEqual(board.isWon(), instruction.is_won);
     }
 }
