@@ -293,6 +293,8 @@ test "Format Move" {
 }
 
 const GameErrors = error{
+    NRowsTooSmallOrTooLarge,
+    StartMustBeGT0OrLTNumIndices,
     InvalidMove,
     InvalidPosition,
 };
@@ -303,7 +305,7 @@ const Moves = struct {
 };
 
 pub fn createBoard(comptime n_rows: T) !type {
-    if (n_rows < 3 or n_rows > MAX_INPUT_SIZE) return error.NRowsTooSmallOrTooLarge;
+    if (n_rows < 3 or n_rows > MAX_INPUT_SIZE) return GameErrors.NRowsTooSmallOrTooLarge;
     const n_indices = triNum(n_rows);
 
     return struct {
@@ -314,7 +316,7 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         pub fn init(start: T) !@This() {
             // Validity Check
-            if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
+            if (start >= n_indices) return GameErrors.StartMustBeGT0OrLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
             var chosen_moves: [n_indices]?Move = undefined;
@@ -370,19 +372,11 @@ pub fn createBoard(comptime n_rows: T) !type {
                         if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                         continue;
                     }
-                    if (self.board.isSet(i)) { // positive
-                        if ((self.board.isSet(idx1) and !self.board.isSet(idx2)) and !self.moves[i].contains(dir)) {
-                            self.moves[i].insert(dir);
-                        } else if ((!self.board.isSet(idx1) or self.board.isSet(idx2)) and self.moves[i].contains(dir)) {
-                            self.moves[i].remove(dir);
-                        }
-                    } else { // negative
-                        // pos1 = set, pos2 = set
-                        if ((self.board.isSet(idx1) and self.board.isSet(idx2)) and !self.moves[i].contains(dir)) {
-                            self.moves[i].insert(dir);
-                        } else if ((!self.board.isSet(idx1) or !self.board.isSet(idx2)) and self.moves[i].contains(dir)) {
-                            self.moves[i].remove(dir);
-                        }
+
+                    if (self.hasMove(&.{ idx0, idx1, idx2 })) {
+                        self.moves[idx0].insert(dir);
+                    } else {
+                        self.moves[idx0].remove(dir);
                     }
                 }
             }
@@ -428,13 +422,13 @@ pub fn createBoard(comptime n_rows: T) !type {
                             const idx2 = idxFromPos(pos2.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
                                 // forwards
-                                if (self.hasMove([_]T{ idx0, idx1, idx2 })) {
+                                if (self.hasMove(&.{ idx0, idx1, idx2 })) {
                                     self.moves[idx0].insert(new_dir);
                                 } else if (self.moves[idx0].contains(new_dir)) {
                                     self.moves[idx0].remove(new_dir);
                                 }
                                 // backwards
-                                if (self.hasMove([_]T{ idx2, idx1, idx0 })) {
+                                if (self.hasMove(&.{ idx2, idx1, idx0 })) {
                                     self.moves[idx2].insert(opp_dir);
                                 } else if (self.moves[idx2].contains(opp_dir)) {
                                     self.moves[idx2].remove(opp_dir);
@@ -446,7 +440,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                             const idx3 = idxFromPos(pos3.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
                                 // centered
-                                if (self.hasMove([_]T{ idx1, idx0, idx3 })) {
+                                if (self.hasMove(&.{ idx1, idx0, idx3 })) {
                                     self.moves[idx1].insert(opp_dir);
                                 } else if (self.moves[idx1].contains(opp_dir)) {
                                     self.moves[idx1].remove(opp_dir);
@@ -458,10 +452,15 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn hasMove(self: *const @This(), idxs: [3]T) bool {
-            // assumes each idx is valid
-            // assumes negative movement
-            return !self.board.isSet(idxs[0]) and self.board.isSet(idxs[1]) and self.board.isSet(idxs[2]);
+        fn hasMove(self: *const @This(), idxs: []const T) bool {
+            std.debug.assert(idxs.len == 3);
+            inline for (0..3) |i| {
+                if (!self.isValidIdx(idxs[i])) return false;
+            }
+            return if (self.board.isSet(idxs[0])) //
+                (self.board.isSet(idxs[1]) and !self.board.isSet(idxs[2])) //
+            else //
+                (self.board.isSet(idxs[1]) and self.board.isSet(idxs[2]));
         }
 
         pub fn chooseMove(self: *@This(), idx0: T, dir: Direction) void {
@@ -522,8 +521,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.unset(idx2);
             }
             // update moves
-            // self.computeAllMoves();
-            self.computeOptimally(idx0, dir);
+            self.computeAllMoves();
+            // self.computeOptimally(idx0, dir);
         }
 
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
@@ -776,10 +775,10 @@ pub fn createBoard(comptime n_rows: T) !type {
 test "Are Neg Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
+    // allo = std.testing.allocator;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    var board: Board = try .init(0);
+    // defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -807,9 +806,9 @@ test "Are Pos Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    // const allo = std.testing.allocator;
+    var board: Board = try .init(0);
+    // defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -837,9 +836,9 @@ test "Is Lost" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    // const allo = std.testing.allocator;
+    var board: Board = try .init(0);
+    // defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
     const list_of_instructions = [_]Instruction{
@@ -867,9 +866,9 @@ test "Is Won" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    // const allo = std.testing.allocator;
+    var board: Board = try .init(0);
+    // defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
     const list_of_instructions = [_]Instruction{
@@ -899,9 +898,9 @@ test "Reset Board" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    // const allo = std.testing.allocator;
+    var board: Board = try .init(0);
+    // defer board.deinit();
     const start_value: T = board.board.mask;
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
@@ -931,9 +930,9 @@ test "Undo Move + Redo Move" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    // const allo = std.testing.allocator;
+    var board: Board = try .init(0);
+    // defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
