@@ -311,7 +311,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
         start: T = 0,
         moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
-        chosen_moves: [n_indices]Directions = undefined,
+        chosen_moves: [n_indices]?Move = undefined,
 
         pub fn init(allo: Allocator, start: T) !Self {
             // Validity Check
@@ -325,11 +325,11 @@ pub fn createBoard(comptime n_rows: T) !type {
                 chosen_moves[i] = null;
             }
 
-            var self = Self {
+            var self = Self{
                 .allo = allo,
                 .start = start,
                 .moves = moves,
-                .chosen_moves = chosen_moves;
+                .chosen_moves = chosen_moves,
             };
             self.resetBoard();
             return self;
@@ -412,18 +412,18 @@ pub fn createBoard(comptime n_rows: T) !type {
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) { // pos
                 if (!self.moves[idx2].contains(Direction.opposite(dir))) return;
-                self.chosen_moves[self.board.count()] = Move { 
-                    .idx = idx2, 
-                    .dir = Direction.opposite(dir), 
+                self.chosen_moves[self.board.count()] = Move{
+                    .idx = idx2,
+                    .dir = Direction.opposite(dir),
                 };
                 self.board.unset(idx0);
                 self.board.unset(idx1);
                 self.board.set(idx2);
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) return;
-                self.chosen_moves[self.board.count()] = Move { 
-                    .idx = idx0, 
-                    .dir = move, 
+                self.chosen_moves[self.board.count()] = Move{
+                    .idx = idx0,
+                    .dir = dir,
                 };
                 self.board.set(idx0);
                 self.board.unset(idx1);
@@ -652,7 +652,7 @@ pub fn createBoard(comptime n_rows: T) !type {
     };
 }
 
-test "Are Moves Correct" {
+test "Are Neg Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
@@ -665,6 +665,36 @@ test "Are Moves Correct" {
         .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
         .{ .idx = 3, .dir = .Right, .value = 32717 },
         .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        try std.testing.expectEqual(board.board.mask, instruction.value);
+    }
+}
+
+test "Are Pos Moves Correct" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
+
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 3, .dir = .UpRight, .value = 32757 },
+        .{ .idx = 5, .dir = .Left, .value = 32717 },
+        .{ .idx = 0, .dir = .DownRight, .value = 32744 },
         .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
         .{ .idx = 2, .dir = .DownRight, .value = 32134 },
         .{ .idx = 3, .dir = .DownRight, .value = 27918 },
