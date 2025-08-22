@@ -5,7 +5,6 @@ const Allocator = std.mem.Allocator;
 const createBoard = @import("Board.zig").createBoard;
 const N_ROWS = 5;
 const Board: type = createBoard(N_ROWS) catch unreachable;
-const Direction = @import("Board.zig").Direction;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
