@@ -666,31 +666,64 @@ pub fn createBoard(comptime n_rows: T) !type {
 //     }
 // }
 
-// test "Win Condition" {
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//
-//     const allo = std.testing.allocator;
-//     const start = 0;
-//
-//     var board: Board = try .init(allo, start);
-//     defer board.deinit();
-//
-//     try board.chooseMove(start, .DownLeft);
-//     try board.chooseMove(3, .Right);
-//     try board.chooseMove(5, .UpLeft);
-//     try board.chooseMove(1, .DownLeft);
-//     try board.chooseMove(2, .DownRight);
-//     try board.chooseMove(3, .DownRight);
-//     try board.chooseMove(0, .DownLeft);
-//     try board.chooseMove(5, .UpLeft);
-//     try board.chooseMove(12, .Left);
-//     try board.chooseMove(11, .Right);
-//     try board.chooseMove(12, .UpRight);
-//     try board.chooseMove(13, .Left);
-//     try board.chooseMove(12, .Right);
-//
-//     try std.testing.expect(board.isWon());
-// }
-//
-// test "Lose Condition" {}
+test "Is Lost" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
+
+    const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 3, .dir = .Right, .is_lost = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
+        .{ .idx = 1, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 2, .dir = .DownRight, .is_lost = false },
+        .{ .idx = 3, .dir = .DownRight, .is_lost = false },
+        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
+        .{ .idx = 12, .dir = .Left, .is_lost = false },
+        .{ .idx = 11, .dir = .Right, .is_lost = false },
+        .{ .idx = 12, .dir = .UpRight, .is_lost = false },
+        .{ .idx = 10, .dir = .Right, .is_lost = true },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        try std.testing.expectEqual(board.isLost(), instruction.is_lost);
+    }
+}
+
+test "Is Won" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
+
+    const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 3, .dir = .Right, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 1, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 2, .dir = .DownRight, .is_won = false },
+        .{ .idx = 3, .dir = .DownRight, .is_won = false },
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 12, .dir = .Left, .is_won = false },
+        .{ .idx = 11, .dir = .Right, .is_won = false },
+        .{ .idx = 12, .dir = .UpRight, .is_won = false },
+        .{ .idx = 12, .dir = .Left, .is_won = true },
+        .{ .idx = 12, .dir = .Right, .is_won = false },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        board.printBoard();
+        //     try std.testing.expectEqual(board.isWon(), instruction.is_lost);
+    }
+}
