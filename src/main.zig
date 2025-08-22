@@ -6,6 +6,12 @@ const createBoard = @import("Board.zig").createBoard;
 const N_ROWS = 5;
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
+// TODO:
+// Play Game:
+// - through cli
+// - through automatic
+// - document fns in document.md + add notes in README.md
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();

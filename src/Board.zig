@@ -2,12 +2,6 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-// TODO:
-// Play Game:
-// - through cli
-// - through automatic
-// - document fns in document.md + add notes in README.md
-
 const T: type = u16;
 
 fn numCharsFromDigit(digit: T) T {
