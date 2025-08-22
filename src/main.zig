@@ -12,6 +12,8 @@ pub fn main() !void {
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
     _ = allo;
+
+    // now i need to add automatic search functionality
 }
 
 test "Run All Tests" {

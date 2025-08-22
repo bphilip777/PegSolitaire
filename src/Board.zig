@@ -539,6 +539,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeOptimally(idx0, dir);
         }
 
+        pub fn chooseMovePos(self: *Self, pos: Position, dir: Direction) void {
+            const idx = idxFromPos(pos);
+            if (!self.isValidIdx(idx)) return;
+            self.chooseMove(idx, dir);
+        }
+
         pub fn resetBoard(self: *Self) void {
             // set board to all 1s
             // set start position to 0
