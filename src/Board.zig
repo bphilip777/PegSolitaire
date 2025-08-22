@@ -183,7 +183,12 @@ pub const Direction: type = enum {
     }
 };
 
-pub const Directions: type = std.enums.EnumSet(Direction);
+const Directions: type = std.enums.EnumSet(Direction);
+
+const Move = struct {
+    idx: T,
+    dir: Direction,
+};
 
 fn getNumMoves(move: Directions) T {
     var n_items: T = 0;
@@ -394,29 +399,32 @@ pub fn createBoard(comptime n_rows: T) !type {
             _ = self;
         }
 
-        pub fn chooseMove(self: *Self, idx0: T, move: Direction) void {
+        pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
             // if idx is not valid return
             if (!self.isValidIdx(idx0)) return;
             // get positions
             const p0 = posFromIdx(idx0);
-            const p1 = getRotation(p0, move, .full) orelse return;
-            const p2 = getRotation(p1, move, .full) orelse return;
+            const p1 = getRotation(p0, dir, .full) orelse return;
+            const p2 = getRotation(p1, dir, .full) orelse return;
             // get idxs
             const idx1 = idxFromPos(p1);
             const idx2 = idxFromPos(p2);
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) {
-                if (!self.moves[idx2].contains(Direction.opposite(move))) return;
+                if (!self.moves[idx2].contains(Direction.opposite(dir))) return;
+                self.chosen_moves[self.board.count()] = Move { .idx = idx0, .dir = move };
                 self.board.unset(idx0);
                 self.board.unset(idx1);
                 self.board.set(idx2);
             } else {
-                if (!self.moves[idx0].contains(move)) return;
+                if (!self.moves[idx0].contains(dir)) return;
+                self.chosen_moves[self.board.count()] = Move { .idx = idx0, .dir = move };
                 self.board.set(idx0);
                 self.board.unset(idx1);
                 self.board.unset(idx2);
             }
             // update moves
+            // TODO: need to create optimized compute all moves
             self.computeAllMoves();
         }
 
