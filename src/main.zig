@@ -15,6 +15,34 @@ pub fn main() !void {
     var board: Board = try .init(allo, 0);
     defer board.deinit();
 
+    const start_value: T = 32766;
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
+        .{ .idx = 3, .dir = .Right, .value = 32717 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+    }
+    board.resetBoard();
+}
+
+test "Undo Move + Redo Move" {
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
+
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
         .{ .idx = 3, .dir = .UpRight, .value = 32757 },
@@ -36,28 +64,21 @@ pub fn main() !void {
     }
     // Undo
     for (0..list_of_instructions.len - 1) |i| {
-        _ = i;
-        // const instruction = list_of_instructions[i];
+        const j = list_of_instructions.len - i - 2;
+        const instruction = list_of_instructions[j];
         board.undoMove();
-        board.printBoard();
-        try board.printMoves();
-        // try std.testing.expectEqual(instruction.value, board.board.mask);
+        std.testing.expectEqual(instruction.value, board.board.mask) catch {
+            print("Missed on: {}\n", .{i});
+        };
     }
     // Redo
     for (0..list_of_instructions.len - 1) |i| {
-        _ = i;
-        // const instruction = list_of_instructions[i];
+        const instruction = list_of_instructions[i + 1];
         board.redoMove();
-        board.printBoard();
-        try board.printMoves();
-        // try std.testing.expectEqual(instruction.value, board.board.mask);
+        std.testing.expectEqual(instruction.value, board.board.mask) catch {
+            print("Missed on: {}\n", .{i});
+        };
     }
-}
-
-test "Undo Move + Redo Move" {
-    const allo = std.testing.allocator;
-    var board: Board = try .init(allo, 0);
-    defer board.deinit();
 }
 
 test "Run All Tests" {

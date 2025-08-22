@@ -836,6 +836,7 @@ test "Reset Board" {
     const allo = std.testing.allocator;
     var board: Board = try .init(allo, 0);
     defer board.deinit();
+    const start_value: T = board.board.mask;
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -857,5 +858,5 @@ test "Reset Board" {
         board.chooseMove(instruction.idx, instruction.dir);
     }
     board.resetBoard();
-    try std.testing.expectEqual(board.board.mask, list_of_instructions[0].value);
+    try std.testing.expectEqual(board.board.mask, start_value);
 }
