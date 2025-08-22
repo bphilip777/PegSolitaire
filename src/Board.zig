@@ -310,15 +310,15 @@ pub fn createBoard(comptime n_rows: T) !type {
         allo: Allocator = undefined,
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
         start: T = 0,
-        moves: [n_indices]Directions = undefined, // always calculate based on neg, convert pos to neg
-        chosen_moves: [n_indices]?Move = undefined, // always stored as its negative
+        moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg
+        chosen_moves: [n_indices]?Move = undefined, // store neg move, max moves = n_indices - 1
 
         pub fn init(allo: Allocator, start: T) !Self {
             // Validity Check
             if (start >= n_indices) return error.StartMustBeGT0OrLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
-            var chosen_moves: [n_indices]Directions = undefined;
+            var chosen_moves: [n_indices]?Move = undefined;
 
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
@@ -394,24 +394,47 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn computeOptimizedMoves(self: *Self) void {
+        fn computeOptimizedMoves(self: *Self, idx: T, dir: Direction) void {
             // compute specific moves
             _ = self;
+            _ = idx;
+            _ = dir;
         }
 
         pub fn chooseMove(self: *Self, idx0: T, dir: Direction) void {
             // if idx is not valid return
-            if (!self.isValidIdx(idx0)) return;
+            if (!self.isValidIdx(idx0)) {
+                print("Idx: {} not valid\n", .{idx0});
+                return;
+            }
             // get positions
             const p0 = posFromIdx(idx0);
-            const p1 = getRotation(p0, dir, .full) orelse return;
-            const p2 = getRotation(p1, dir, .full) orelse return;
+            const p1 = getRotation(p0, dir, .full) orelse {
+                print(
+                    "1. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                    .{ p0.row, p0.col, @tagName(dir) },
+                );
+                return;
+            };
+            const p2 = getRotation(p1, dir, .full) orelse {
+                print(
+                    "2. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                    .{ p1.row, p1.col, @tagName(dir) },
+                );
+                return;
+            };
             // get idxs
             const idx1 = idxFromPos(p1);
             const idx2 = idxFromPos(p2);
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) { // pos
-                if (!self.moves[idx2].contains(Direction.opposite(dir))) return;
+                if (!self.moves[idx2].contains(Direction.opposite(dir))) {
+                    print(
+                        "3. Pos: ({}, {}), Dir: {s}, Does Not Exist",
+                        .{ p2.row, p2.col, @tagName(dir) },
+                    );
+                    return;
+                }
                 self.chosen_moves[self.board.count()] = Move{
                     .idx = idx2,
                     .dir = Direction.opposite(dir),
@@ -420,7 +443,13 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.unset(idx1);
                 self.board.set(idx2);
             } else { // neg
-                if (!self.moves[idx0].contains(dir)) return;
+                if (!self.moves[idx0].contains(dir)) {
+                    print(
+                        "4. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                        .{ p0.row, p0.col, @tagName(dir) },
+                    );
+                    return;
+                }
                 self.chosen_moves[self.board.count()] = Move{
                     .idx = idx0,
                     .dir = dir,
@@ -446,29 +475,29 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn undoMove(self: *Self) void {
-            const idx = self.board.count();
-            if (idx < n_indices - 1) {
-                const move = self.chosen_moves[idx].?;
-
-                const pos0 = posFromIdx(move.idx);
-                const pos1 = getRotation(pos0, move.dir, .full).?;
-                const pos2 = getRotation(pos1, move.dir, .full).?;
-
-                const idx1 = idxFromPos(pos1);
-                const idx2 = idxFromPos(pos2);
-
-                self.board.set(move.idx);
-                self.board.set(idx1);
-                self.board.unset(idx2);
-            }
+            // get idx + move
+            const idx = self.board.count() + 1;
+            if (idx == n_indices) return;
+            const move = self.chosen_moves[idx].?;
+            // get positions
+            const pos0 = posFromIdx(move.idx);
+            const pos1 = getRotation(pos0, move.dir, .full).?;
+            const pos2 = getRotation(pos1, move.dir, .full).?;
+            // get idxs
+            const idx1 = idxFromPos(pos1);
+            const idx2 = idxFromPos(pos2);
+            // reset board positions
+            self.board.unset(move.idx);
+            self.board.set(idx1);
+            self.board.set(idx2);
+            // reset move positions - incorrect
+            self.computeAllMoves();
         }
 
         pub fn redoMove(self: *Self) void {
             const idx = self.board.count();
-            if (idx < n_indices) {
-                const move = self.chosen_moves[idx + 1];
-                self.chooseMove(move.idx, move.dir);
-            }
+            const move = self.chosen_moves[idx].?;
+            self.chooseMove(move.idx, move.dir);
         }
 
         fn isValidIdx(self: *const Self, idx: T) bool {
@@ -628,6 +657,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             max_moves_char = @max(headers[1].len, max_moves_char);
 
             const column_buffer = " | ";
+
             {
                 // coords header
                 const coords_extra = "() ";
@@ -651,6 +681,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const full_length = num_buffer + (column_buffer.len * 2) + max_moves_char;
                 print("{s}\n", .{underline_buffer[0..full_length]});
             }
+
             // loop
             for (self.moves, 0..) |move, i| {
                 const pos = posFromIdx(@truncate(i));
