@@ -297,7 +297,7 @@ const Moves = struct {
 };
 
 pub fn createBoard(comptime n_rows: T) !type {
-    if (n_rows <= 0 or n_rows > MAX_INPUT_SIZE) return error.NRowsTooSmallOrTooLarge;
+    if (n_rows < 3 or n_rows > MAX_INPUT_SIZE) return error.NRowsTooSmallOrTooLarge;
     const n_indices = triNum(n_rows);
 
     return struct {
