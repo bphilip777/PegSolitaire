@@ -163,7 +163,7 @@ const Rotation: type = enum {
     }
 };
 
-const Direction: type = enum {
+pub const Direction: type = enum {
     Left,
     UpLeft,
     UpRight,
@@ -564,7 +564,6 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // if (n_moves > 0) break;
             }
-            print("Moves: {}\nPegs Left: {}\n", .{ n_moves, self.board.count() });
             return (n_moves == 0 and self.board.count() > 1);
         }
 
@@ -640,31 +639,35 @@ pub fn createBoard(comptime n_rows: T) !type {
     };
 }
 
-// test: num pos moves must equal number of negative moves
+test "Are Moves Correct" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
 
-// test "Set + Unsets Correct Pieces" {
-//     // needs to be fixed
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//
-//     const allo = std.testing.allocator;
-//     const starts = [_]T{ 0, 3, 8 };
-//     const directions: []const []const Direction = &.{
-//         &.{ .DownLeft, .DownRight },
-//         &.{ .Right, .UpRight },
-//         &.{ .UpLeft, .Left },
-//     };
-//     const expected_counts = [_]T{ 32760, 32741, 32367 };
-//
-//     for (starts, directions, expected_counts) |start, dirs, expected_count| {
-//         var board: Board = try .init(allo, start);
-//         defer board.deinit();
-//         for (dirs) |dir| {
-//             try board.chooseMove(start, dir);
-//         }
-//         try std.testing.expectEqual(board.board.mask, expected_count);
-//     }
-// }
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
+
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
+        .{ .idx = 3, .dir = .Right, .value = 32717 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        try std.testing.expectEqual(board.board.mask, instruction.value);
+    }
+}
 
 test "Is Lost" {
     const N_ROWS = 5;
@@ -717,13 +720,13 @@ test "Is Won" {
         .{ .idx = 12, .dir = .Left, .is_won = false },
         .{ .idx = 11, .dir = .Right, .is_won = false },
         .{ .idx = 12, .dir = .UpRight, .is_won = false },
-        .{ .idx = 12, .dir = .Left, .is_won = true },
-        .{ .idx = 12, .dir = .Right, .is_won = false },
+        .{ .idx = 11, .dir = .Right, .is_won = false },
+        .{ .idx = 14, .dir = .Left, .is_won = true },
     };
 
     for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
-        board.printBoard();
+        // board.printBoard();
         try std.testing.expectEqual(board.isWon(), instruction.is_won);
     }
 }
