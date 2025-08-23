@@ -179,7 +179,7 @@ const Direction: type = enum {
     }
 };
 
-const Directions: type = std.enums.EnumSet(Direction);
+pub const Directions: type = std.enums.EnumSet(Direction);
 
 const Move = struct {
     idx: T,
@@ -769,7 +769,43 @@ pub fn createBoard(comptime n_rows: T) !type {
                 print("{s}{s}{s}\n", .{ coords_str, column_buffer, moves_str });
             }
         }
+
+        pub fn hasRemainingMoves(self: *const @This()) bool {
+            for (self.moves) |move| {
+                if (!move.eql(move.xorWith(move))) return true;
+            }
+        }
     };
+}
+
+test "Has Remaining Moves" {
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    var board: Board = try .init(0);
+
+    const Instruction = struct { idx: u16, dir: Direction, has_remaining_moves: bool };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .has_remaining_move = true },
+        .{ .idx = 3, .dir = .Right, .has_remaining_move = true },
+        .{ .idx = 5, .dir = .UpLeft, .has_remaining_move = true },
+        .{ .idx = 1, .dir = .DownLeft, .has_remaining_move = true },
+        .{ .idx = 2, .dir = .DownRight, .has_remaining_move = true },
+        .{ .idx = 3, .dir = .DownRight, .has_remaining_move = true },
+        .{ .idx = 0, .dir = .DownLeft, .has_remaining_move = true },
+        .{ .idx = 5, .dir = .UpLeft, .has_remaining_move = true },
+        .{ .idx = 12, .dir = .Left, .has_remaining_move = true },
+        .{ .idx = 11, .dir = .Right, .has_remaining_move = true },
+        .{ .idx = 12, .dir = .UpRight, .has_remaining_move = true },
+        .{ .idx = 10, .dir = .Right, .has_remaining_move = false },
+    };
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        try std.testing.expectEqual(
+            board.hasRemainingMoves(),
+            instruction.has_remaining_move,
+        );
+    }
 }
 
 test "Are Neg Moves Correct" {
