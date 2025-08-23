@@ -773,7 +773,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn hasRemainingMoves(self: *const @This()) bool {
             for (self.moves) |move| {
                 if (!move.eql(move.xorWith(move))) return true;
-            }
+            } else return false;
         }
     };
 }
