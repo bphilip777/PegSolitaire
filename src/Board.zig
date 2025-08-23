@@ -783,27 +783,27 @@ test "Has Remaining Moves" {
     const Board: type = createBoard(N_ROWS) catch unreachable;
     var board: Board = try .init(0);
 
-    const Instruction = struct { idx: u16, dir: Direction, has_remaining_moves: bool };
+    const Instruction = struct { idx: u16, dir: Direction, hash_remaining_moves: bool };
     const list_of_instructions = [_]Instruction{
-        .{ .idx = 0, .dir = .DownLeft, .has_remaining_move = true },
-        .{ .idx = 3, .dir = .Right, .has_remaining_move = true },
-        .{ .idx = 5, .dir = .UpLeft, .has_remaining_move = true },
-        .{ .idx = 1, .dir = .DownLeft, .has_remaining_move = true },
-        .{ .idx = 2, .dir = .DownRight, .has_remaining_move = true },
-        .{ .idx = 3, .dir = .DownRight, .has_remaining_move = true },
-        .{ .idx = 0, .dir = .DownLeft, .has_remaining_move = true },
-        .{ .idx = 5, .dir = .UpLeft, .has_remaining_move = true },
-        .{ .idx = 12, .dir = .Left, .has_remaining_move = true },
-        .{ .idx = 11, .dir = .Right, .has_remaining_move = true },
-        .{ .idx = 12, .dir = .UpRight, .has_remaining_move = true },
-        .{ .idx = 10, .dir = .Right, .has_remaining_move = false },
+        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 3, .dir = .Right, .hash_remaining_moves = true },
+        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
+        .{ .idx = 1, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 2, .dir = .DownRight, .hash_remaining_moves = true },
+        .{ .idx = 3, .dir = .DownRight, .hash_remaining_moves = true },
+        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
+        .{ .idx = 12, .dir = .Left, .hash_remaining_moves = true },
+        .{ .idx = 11, .dir = .Right, .hash_remaining_moves = true },
+        .{ .idx = 12, .dir = .UpRight, .hash_remaining_moves = true },
+        .{ .idx = 10, .dir = .Right, .hash_remaining_moves = false },
     };
 
     for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
         try std.testing.expectEqual(
             board.hasRemainingMoves(),
-            instruction.has_remaining_move,
+            instruction.hash_remaining_moves,
         );
     }
 }
