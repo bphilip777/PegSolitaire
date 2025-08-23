@@ -50,11 +50,9 @@ test "Tri Num" {
     for (expected_tri_nums, 0..) |expected_tri_num, i| {
         try std.testing.expectEqual(triNum(@truncate(i)), expected_tri_num);
     }
-    // try std.testing.expectError(triNum(362));
 }
 
 fn invTriNum(n: T) T {
-    // return @intFromFloat(@floor((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2));
     return @intFromFloat((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2);
 }
 
@@ -90,7 +88,6 @@ test "Inv Tri Num 2 - Brute Force" {
         try std.testing.expectEqual(itn, row);
     }
 
-    // used to ensure first version is correct and how to use it
     for (inputs) |input| {
         const itn1 = invTriNum(input);
         const itn2 = invTriNum2(input);
@@ -98,8 +95,7 @@ test "Inv Tri Num 2 - Brute Force" {
     }
 }
 
-// find max value of u16 -> get triangle row number -> take floor = max number of rows
-const MAX_INPUT_SIZE: u16 = invTriNum(std.math.maxInt(u16));
+const MAX_ROWS: u16 = invTriNum(std.math.maxInt(u16));
 
 const Position = struct {
     row: T,
@@ -318,7 +314,7 @@ pub const Moves = struct { // 4
 
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows < 3) return GameErrors.NRowsTooSmall;
-    if (n_rows > MAX_INPUT_SIZE) return GameErrors.NRowsTooLarge;
+    if (n_rows > MAX_ROWS) return GameErrors.NRowsTooLarge;
     const n_indices = triNum(n_rows);
 
     // 110 bytes
@@ -327,7 +323,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
         start: T = 0, // 2 bytes
         moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
-        chosen_moves: [n_indices]?Move = undefined, // store neg move, max moves = n_indices - 1, 1 byte,
+        chosen_moves: [n_indices]?Move = undefined, // store past moves
 
         pub fn init(start: T) !@This() {
             // Validity Check
