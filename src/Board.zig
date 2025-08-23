@@ -44,7 +44,6 @@ test "Tri Num" {
     for (expected_tri_nums, 0..) |expected_tri_num, i| {
         try std.testing.expectEqual(triNum(@truncate(i)), expected_tri_num);
     }
-    // TODO: figure out this error
     // try std.testing.expectError(triNum(362));
 }
 
@@ -1029,12 +1028,18 @@ test "Undo Move + Redo Move" {
         const j = list_of_instructions.len - i - 2;
         const instruction = list_of_instructions[j];
         board.undoMove();
-        try std.testing.expectEqual(instruction.value, board.board.mask);
+        std.testing.expectEqual(instruction.value, board.board.mask) catch |err| {
+            print("Undo {}: {} - {any}\n", .{ i, board.board.mask, instruction });
+            return err;
+        };
     }
     // Redo
     for (0..list_of_instructions.len - 1) |i| {
         const instruction = list_of_instructions[i + 1];
         board.redoMove();
-        try std.testing.expectEqual(instruction.value, board.board.mask);
+        std.testing.expectEqual(instruction.value, board.board.mask) catch |err| {
+            print("Redo {}: {} - {any}\n", .{ i, board.board.mask, instruction });
+            return err;
+        };
     }
 }
