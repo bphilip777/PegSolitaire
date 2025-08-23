@@ -574,45 +574,41 @@ pub fn createBoard(comptime n_rows: T) !type {
             try self.chooseMove(move.idx, move.dir);
         }
 
-        fn setNeg(self: *const @This(), idxs: []const T) !void {
-            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
-            if (self.board.isSet(idxs[0] or //
+        fn setNegMove(self: *const @This(), idxs: []const T) void {
+            std.debug.assert(idxs.len != 3);
+            std.debug.assert(self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
-                !self.board.isSet(idxs[2]))) //
-                return GameErrors.InvalidNegativeMove;
+                !self.board.isSet(idxs[2]));
             self.board.set(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.unset(idxs[2]);
         }
 
-        fn setPos(self: *const @This(), idxs: []const T) !void {
-            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
-            if (!self.board.isSet(idxs[0] or //
+        fn setPosMove(self: *const @This(), idxs: []const T) void {
+            std.debug.assert(idxs.len != 3);
+            std.debug.assert(!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
-                self.board.isSet(idxs[2]))) //
-                return GameErrors.InvalidPositiveMove;
+                self.board.isSet(idxs[2]));
             self.board.unset(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.set(idxs[2]);
         }
 
-        fn unsetNeg(self: *const @This(), idxs: []const T) !void {
-            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
-            if (!self.board.isSet(idxs[0]) or //
+        fn unsetNegMove(self: *const @This(), idxs: []const T) void {
+            std.debug.assert(idxs.len == 3);
+            std.debug.assert(!self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
-                self.board.isSet(idxs[2])) //
-                return GameErrors.InvalidNegativeMove;
+                self.board.isSet(idxs[2]));
             self.board.unset(idxs[0]);
             self.board.set(idxs[0]);
             self.board.set(idxs[0]);
         }
 
-        fn unsetPos(self: *const @This(), idxs: []const T) !void {
-            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
-            if (!self.board.isSet(idxs[0]) or //
+        fn unsetPosMove(self: *const @This(), idxs: []const T) void {
+            std.debug.assert(idxs.len != 3);
+            std.debug.assert(!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
-                self.board.isSet(idxs[2])) //
-                return GameErrors.InvalidPositiveMove;
+                self.board.isSet(idxs[2]));
             self.board.set(idxs[0]);
             self.board.set(idxs[1]);
             self.board.unset(idxs[2]);
