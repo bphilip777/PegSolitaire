@@ -300,7 +300,6 @@ test "Format Move" {
 const GameErrors = error{
     NRowsTooSmall,
     NRowsTooLarge,
-    StartMustBeGT0,
     StartMustBeLTNumIndices,
     InvalidMove,
     InvalidPosition,
@@ -326,7 +325,6 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         pub fn init(start: T) !@This() {
             // Validity Check
-            if (start == 0) return GameErrors.StartMustBeGT0;
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
