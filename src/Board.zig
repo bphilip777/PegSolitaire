@@ -24,22 +24,20 @@ test "Num Chars From Idx" {
     }
 }
 
-fn numCharsFromPos(pos: T) T {
+fn numCharsFromPos(pos: Position) T {
     const row = numCharsFromDigit(pos.row);
     const col = numCharsFromDigit(pos.col);
     return row + col;
 }
 
 test "Num Chars From Pos" {
-    for ([_]T{ 0, 10, 100, 1_000, 10_000 }) |i| {
-        const idx: T = @truncate(i);
-        const pos = posFromIdx(idx);
+    const inputs = [_]T{ 0, 10, 100, 1_000, 10_000 };
+    const answers = [_]T{ 2, 2, 2, 2, 4 };
+    for (inputs, answers) |input, answer| {
+        const pos = posFromIdx(input);
         const num_chars = numCharsFromPos(pos);
-        print("{} ", .{num_chars});
+        try std.testing.expectEqual(num_chars, answer);
     }
-    // try std.testing.expectEqual(n1, 4);
-    // const n2 = numCharsFromIdxToPos(100);
-    // try std.testing.expectEqual(n2, 5);
 }
 
 fn triNum(n: T) T {
