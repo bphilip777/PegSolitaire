@@ -299,6 +299,8 @@ const GameErrors = error{
     StartMustBeGT0OrLTNumIndices,
     InvalidMove,
     InvalidPosition,
+    InvalidPositiveMove,
+    InvalidNegativeMove,
 };
 
 pub const Moves = struct { // 4
@@ -577,7 +579,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (self.board.isSet(idxs[0] or //
                 !self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]))) //
-                return error.InvalidNegativeMove;
+                return GameErrors.InvalidNegativeMove;
             self.board.set(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.unset(idxs[2]);
@@ -588,7 +590,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (!self.board.isSet(idxs[0] or //
                 !self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]))) //
-                return error.InvalidPositiveMove;
+                return GameErrors.InvalidPositiveMove;
             self.board.unset(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.set(idxs[2]);
@@ -599,7 +601,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (!self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2])) //
-                return error.InvalidNegativeMove;
+                return GameErrors.InvalidNegativeMove;
             self.board.unset(idxs[0]);
             self.board.set(idxs[0]);
             self.board.set(idxs[0]);
@@ -610,7 +612,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2])) //
-                return error.InvalidPositiveMove;
+                return GameErrors.InvalidPositiveMove;
             self.board.set(idxs[0]);
             self.board.set(idxs[1]);
             self.board.unset(idxs[2]);
