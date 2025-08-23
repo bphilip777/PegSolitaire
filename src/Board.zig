@@ -8,7 +8,7 @@ const Allocator = std.mem.Allocator;
 const T: type = u16;
 
 inline fn numCharsFromDigit(digit: T) T {
-    return @truncate(@max(@as(usize, @intFromFloat(@log10(@as(f64, @floatFromInt(digit + 1))))), 1));
+    return @truncate(@max(@as(usize, @intFromFloat(@ceil(@log10(@as(f64, @floatFromInt(digit + 1)))))), 1));
 }
 
 fn numCharsFromIdx(idx: T) T {
@@ -25,18 +25,18 @@ test "Num Chars From Idx" {
 }
 
 fn numCharsFromPos(pos: Position) T {
-    const row = numCharsFromDigit(pos.row);
-    const col = numCharsFromDigit(pos.col);
-    return row + col;
+    const n_row_chars = numCharsFromDigit(pos.row);
+    const n_col_chars = numCharsFromDigit(pos.col);
+    return n_row_chars + n_col_chars;
 }
 
 test "Num Chars From Pos" {
     const inputs = [_]T{ 0, 10, 100, 1_000, 10_000 };
-    const answers = [_]T{ 2, 2, 2, 2, 4 };
+    const answers = [_]T{ 2, 2, 3, 4, 6 };
     for (inputs, answers) |input, answer| {
         const pos = posFromIdx(input);
         const num_chars = numCharsFromPos(pos);
-        try std.testing.expectEqual(num_chars, answer);
+        try std.testing.expectEqual(answer, num_chars);
     }
 }
 
@@ -141,8 +141,7 @@ test "Idx From Position" {
     };
     for (0..15) |i| {
         const idx = idxFromPos(pos);
-        print("Idx: {} - {}\n", .{ idx, i });
-        // try std.testing.expectEqual(idx, @as(T, @truncate(i)));
+        try std.testing.expectEqual(idx, @as(T, @truncate(i)));
         pos.col += 1;
         if (pos.col > pos.row) {
             pos.row += 1;
