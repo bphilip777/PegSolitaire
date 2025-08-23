@@ -576,7 +576,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn redoMove(self: *@This()) !void {
+        pub fn redoMove(self: *@This()) void {
             const idx = self.board.count();
             const move = self.chosen_moves[idx].?;
             self.chooseMove(move.idx, move.dir);
