@@ -360,7 +360,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        fn computeAllMoves(self: *@This()) !void {
+        fn computeAllMoves(self: *@This()) void {
             for (0..n_indices) |i| {
                 const idx0: T = @truncate(i);
                 const pos0 = posFromIdx(idx0);
@@ -373,8 +373,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                         self.moves[i].remove(dir);
                         continue;
                     };
-                    const idx1 = try idxFromPos(pos1);
-                    const idx2 = try idxFromPos(pos2);
+                    const idx1 = idxFromPos(pos1);
+                    const idx2 = idxFromPos(pos2);
                     if (!self.isValidIdx(idx1) or !self.isValidIdx(idx2)) {
                         if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                         continue;
@@ -413,7 +413,7 @@ pub fn createBoard(comptime n_rows: T) !type {
 
             for (origins) |origin| {
                 if (origin) |pos0| { // otherwise skip missing origins
-                    const idx0 = try idxFromPos(pos0);
+                    const idx0 = idxFromPos(pos0);
                     // rotate about idx0
                     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
                         // compute directions
@@ -425,8 +425,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                         const pos3 = getRotation(pos0, new_dir, .one_eighty);
                         // move = along all positions
                         if (pos1 != null and pos2 != null) {
-                            const idx1 = try idxFromPos(pos1.?);
-                            const idx2 = try idxFromPos(pos2.?);
+                            const idx1 = idxFromPos(pos1.?);
+                            const idx2 = idxFromPos(pos2.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
                                 // forwards
                                 if (self.hasMove(&.{ idx0, idx1, idx2 })) {
@@ -443,8 +443,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                             }
                         }
                         if (pos1 != null and pos3 != null) {
-                            const idx1 = try idxFromPos(pos1.?);
-                            const idx3 = try idxFromPos(pos3.?);
+                            const idx1 = idxFromPos(pos1.?);
+                            const idx3 = idxFromPos(pos3.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
                                 // centered
                                 if (self.hasMove(&.{ idx1, idx0, idx3 })) {
