@@ -66,7 +66,14 @@ pub fn main() !void {
             var idx: @TypeOf(board.start) = undefined;
             var chosen_move: Direction = undefined;
             for (board.moves, 0..) |move, i| {
-                for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                for ([_]Direction{
+                    .Left,
+                    .UpLeft,
+                    .UpRight,
+                    .Right,
+                    .DownRight,
+                    .DownLeft,
+                }) |dir| {
                     if (move.contains(dir)) {
                         // get idx + move
                         chosen_move = dir;
