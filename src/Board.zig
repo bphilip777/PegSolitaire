@@ -32,21 +32,20 @@ test "Num Chars From Idx" {
 }
 
 pub fn triNum(n: T) !T {
-    if (n > 361) return error.NumTooLarge;
+    std.debug.assert(n <= 361);
     return (n / 2) * (n + 1);
 }
 
 test "Tri Num" {
     const expected_tri_nums = [_]T{ 0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66 };
     for (expected_tri_nums, 0..) |expected_tri_num, i| {
-        try std.testing.expectEqual(try triNum(@truncate(i)), expected_tri_num);
+        try std.testing.expectEqual(triNum(@truncate(i)), expected_tri_num);
     }
-    try std.testing.expectError(try triNum(362));
+    try std.testing.expectError(triNum(362));
 }
 
 fn invTriNum(n: T) T {
-    // does f16 or f32 matter?
-    return @intFromFloat((@sqrt(8 * @as(f16, @floatFromInt(n)) + 1) - 1) / 2);
+    return @intFromFloat(@floor((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2));
 }
 
 test "Inv Tri Num" {
@@ -90,7 +89,7 @@ test "Inv Tri Num 2 - Brute Force" {
 }
 
 // find max value of u16 -> get triangle row number -> take floor = max number of rows
-const MAX_INPUT_SIZE: u16 = @intFromFloat(@floor((@sqrt(8 * @as(f32, @floatFromInt(std.math.maxInt(u16))) + 1) - 1) / 2));
+const MAX_INPUT_SIZE: u16 = invTriNum(std.math.maxInt(u16));
 
 const Position = struct {
     row: T,
@@ -121,8 +120,8 @@ test "Position From Idx" {
     }
 }
 
-pub fn idxFromPos(pos: Position) !T {
-    return try triNum(pos.row) + pos.col;
+pub fn idxFromPos(pos: Position) T {
+    return triNum(pos.row) + pos.col;
 }
 
 test "Idx From Position" {
@@ -507,9 +506,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .idx = idx2,
                     .dir = Direction.opposite(dir),
                 };
-                self.board.unset(idx0);
-                self.board.unset(idx1);
-                self.board.set(idx2);
+                self.setPosMove(&.{ idx0, idx1, idx2 });
+                // self.board.unset(idx0);
+                // self.board.unset(idx1);
+                // self.board.set(idx2);
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
                     print(
@@ -522,9 +522,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .idx = idx0,
                     .dir = dir,
                 };
-                self.board.set(idx0);
-                self.board.unset(idx1);
-                self.board.unset(idx2);
+                self.setNegMove(&.{ idx0, idx1, idx2 });
+                // self.board.set(idx0);
+                // self.board.unset(idx1);
+                // self.board.unset(idx2);
             }
             // update moves
             // try self.computeAllMoves();
