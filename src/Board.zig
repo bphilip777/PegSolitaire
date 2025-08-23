@@ -31,15 +31,17 @@ test "Num Chars From Idx" {
     try std.testing.expectEqual(n2, 5);
 }
 
-pub fn triNum(n: T) T {
-    return (n * (n + 1)) / 2;
+pub fn triNum(n: T) !T {
+    if (n > 361) return error.NumTooLarge;
+    return (n / 2) * (n + 1);
 }
 
 test "Tri Num" {
     const expected_tri_nums = [_]T{ 0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66 };
     for (expected_tri_nums, 0..) |expected_tri_num, i| {
-        try std.testing.expectEqual(triNum(@truncate(i)), expected_tri_num);
+        try std.testing.expectEqual(try triNum(@truncate(i)), expected_tri_num);
     }
+    try std.testing.expectError(try triNum(362));
 }
 
 fn invTriNum(n: T) T {
@@ -95,9 +97,9 @@ const Position = struct {
     col: T,
 };
 
-pub fn posFromIdx(idx: T) Position {
+pub fn posFromIdx(idx: T) !Position {
     const row = invTriNum(idx);
-    const tri_num = triNum(row);
+    const tri_num = try triNum(row);
     const col = idx - tri_num;
     return Position{ .row = row, .col = col };
 }
@@ -119,8 +121,8 @@ test "Position From Idx" {
     }
 }
 
-pub fn idxFromPos(pos: Position) T {
-    return triNum(pos.row) + pos.col;
+pub fn idxFromPos(pos: Position) !T {
+    return try triNum(pos.row) + pos.col;
 }
 
 test "Idx From Position" {
@@ -159,7 +161,7 @@ const Rotation: type = enum {
     }
 };
 
-const Direction: type = enum {
+pub const Direction: type = enum { // 1 byte
     Left,
     UpLeft,
     UpRight,
@@ -181,9 +183,9 @@ const Direction: type = enum {
 
 pub const Directions: type = std.enums.EnumSet(Direction);
 
-const Move = struct {
-    idx: T,
-    dir: Direction,
+pub const Move = struct { // 4 = wasted 1 byte
+    idx: T, // 2
+    dir: Direction, // 1 -> 2
 };
 
 fn getNumMoves(move: Directions) T {
@@ -299,15 +301,17 @@ const GameErrors = error{
     InvalidPosition,
 };
 
-const Moves = struct {
-    idx: T,
-    dir: Direction,
+pub const Moves = struct { // 4
+    idx: T, // 2
+    dir: Direction, // 1 -> 2
 };
 
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows < 3 or n_rows > MAX_INPUT_SIZE) return GameErrors.NRowsTooSmallOrTooLarge;
-    const n_indices = triNum(n_rows);
+    const n_indices = try triNum(n_rows);
 
+    // 110 bytes
+    // 110 * 65536 =  6_553_600 = just 6 MBs of data - easy to upfront allocate
     return struct {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
         start: T = 0, // 2 bytes
@@ -353,7 +357,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             print("\n", .{});
         }
 
-        fn computeAllMoves(self: *@This()) void {
+        fn computeAllMoves(self: *@This()) !void {
             for (0..n_indices) |i| {
                 const idx0: T = @truncate(i);
                 const pos0 = posFromIdx(idx0);
@@ -366,8 +370,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                         self.moves[i].remove(dir);
                         continue;
                     };
-                    const idx1 = idxFromPos(pos1);
-                    const idx2 = idxFromPos(pos2);
+                    const idx1 = try idxFromPos(pos1);
+                    const idx2 = try idxFromPos(pos2);
                     if (!self.isValidIdx(idx1) or !self.isValidIdx(idx2)) {
                         if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                         continue;
@@ -406,7 +410,7 @@ pub fn createBoard(comptime n_rows: T) !type {
 
             for (origins) |origin| {
                 if (origin) |pos0| { // otherwise skip missing origins
-                    const idx0 = idxFromPos(pos0);
+                    const idx0 = try idxFromPos(pos0);
                     // rotate about idx0
                     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
                         // compute directions
@@ -418,8 +422,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                         const pos3 = getRotation(pos0, new_dir, .one_eighty);
                         // move = along all positions
                         if (pos1 != null and pos2 != null) {
-                            const idx1 = idxFromPos(pos1.?);
-                            const idx2 = idxFromPos(pos2.?);
+                            const idx1 = try idxFromPos(pos1.?);
+                            const idx2 = try idxFromPos(pos2.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
                                 // forwards
                                 if (self.hasMove(&.{ idx0, idx1, idx2 })) {
@@ -436,8 +440,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                             }
                         }
                         if (pos1 != null and pos3 != null) {
-                            const idx1 = idxFromPos(pos1.?);
-                            const idx3 = idxFromPos(pos3.?);
+                            const idx1 = try idxFromPos(pos1.?);
+                            const idx3 = try idxFromPos(pos3.?);
                             if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
                                 // centered
                                 if (self.hasMove(&.{ idx1, idx0, idx3 })) {
@@ -486,8 +490,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 return;
             };
             // get idxs
-            const idx1 = idxFromPos(p1);
-            const idx2 = idxFromPos(p2);
+            const idx1 = try idxFromPos(p1);
+            const idx2 = try idxFromPos(p2);
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) { // pos
                 if (!self.moves[idx2].contains(Direction.opposite(dir))) {
@@ -521,12 +525,12 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.unset(idx2);
             }
             // update moves
-            self.computeAllMoves();
-            // self.computeOptimally(idx0, dir);
+            // try self.computeAllMoves();
+            try self.computeOptimally(idx0, dir);
         }
 
-        pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
-            const idx = idxFromPos(pos);
+        pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) !void {
+            const idx = try idxFromPos(pos);
             if (!self.isValidIdx(idx)) return;
             self.chooseMove(idx, dir);
         }
@@ -539,33 +543,68 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.set(i);
             }
             self.board.unset(self.start);
-            self.computeAllMoves();
+            try self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *@This()) void {
+        pub fn undoMove(self: *@This()) !void {
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
             const move = self.chosen_moves[idx].?;
             // get positions
-            const pos0 = posFromIdx(move.idx);
+            const pos0 = try posFromIdx(move.idx);
             const pos1 = getRotation(pos0, move.dir, .full).?;
             const pos2 = getRotation(pos1, move.dir, .full).?;
             // get idxs
-            const idx1 = idxFromPos(pos1);
-            const idx2 = idxFromPos(pos2);
+            const idx1 = try idxFromPos(pos1);
+            const idx2 = try idxFromPos(pos2);
             // reset board positions
             self.board.unset(move.idx);
             self.board.set(idx1);
             self.board.set(idx2);
             // reset move positions - incorrect
-            self.computeAllMoves();
+            try self.computeAllMoves();
         }
 
-        pub fn redoMove(self: *@This()) void {
+        pub fn redoMove(self: *@This()) !void {
             const idx = self.board.count();
             const move = self.chosen_moves[idx].?;
-            self.chooseMove(move.idx, move.dir);
+            try self.chooseMove(move.idx, move.dir);
+        }
+
+        fn setNeg(self: *const @This(), idxs: []const T) !void {
+            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
+            if (self.board.isSet(idxs[0] or //
+                !self.board.isSet(idxs[1]) or //
+                !self.board.isSet(idxs[2]))) //
+                return error.InvalidNegativeMove;
+            self.board.set(idxs[0]);
+            self.board.unset(idxs[1]);
+            self.board.unset(idxs[2]);
+        }
+
+        fn setPos(self: *const @This(), idxs: []const T) !void {
+            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
+            if (!self.board.isSet(idxs[0] or //
+                !self.board.isSet(idxs[1]) or //
+                self.board.isSet(idxs[2]))) //
+                return error.InvalidPositiveMove;
+            self.board.unset(idxs[0]);
+        }
+
+        fn unsetNeg(self: *const @This(), idxs: []const T) !void {
+            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
+            self.board.unset(idxs[0]);
+            self.board.set(idxs[0]);
+            self.board.set(idxs[0]);
+        }
+
+        fn unsetPos(self: *const @This(), idxs: []const T) !void {
+            if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
+
+            self.board.unset(idxs[0]);
+            self.board.unset(idxs[1]);
+            self.board.unset(idxs[2]);
         }
 
         fn isValidIdx(self: *const @This(), idx: T) bool {
@@ -974,7 +1013,7 @@ test "Undo Move + Redo Move" {
     for (0..list_of_instructions.len - 1) |i| {
         const j = list_of_instructions.len - i - 2;
         const instruction = list_of_instructions[j];
-        board.undoMove();
+        try board.undoMove();
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
     // Redo
