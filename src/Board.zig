@@ -590,10 +590,16 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.isSet(idxs[2]))) //
                 return error.InvalidPositiveMove;
             self.board.unset(idxs[0]);
+            self.board.unset(idxs[1]);
+            self.board.set(idxs[2]);
         }
 
         fn unsetNeg(self: *const @This(), idxs: []const T) !void {
             if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
+            if (!self.board.isSet(idxs[0]) or //
+                self.board.isSet(idxs[1]) or //
+                self.board.isSet(idxs[2])) //
+                return error.InvalidNegativeMove;
             self.board.unset(idxs[0]);
             self.board.set(idxs[0]);
             self.board.set(idxs[0]);
@@ -601,9 +607,12 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         fn unsetPos(self: *const @This(), idxs: []const T) !void {
             if (idxs.len != 3) return error.IncorrectNumberOfIdxs;
-
-            self.board.unset(idxs[0]);
-            self.board.unset(idxs[1]);
+            if (!self.board.isSet(idxs[0]) or //
+                !self.board.isSet(idxs[1]) or //
+                self.board.isSet(idxs[2])) //
+                return error.InvalidPositiveMove;
+            self.board.set(idxs[0]);
+            self.board.set(idxs[1]);
             self.board.unset(idxs[2]);
         }
 
