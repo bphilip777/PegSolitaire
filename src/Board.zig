@@ -611,8 +611,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 !self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]));
             self.board.unset(idxs[0]);
-            self.board.set(idxs[0]);
-            self.board.set(idxs[0]);
+            self.board.set(idxs[1]);
+            self.board.set(idxs[2]);
         }
 
         fn unsetPosMove(self: *@This(), idxs: [3]T) void {
@@ -1031,18 +1031,12 @@ test "Undo Move + Redo Move" {
         const j = list_of_instructions.len - i - 2;
         const instruction = list_of_instructions[j];
         board.undoMove();
-        std.testing.expectEqual(instruction.value, board.board.mask) catch |err| {
-            print("Undo {}: {} - {any}\n", .{ i, board.board.mask, instruction });
-            return err;
-        };
+        try std.testing.expectEqual(instruction.value, board.board.mask);
     }
     // Redo
     for (0..list_of_instructions.len - 1) |i| {
         const instruction = list_of_instructions[i + 1];
         board.redoMove();
-        std.testing.expectEqual(instruction.value, board.board.mask) catch |err| {
-            print("Redo {}: {} - {any}\n", .{ i, board.board.mask, instruction });
-            return err;
-        };
+        try std.testing.expectEqual(instruction.value, board.board.mask);
     }
 }
