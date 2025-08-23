@@ -7,31 +7,39 @@ const Allocator = std.mem.Allocator;
 
 const T: type = u16;
 
-fn numCharsFromDigit(digit: T) T {
-    return @truncate(@max(@as(usize, @intFromFloat(@floor(@log10(@as(f64, @floatFromInt(digit + 1)))))), 1));
+inline fn numCharsFromDigit(digit: T) T {
+    return @truncate(@max(@as(usize, @intFromFloat(@log10(@as(f64, @floatFromInt(digit + 1))))), 1));
 }
 
-test "Num Chars From Digit" {
+fn numCharsFromIdx(idx: T) T {
+    return numCharsFromDigit(idx);
+}
+
+test "Num Chars From Idx" {
     const inputs = [_]T{ 1, 10, 100, 1_000, 10_000 };
     const expected = [_]T{ 1, 2, 3, 4, 5 };
     for (inputs, expected) |input, expects| {
-        const digits = numCharsFromDigit(input);
+        const digits = numCharsFromIdx(input);
         try std.testing.expectEqual(expects, digits);
     }
 }
 
-fn numCharsFromIdx(idx: T) T {
-    const pos = posFromIdx(idx);
+fn numCharsFromPos(pos: T) T {
     const row = numCharsFromDigit(pos.row);
     const col = numCharsFromDigit(pos.col);
-    return row + col + 2;
+    return row + col;
 }
 
-test "Num Chars From Idx" {
-    const n1 = numCharsFromIdx(0);
-    try std.testing.expectEqual(n1, 4);
-    const n2 = numCharsFromIdx(100);
-    try std.testing.expectEqual(n2, 5);
+test "Num Chars From Pos" {
+    for ([_]T{ 0, 10, 100, 1_000, 10_000 }) |i| {
+        const idx: T = @truncate(i);
+        const pos = posFromIdx(idx);
+        const num_chars = numCharsFromPos(pos);
+        print("{} ", .{num_chars});
+    }
+    // try std.testing.expectEqual(n1, 4);
+    // const n2 = numCharsFromIdxToPos(100);
+    // try std.testing.expectEqual(n2, 5);
 }
 
 fn triNum(n: T) T {
@@ -511,7 +519,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .idx = idx2,
                     .dir = Direction.opposite(dir),
                 };
-                self.setPosMove(&.{ idx0, idx1, idx2 });
+                self.setPosMove([3]T{ idx0, idx1, idx2 });
                 // self.board.unset(idx0);
                 // self.board.unset(idx1);
                 // self.board.set(idx2);
@@ -527,7 +535,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .idx = idx0,
                     .dir = dir,
                 };
-                self.setNegMove(&.{ idx0, idx1, idx2 });
+                self.setNegMove([3]T{ idx0, idx1, idx2 });
                 // self.board.set(idx0);
                 // self.board.unset(idx1);
                 // self.board.unset(idx2);
@@ -567,7 +575,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx1 = idxFromPos(pos1);
             const idx2 = idxFromPos(pos2);
             // reset board positions
-            self.unsetNegMove(&.{ move.idx, idx1, idx2 });
+            self.unsetNegMove([3]T{ move.idx, idx1, idx2 });
             // self.board.unset(move.idx);
             // self.board.set(idx1);
             // self.board.set(idx2);
@@ -581,7 +589,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.chooseMove(move.idx, move.dir);
         }
 
-        fn setNegMove(self: *@This(), idxs: []const T) void {
+        fn setNegMove(self: *@This(), idxs: [3]T) void {
             std.debug.assert(idxs.len == 3);
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
@@ -591,7 +599,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.board.unset(idxs[2]);
         }
 
-        fn setPosMove(self: *@This(), idxs: []const T) void {
+        fn setPosMove(self: *@This(), idxs: [3]T) void {
             std.debug.assert(idxs.len == 3);
             std.debug.assert(self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
@@ -601,8 +609,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.board.set(idxs[2]);
         }
 
-        fn unsetNegMove(self: *@This(), idxs: []const T) void {
-            std.debug.assert(idxs.len == 3);
+        fn unsetNegMove(self: *@This(), idxs: [3]T) void {
             std.debug.assert(self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]));
@@ -611,8 +618,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.board.set(idxs[0]);
         }
 
-        fn unsetPosMove(self: *@This(), idxs: []const T) void {
-            std.debug.assert(idxs.len == 3);
+        fn unsetPosMove(self: *@This(), idxs: [3]T) void {
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]));
