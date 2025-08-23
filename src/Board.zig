@@ -96,9 +96,9 @@ const Position = struct {
     col: T,
 };
 
-pub fn posFromIdx(idx: T) !Position {
+pub fn posFromIdx(idx: T) Position {
     const row = invTriNum(idx);
-    const tri_num = try triNum(row);
+    const tri_num = triNum(row);
     const col = idx - tri_num;
     return Position{ .row = row, .col = col };
 }
