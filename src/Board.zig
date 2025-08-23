@@ -295,12 +295,11 @@ test "Format Move" {
 }
 
 const GameErrors = error{
-    NRowsTooSmallOrTooLarge,
+    NRowsTooSmall,
+    NRowsTooLarge,
     StartMustBeGT0OrLTNumIndices,
     InvalidMove,
     InvalidPosition,
-    InvalidPositiveMove,
-    InvalidNegativeMove,
 };
 
 pub const Moves = struct { // 4
@@ -309,7 +308,8 @@ pub const Moves = struct { // 4
 };
 
 pub fn createBoard(comptime n_rows: T) !type {
-    if (n_rows < 3 or n_rows > MAX_INPUT_SIZE) return GameErrors.NRowsTooSmallOrTooLarge;
+    if (n_rows < 3) return GameErrors.NRowsTooSmall;
+    if (n_rows > MAX_INPUT_SIZE) return GameErrors.NRowsTooLarge;
     const n_indices = try triNum(n_rows);
 
     // 110 bytes
@@ -561,9 +561,10 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx1 = try idxFromPos(pos1);
             const idx2 = try idxFromPos(pos2);
             // reset board positions
-            self.board.unset(move.idx);
-            self.board.set(idx1);
-            self.board.set(idx2);
+            self.unsetNegMove(&.{ move.idx, idx1, idx2 });
+            // self.board.unset(move.idx);
+            // self.board.set(idx1);
+            // self.board.set(idx2);
             // reset move positions - incorrect
             try self.computeAllMoves();
         }
