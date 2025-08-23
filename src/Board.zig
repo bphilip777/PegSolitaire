@@ -573,13 +573,13 @@ pub fn createBoard(comptime n_rows: T) !type {
             // self.board.set(idx1);
             // self.board.set(idx2);
             // reset move positions - incorrect
-            try self.computeAllMoves();
+            self.computeAllMoves();
         }
 
         pub fn redoMove(self: *@This()) !void {
             const idx = self.board.count();
             const move = self.chosen_moves[idx].?;
-            try self.chooseMove(move.idx, move.dir);
+            self.chooseMove(move.idx, move.dir);
         }
 
         fn setNegMove(self: *@This(), idxs: []const T) void {
