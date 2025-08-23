@@ -493,8 +493,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 return;
             };
             // get idxs
-            const idx1 = try idxFromPos(p1);
-            const idx2 = try idxFromPos(p2);
+            const idx1 = idxFromPos(p1);
+            const idx2 = idxFromPos(p2);
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) { // pos
                 if (!self.moves[idx2].contains(Direction.opposite(dir))) {
@@ -531,11 +531,11 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             // update moves
             // try self.computeAllMoves();
-            try self.computeOptimally(idx0, dir);
+            self.computeOptimally(idx0, dir);
         }
 
-        pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) !void {
-            const idx = try idxFromPos(pos);
+        pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
+            const idx = idxFromPos(pos);
             if (!self.isValidIdx(idx)) return;
             self.chooseMove(idx, dir);
         }
@@ -548,21 +548,21 @@ pub fn createBoard(comptime n_rows: T) !type {
                 self.board.set(i);
             }
             self.board.unset(self.start);
-            try self.computeAllMoves();
+            self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *@This()) !void {
+        pub fn undoMove(self: *@This()) void {
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
             const move = self.chosen_moves[idx].?;
             // get positions
-            const pos0 = try posFromIdx(move.idx);
+            const pos0 = posFromIdx(move.idx);
             const pos1 = getRotation(pos0, move.dir, .full).?;
             const pos2 = getRotation(pos1, move.dir, .full).?;
             // get idxs
-            const idx1 = try idxFromPos(pos1);
-            const idx2 = try idxFromPos(pos2);
+            const idx1 = idxFromPos(pos1);
+            const idx2 = idxFromPos(pos2);
             // reset board positions
             self.unsetNegMove(&.{ move.idx, idx1, idx2 });
             // self.board.unset(move.idx);
