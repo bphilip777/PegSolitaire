@@ -7,7 +7,6 @@ const N_ROWS = 5;
 const Board: type = createBoard(N_ROWS) catch unreachable;
 const Direction = @import("Board.zig").Direction;
 const Move = @import("Board.zig").Move;
-const triNum = @import("Board.zig").triNum;
 
 // TODO:
 // Play Game:
@@ -31,8 +30,6 @@ pub fn main() !void {
     print("?Move: {}\n", .{@sizeOf(?Move)});
     // print("Max u16: {}\n", .{std.math.maxInt(u16)});
     print("Board: {}\n", .{@sizeOf(Board)});
-    print("Total: {}\n", .{triNum(362)});
-    print("Total: {}\n", .{@as(usize, triNum(361)) * @sizeOf(Board)});
 }
 
 // pub fn main() !void {

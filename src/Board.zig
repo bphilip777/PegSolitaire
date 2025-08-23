@@ -34,7 +34,7 @@ test "Num Chars From Idx" {
     try std.testing.expectEqual(n2, 5);
 }
 
-pub fn triNum(n: T) T {
+fn triNum(n: T) T {
     std.debug.assert(n <= 361);
     return (n / 2) * (n + 1);
 }
@@ -49,7 +49,8 @@ test "Tri Num" {
 }
 
 fn invTriNum(n: T) T {
-    return @intFromFloat(@floor((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2));
+    // return @intFromFloat(@floor((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2));
+    return @intFromFloat((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2);
 }
 
 test "Inv Tri Num" {
@@ -100,7 +101,7 @@ const Position = struct {
     col: T,
 };
 
-pub fn posFromIdx(idx: T) Position {
+fn posFromIdx(idx: T) Position {
     const row = invTriNum(idx);
     const tri_num = triNum(row);
     const col = idx - tri_num;
@@ -124,7 +125,7 @@ test "Position From Idx" {
     }
 }
 
-pub fn idxFromPos(pos: Position) T {
+fn idxFromPos(pos: Position) T {
     return triNum(pos.row) + pos.col;
 }
 
@@ -135,6 +136,7 @@ test "Idx From Position" {
     };
     for (0..15) |i| {
         const idx = idxFromPos(pos);
+        print("Idx: {} - {}\n", .{ idx, i });
         try std.testing.expectEqual(idx, @as(T, @truncate(i)));
         pos.col += 1;
         if (pos.col > pos.row) {
@@ -581,20 +583,20 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         fn setNegMove(self: *@This(), idxs: []const T) void {
-            std.debug.assert(idxs.len != 3);
-            std.debug.assert(self.board.isSet(idxs[0]) or //
-                !self.board.isSet(idxs[1]) or //
-                !self.board.isSet(idxs[2]));
+            std.debug.assert(idxs.len == 3);
+            std.debug.assert(!self.board.isSet(idxs[0]) or //
+                self.board.isSet(idxs[1]) or //
+                self.board.isSet(idxs[2]));
             self.board.set(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.unset(idxs[2]);
         }
 
         fn setPosMove(self: *@This(), idxs: []const T) void {
-            std.debug.assert(idxs.len != 3);
-            std.debug.assert(!self.board.isSet(idxs[0]) or //
-                !self.board.isSet(idxs[1]) or //
-                self.board.isSet(idxs[2]));
+            std.debug.assert(idxs.len == 3);
+            std.debug.assert(self.board.isSet(idxs[0]) or //
+                self.board.isSet(idxs[1]) or //
+                !self.board.isSet(idxs[2]));
             self.board.unset(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.set(idxs[2]);
@@ -603,15 +605,15 @@ pub fn createBoard(comptime n_rows: T) !type {
         fn unsetNegMove(self: *@This(), idxs: []const T) void {
             std.debug.assert(idxs.len == 3);
             std.debug.assert(self.board.isSet(idxs[0]) or //
-                self.board.isSet(idxs[1]) or //
-                self.board.isSet(idxs[2]));
+                !self.board.isSet(idxs[1]) or //
+                !self.board.isSet(idxs[2]));
             self.board.unset(idxs[0]);
             self.board.set(idxs[0]);
             self.board.set(idxs[0]);
         }
 
         fn unsetPosMove(self: *@This(), idxs: []const T) void {
-            std.debug.assert(idxs.len != 3);
+            std.debug.assert(idxs.len == 3);
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]));
