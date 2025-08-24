@@ -560,7 +560,8 @@ pub fn createBoard(comptime n_rows: T) !type {
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
-            const move = self.chosen_moves[idx].?;
+            const move = self.chosen_moves[idx];
+            std.debug.assert(move.dir != .None);
             // get positions
             const pos0 = posFromIdx(move.idx);
             const pos1 = getRotation(pos0, move.dir, .full).?;
@@ -579,7 +580,8 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         pub fn redoMove(self: *@This()) void {
             const idx = self.board.count();
-            const move = self.chosen_moves[idx].?;
+            const move = self.chosen_moves[idx];
+            std.debug.assert(move.dir != .None);
             self.chooseMove(move.idx, move.dir);
         }
 
