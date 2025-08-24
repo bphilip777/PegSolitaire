@@ -22,12 +22,16 @@ const Move = @import("Board.zig").Move;
 // - document fns in document.md + add notes in README.md
 // - how to iterate over the fields of an enum
 // should I implement a std.MultiArrayListof these values
+// Optimize:
+//  - reduce # of bytes:
+//  - used null (90 bytes)
+//  - changed to enum (60 bytes) - still wasting 15 bytes
 
 pub fn main() !void {
+    const board = Board.init(0);
     print("Direction: {}\n", .{@sizeOf(Direction)});
     print("Move: {}\n", .{@sizeOf(Move)});
-    print("?Move: {}\n", .{@sizeOf(?Move)});
-    print("15?Move: {}\n", .{15 * @sizeOf(?Move)}); // most of the data space
+    print("{} Moves: {}\n", .{ board.board.capacity(), board.board.capacity() * @sizeOf(Move) });
     // print("Max u16: {}\n", .{std.math.maxInt(u16)});
     print("Board: {}\n", .{@sizeOf(Board)});
 }

@@ -197,8 +197,12 @@ pub const Move = struct { // 4 = wasted 1 byte
 
 fn getNumMoves(move: Directions) T {
     var n_items: T = 0;
-    inline for (comptime std.meta.fieldNames(Direction)) |fieldName| {
-        n_items += @intFromBool(move.contains(@field(Direction, fieldName)));
+    inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+        const dir = @field(Direction, field_name);
+        n_items += switch (dir) {
+            .None => 0,
+            else => @intFromBool(move.contains(dir)),
+        };
     }
     return n_items;
 }
@@ -327,7 +331,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
         chosen_moves: [n_indices]Move = undefined, // store past moves
 
-        pub fn init(start: T) !@This() {
+        pub fn init(start: T) @This() {
             // Validity Check
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // moves
@@ -335,7 +339,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             var chosen_moves: [n_indices]Move = undefined;
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
-                chosen_moves[i] = .None;
+                chosen_moves[i] = .{ .idx = 0, .dir = .None };
             }
             // create self
             var self = @This(){
@@ -423,39 +427,44 @@ pub fn createBoard(comptime n_rows: T) !type {
                     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
                         // compute directions
                         const new_dir = @field(Direction, field_name);
-                        const opp_dir = Direction.opposite(new_dir);
-                        // compute positions
-                        const pos1 = getRotation(pos0, new_dir, .full);
-                        const pos2 = getRotation(pos1, new_dir, .full);
-                        const pos3 = getRotation(pos0, new_dir, .one_eighty);
-                        // move = along all positions
-                        if (pos1 != null and pos2 != null) {
-                            const idx1 = idxFromPos(pos1.?);
-                            const idx2 = idxFromPos(pos2.?);
-                            if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
-                                // forwards
-                                if (self.hasMove(&.{ idx0, idx1, idx2 })) {
-                                    self.moves[idx0].insert(new_dir);
-                                } else if (self.moves[idx0].contains(new_dir)) {
-                                    self.moves[idx0].remove(new_dir);
+                        switch (new_dir) {
+                            .None => {},
+                            else => {
+                                const opp_dir = Direction.opposite(new_dir);
+                                // compute positions
+                                const pos1 = getRotation(pos0, new_dir, .full);
+                                const pos2 = getRotation(pos1, new_dir, .full);
+                                const pos3 = getRotation(pos0, new_dir, .one_eighty);
+                                // move = along all positions
+                                if (pos1 != null and pos2 != null) {
+                                    const idx1 = idxFromPos(pos1.?);
+                                    const idx2 = idxFromPos(pos2.?);
+                                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
+                                        // forwards
+                                        if (self.hasMove(&.{ idx0, idx1, idx2 })) {
+                                            self.moves[idx0].insert(new_dir);
+                                        } else if (self.moves[idx0].contains(new_dir)) {
+                                            self.moves[idx0].remove(new_dir);
+                                        }
+                                        // backwards
+                                        if (self.hasMove(&.{ idx2, idx1, idx0 })) {
+                                            self.moves[idx2].insert(opp_dir);
+                                        } else if (self.moves[idx2].contains(opp_dir)) {
+                                            self.moves[idx2].remove(opp_dir);
+                                        }
+                                    }
                                 }
-                                // backwards
-                                if (self.hasMove(&.{ idx2, idx1, idx0 })) {
-                                    self.moves[idx2].insert(opp_dir);
-                                } else if (self.moves[idx2].contains(opp_dir)) {
-                                    self.moves[idx2].remove(opp_dir);
-                                }
-                            }
-                        }
-                        if (pos1 != null and pos3 != null) {
-                            const idx1 = idxFromPos(pos1.?);
-                            const idx3 = idxFromPos(pos3.?);
-                            if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
-                                // centered
-                                if (self.hasMove(&.{ idx1, idx0, idx3 })) {
-                                    self.moves[idx1].insert(opp_dir);
-                                } else if (self.moves[idx1].contains(opp_dir)) {
-                                    self.moves[idx1].remove(opp_dir);
+                                if (pos1 != null and pos3 != null) {
+                                    const idx1 = idxFromPos(pos1.?);
+                                    const idx3 = idxFromPos(pos3.?);
+                                    if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
+                                        // centered
+                                        if (self.hasMove(&.{ idx1, idx0, idx3 })) {
+                                            self.moves[idx1].insert(opp_dir);
+                                        } else if (self.moves[idx1].contains(opp_dir)) {
+                                            self.moves[idx1].remove(opp_dir);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -861,6 +870,7 @@ test "Has Remaining Moves" {
     };
 
     for (list_of_instructions) |instruction| {
+        // print("{} {s}\n", .{ instruction.idx, @tagName(instruction.dir) });
         board.chooseMove(instruction.idx, instruction.dir);
         try std.testing.expectEqual(
             board.hasRemainingMoves(),
