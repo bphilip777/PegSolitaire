@@ -40,9 +40,9 @@ test "Num Chars From Pos" {
     }
 }
 
-fn triNum(n: T) T {
+pub fn triNum(n: T) T {
     std.debug.assert(n <= 361);
-    return if ((n & 1) == 0) (n / 2) * (n + 1) else n * ((n + 1) / 2);
+    return if ((n & 1) == 0) (n / 2) * (n + 1) else ((n + 1) / 2) * n;
 }
 
 test "Tri Num" {
@@ -52,7 +52,7 @@ test "Tri Num" {
     }
 }
 
-fn invTriNum(n: T) T {
+pub fn invTriNum(n: T) T {
     return @intFromFloat((@sqrt(8 * @as(f32, @floatFromInt(n)) + 1) - 1) / 2);
 }
 
@@ -95,7 +95,7 @@ test "Inv Tri Num 2 - Brute Force" {
     }
 }
 
-const MAX_ROWS: u16 = invTriNum(std.math.maxInt(u16));
+const MAX_ROWS: u16 = invTriNum(std.math.maxInt(u16)) - 1;
 
 const Position = struct {
     row: T,
@@ -127,9 +127,7 @@ test "Position From Idx" {
 }
 
 fn idxFromPos(pos: Position) T {
-    const row = pos.row -| 1;
-    // return triNum(pos.row) + pos.col;
-    return triNum(row) + pos.col;
+    return triNum(pos.row) + pos.col;
 }
 
 test "Idx From Position" {
@@ -530,7 +528,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     );
                     return;
                 }
-                self.chosen_moves.set(self.board.count, Move{
+                self.chosen_moves.set(self.board.count(), Move{
                     .idx = idx2,
                     .dir = Direction.opposite(dir),
                 });
@@ -546,10 +544,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     );
                     return;
                 }
-                self.chosen_moves[self.board.count()] = Move{
+                self.chosen_moves.set(self.board.count(), Move{
                     .idx = idx0,
                     .dir = dir,
-                };
+                });
                 self.setNegMove([3]T{ idx0, idx1, idx2 });
                 // self.board.set(idx0);
                 // self.board.unset(idx1);
@@ -1083,7 +1081,7 @@ test "Undo Move + Redo Move" {
 }
 
 test "Reduced Memory Footprint" {
-    const N_ROWS = 361;
+    const N_ROWS = 360;
     const Board: type = createBoard(N_ROWS) catch unreachable;
 
     const allo = std.testing.allocator;

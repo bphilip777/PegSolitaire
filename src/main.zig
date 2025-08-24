@@ -3,10 +3,11 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
 const createBoard = @import("Board.zig").createBoard;
-const N_ROWS = 361;
+const N_ROWS = 5;
 const Board: type = createBoard(N_ROWS) catch unreachable;
 const Direction = @import("Board.zig").Direction;
 const Move = @import("Board.zig").Move;
+const n_indices = @import("Board.zig").triNum(N_ROWS);
 
 // TODO:
 // Play Game:
@@ -17,7 +18,7 @@ const Move = @import("Board.zig").Move;
 // - through automatic
 //  - implement binary search for visited nodes
 //      - maybe have upfront allocation cost - number of indices combinations =
-//  - dfs - more optimized?
+//  - dfs - better for board game?
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -26,78 +27,42 @@ pub fn main() !void {
 
     // init board
     const start = 0;
-    var board = Board.init(allo, start);
-    defer board.deinit(allo);
+    var start_board = try Board.init(allo, start);
+    defer start_board.deinit(allo);
 
     // contains list of board
-    var stack = std.ArrayList(Board).init(allo);
-    defer stack.deinit();
-    try stack.append(board);
+    var stack: std.ArrayList(Board) = try .initCapacity(allo, n_indices);
+    defer stack.deinit(allo);
+    try stack.append(allo, start_board);
 
-    // contains list of visited states - turn off used moves
-    var visited = std.ArrayList(Board).init(allo);
-    defer visited.deinit();
+    var visited: std.ArrayList(Board) = try .initCapacity(allo, n_indices);
+    defer visited.deinit(allo);
+    defer for (visited.items) |*visited_board| visited_board.deinit(allo);
 
-    loop: while (stack.items.len > 0) {
-        // Steps:
-        // 0. pop board state
-        // 1. check if board was visited
-        //  - if visited ->
-        //      use visited version b/c it has fewer moves ->
-        //      if 0 moves continue outer loop
-        // 1. add board state
-        // 2. select move
-        // 3. choose move
-        // 4. create new board state
+    var board = stack.pop().?;
+    // choose move
+    const sliced = board.chosen_moves.slice();
+    const chosen_dirs = sliced.items(.dir);
+    for (chosen_dirs) |dir| print("{s}\n", .{@tagName(dir)});
 
-        // pop board state
-        var current_board = stack.pop().?;
-
-        // search through previous visited boards for it
-        for (visited.items, 0..) |visited_board, i| {
-            if (visited_board.board.eql(board.board)) {
-                // check remaining moves
-                if (!visited_board.hasRemainingMoves()) continue :loop;
-                // matches but has moves
-                current_board = visited_board;
-            }
-        }
-
-        // select move
-        const idx: @TypeOf(board.start), const chosen_move: Direction = blk: {
-            var idx: @TypeOf(board.start) = undefined;
-            var chosen_move: Direction = undefined;
-            for (board.moves, 0..) |move, i| {
-                for ([_]Direction{
-                    .Left,
-                    .UpLeft,
-                    .UpRight,
-                    .Right,
-                    .DownRight,
-                    .DownLeft,
-                }) |dir| {
-                    if (move.contains(dir)) {
-                        // get idx + move
-                        chosen_move = dir;
-                        idx = @truncate(i);
-                        // turn off old move
-                        board.moves[idx].remove(chosen_move);
-                        // return idx + move
-                        break :blk .{ idx, chosen_move };
-                    }
-                }
-            }
-            unreachable;
-        };
-
-        // choose move -> creates new board
-        board.chooseMove(idx, chosen_move);
-    }
-
-    const end_str = if (board.isLost()) "You Lose!" else if (board.isWon()) "You Won!";
-    print("State: {s}\n", .{end_str});
+    // while (true) {
+    //     const board = stack.pop() orelse break;
+    //
+    //     // search visited
+    //     for (visited.items) |visited_board| {
+    //         // matched
+    //         if (visited_board.board.mask == board.board.mask) {
+    //             // check moves
+    //             if (visited_board.hasRemainingMoves()) {
+    //                 // pop off move -> turn off move -> move that direction -> append new board
+    //                 const new_move =
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 test "Run All Tests" {
     _ = @import("Board.zig");
-    // DFS to auto-solve board }
+    // DFS to auto-solve board
+}

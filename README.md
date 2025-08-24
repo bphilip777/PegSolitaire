@@ -37,3 +37,10 @@ zig build -Drelease-fast run
 # Functions List:
 createBoard - takes in
 
+
+# Memory Optimization (Struct Of Arrays):
+- reduce # of bytes:
+- used null (Total 110 Bytes)
+- changed to enum (80 Bytes) - still wasting 15 bytes
+- MultiArrayList (48 Bytes)
+- swapped above for arrays -> 64 bytes instead
