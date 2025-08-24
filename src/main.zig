@@ -36,19 +36,16 @@ pub fn main() !void {
     defer stack.deinit();
     try stack.append(allo, &start_board);
     // visited
-    var visited_boards: std.ArrayList(u16) = //
-        try .initCapacity(allo, n_indices);
+    var visited_boards: std.ArrayList(u16) = try .initCapacity(allo, n_indices);
+    var visited_moves: std.ArrayList([n_indices]Directions) = try .initCapacity(allo, n_indices);
     defer visited_boards.deinit(allo);
-    var visited_moves: std.ArrayList([n_indices]Directions) = try .initCapacity(n_indices);
     defer visited_moves.deinit(allo);
     // pop
-    const new_board = stack.pop().?;
-    // check if board was visited - use binary search to find a previous visited board
-    // var was_visited: bool = false;
-    // var visited_idx: u16 = 0;
-    // choose idx + dir
-    var new_idx: u16 = 0;
-    var new_dir: Direction = undefined;
+    const new_board: Board = stack.pop().?.*;
+    // check if board was visited
+    const search = binarySearch(&visited_boards, new_board.board.mask);
+    // choose dir
+    var new_dir: Direction = .None;
     outer: for (new_board.moves, 0..) |move, i| {
         for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
             if (move.contains(dir)) {
