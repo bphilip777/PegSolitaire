@@ -26,40 +26,43 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
- 
     // first board
     const start = 0;
-    var start_board = try Board.init(allo, start);
-    defer start_board.deinit(allo);
+    var start_board: Board = try .init(allo, start);
     // stack
-    var stack: std.ArrayList(*Board) = .initCapacity(allo, n_indices);
-    defer stack.deinit();
+    var stack: std.ArrayList(*Board) = try .initCapacity(allo, n_indices);
+    defer stack.deinit(allo);
     try stack.append(allo, &start_board);
     // visited
-    var visited_boards: std.ArrayList(u16) = try .initCapacity(allo, n_indices);
-    var visited_moves: std.ArrayList([n_indices]Directions) = try .initCapacity(allo, n_indices);
-    defer visited_boards.deinit(allo);
-    defer visited_moves.deinit(allo);
-    // pop
-    const new_board: Board = stack.pop().?.*;
-    // check if board was visited
-    const search = binarySearch(&visited_boards, new_board.board.mask);
-    // choose dir
-    var new_dir: Direction = .None;
-    outer: for (new_board.moves, 0..) |move, i| {
-        for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
-            if (move.contains(dir)) {
-                new_idx = @truncate(i);
-                new_dir = dir;
-                break :outer;
+    var visited: std.ArrayList(*Board) = try .initCapacity(allo, n_indices);
+    defer visited.deinit(allo);
+    defer for (visited.items) |board| board.deinit(allo);
+    // DFS
+    while (stack.items.len > 0) {
+        // pop
+        var new_board: Board = stack.pop().?.*;
+        // check if board was visited: yes = use its moves, no = don't
+        const search = binarySearch(&visited, new_board.board.mask);
+        if (search.visited) {} else {
+            try visited.append(allo, &new_board);
+        }
+        // choose dir
+        var new_idx: u16 = 0;
+        var new_dir: Direction = .None;
+        outer: for (new_board.moves, 0..) |move, i| {
+            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                if (move.contains(dir)) {
+                    new_idx = @truncate(i);
+                    new_dir = dir;
+                    break :outer;
+                }
             }
         }
+        print("{}: {s}\n", .{ new_idx, @tagName(new_dir) });
+        // take move
+        new_board.chooseMove(new_idx, new_dir);
+        // add board?
     }
-    // unset chosen moves
-    start_board.moves[new_idx].remove(new_dir);
-    // take move
-    start_board.chooseMove(new_idx, new_dir);
-    // add board?
 }
 
 const Search = struct { // 4 bytes
@@ -67,28 +70,33 @@ const Search = struct { // 4 bytes
     idx: u16,
 };
 
-fn binarySearch(boards: *const std.ArrayList(u16), board: u16) Search {
+fn binarySearch(boards: *const std.ArrayList(Board), mask: u16) Search {
     // assumes boards is sorted
+    // Search:
+    // visited = bool = does it exist
+    // idx = where in array would mask be found if it did exist
     std.debug.assert(boards.items.len < std.math.maxInt(u16));
+    if (boards.items.len == 0) return .{ .visited = false, .idx = 0 };
     var lo: u16 = 0;
     var hi: u16 = @truncate(boards.items.len - 1);
+    var mid: u16 = undefined;
     while (lo <= hi) {
-        const mid = (lo + hi) / 2;
-        const new_board = boards.items[mid];
-        if (new_board == board) {
+        mid = (lo + hi) / 2;
+        const new_mask = boards.items[mid].board.mask;
+        if (new_mask == mask) {
             return .{
                 .visited = true,
                 .idx = mid,
             };
-        } else if (new_board > board) {
+        } else if (new_mask > mask) {
             hi = mid - 1;
-        } else if (new_board < board) {
+        } else if (new_mask < mask) {
             lo = mid + 1;
         }
     }
     return .{
         .visited = false,
-        .idx = undefined,
+        .idx = mid,
     };
 }
 
@@ -100,8 +108,8 @@ test "Binary Search" {
 
     const inputs = [_]u16{ 4, 9, 30, 20 };
     const answers = [_]Search{
-        .{ .visited = false, .idx = 0 },
-        .{ .visited = false, .idx = 0 },
+        .{ .visited = false, .idx = 3 },
+        .{ .visited = false, .idx = 4 },
         .{ .visited = true, .idx = 5 },
         .{ .visited = true, .idx = 4 },
     };
