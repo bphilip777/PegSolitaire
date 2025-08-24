@@ -530,10 +530,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     );
                     return;
                 }
-                self.chosen_moves[self.board.count()] = Move{
+                self.chosen_moves.set(self.board.count, Move{
                     .idx = idx2,
                     .dir = Direction.opposite(dir),
-                };
+                });
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
                 // self.board.unset(idx0);
                 // self.board.unset(idx1);
