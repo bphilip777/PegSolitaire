@@ -24,12 +24,22 @@ const Move = @import("Board.zig").Move;
 // should I implement a std.MultiArrayListof these values
 // Optimize:
 //  - reduce # of bytes:
-//  - used null (90 bytes)
-//  - changed to enum (60 bytes) - still wasting 15 bytes
+//  - used null (Total 110 Bytes)
+//  - changed to enum (80 Bytes) - still wasting 15 bytes
+//  - MultiArrayList (48 Bytes)
+//  _ swapped above for arrays -> 64 bytes instead
 
 pub fn main() !void {
-    const board = Board.init(0);
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allo = gpa.allocator();
+    // defer std.debug.assert(gpa.deinit() == .ok);
+
+    // var board = try Board.init(allo, 0);
+    var board = try Board.init(0);
+    // defer board.deinit(allo);
+
     print("Direction: {}\n", .{@sizeOf(Direction)});
+    print("Move Idx: {}\n", .{@sizeOf(u16)});
     print("Move: {}\n", .{@sizeOf(Move)});
     print("{} Moves: {}\n", .{ board.board.capacity(), board.board.capacity() * @sizeOf(Move) });
     // print("Max u16: {}\n", .{std.math.maxInt(u16)});

@@ -329,18 +329,24 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
         start: T = 0, // 2 bytes
         moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
-        chosen_moves: [n_indices]Move = undefined, // store past moves
+        chosen_moves: std.MultiArrayList(Move),
 
-        pub fn init(start: T) @This() {
+        pub fn init(allo: Allocator, start: T) !@This() {
             // Validity Check
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
-            var chosen_moves: [n_indices]Move = undefined;
+            var chosen_idxs: [n_indices]T = undefined;
+            var chosen_dirs: [n_indices]Direction = undefined;
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
-                chosen_moves[i] = .{ .idx = 0, .dir = .None };
+                chosen_idxs[i] = 0;
+                chosen_dirs[i] = .None;
             }
+            var chosen_moves = std.MultiArrayList(Move){};
+            try chosen_moves.ensureUnusedCapacity(allo, n_indices);
+            for (0..n_indices) |_| chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
+
             // create self
             var self = @This(){
                 .start = start,
@@ -349,6 +355,10 @@ pub fn createBoard(comptime n_rows: T) !type {
             };
             self.resetBoard();
             return self;
+        }
+
+        pub fn deinit(self: *@This(), allo: Allocator) void {
+            self.chosen_moves.deinit(allo);
         }
 
         pub fn printBoard(self: *const @This()) void {
@@ -851,7 +861,9 @@ pub fn createBoard(comptime n_rows: T) !type {
 test "Has Remaining Moves" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
-    var board: Board = try .init(0);
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit();
 
     const Instruction = struct { idx: u16, dir: Direction, hash_remaining_moves: bool };
     const list_of_instructions = [_]Instruction{
@@ -882,7 +894,9 @@ test "Has Remaining Moves" {
 test "Are Neg Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
-    var board: Board = try .init(0);
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -910,6 +924,8 @@ test "Are Pos Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
     var board: Board = try .init(0);
+    const allo = std.testing.allocator;
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -936,7 +952,9 @@ test "Are Pos Moves Correct" {
 test "Is Lost" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
-    var board: Board = try .init(0);
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
     const list_of_instructions = [_]Instruction{
@@ -963,7 +981,9 @@ test "Is Lost" {
 test "Is Won" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
+    const allo = std.testing.allocator;
     var board: Board = try .init(0);
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
     const list_of_instructions = [_]Instruction{
@@ -991,7 +1011,9 @@ test "Is Won" {
 test "Reset Board" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
+    const allo = std.testing.allocator;
     var board: Board = try .init(0);
+    defer board.deinit(allo);
 
     const start_value: T = board.board.mask;
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
@@ -1020,7 +1042,9 @@ test "Reset Board" {
 test "Undo Move + Redo Move" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
-    var board: Board = try .init(0);
+    const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
