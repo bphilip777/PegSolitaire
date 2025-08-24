@@ -3,7 +3,7 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
 const createBoard = @import("Board.zig").createBoard;
-const N_ROWS = 5;
+const N_ROWS = 361;
 const Board: type = createBoard(N_ROWS) catch unreachable;
 const Direction = @import("Board.zig").Direction;
 const Move = @import("Board.zig").Move;
@@ -30,20 +30,12 @@ const Move = @import("Board.zig").Move;
 //  _ swapped above for arrays -> 64 bytes instead
 
 pub fn main() !void {
-    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    // const allo = gpa.allocator();
-    // defer std.debug.assert(gpa.deinit() == .ok);
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allo = gpa.allocator();
+    defer std.debug.assert(gpa.deinit() == .ok);
 
-    // var board = try Board.init(allo, 0);
-    var board = try Board.init(0);
-    // defer board.deinit(allo);
-
-    print("Direction: {}\n", .{@sizeOf(Direction)});
-    print("Move Idx: {}\n", .{@sizeOf(u16)});
-    print("Move: {}\n", .{@sizeOf(Move)});
-    print("{} Moves: {}\n", .{ board.board.capacity(), board.board.capacity() * @sizeOf(Move) });
-    // print("Max u16: {}\n", .{std.math.maxInt(u16)});
-    print("Board: {}\n", .{@sizeOf(Board)});
+    var board = try Board.init(allo, 0);
+    defer board.deinit(allo);
 }
 
 // pub fn main() !void {

@@ -127,7 +127,9 @@ test "Position From Idx" {
 }
 
 fn idxFromPos(pos: Position) T {
-    return triNum(pos.row) + pos.col;
+    const row = pos.row -| 1;
+    // return triNum(pos.row) + pos.col;
+    return triNum(row) + pos.col;
 }
 
 test "Idx From Position" {
@@ -579,7 +581,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
-            const move = self.chosen_moves[idx];
+            const move = self.chosen_moves.get(idx);
             std.debug.assert(move.dir != .None);
             // get positions
             const pos0 = posFromIdx(move.idx);
@@ -590,16 +592,14 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx2 = idxFromPos(pos2);
             // reset board positions
             self.unsetNegMove([3]T{ move.idx, idx1, idx2 });
-            // self.board.unset(move.idx);
-            // self.board.set(idx1);
-            // self.board.set(idx2);
-            // reset move positions - incorrect
-            self.computeAllMoves();
+            // reset moves
+            // self.computeAllMoves();
+            self.computeOptimally(move.idx, move.dir);
         }
 
         pub fn redoMove(self: *@This()) void {
             const idx = self.board.count();
-            const move = self.chosen_moves[idx];
+            const move = self.chosen_moves.get(idx);
             std.debug.assert(move.dir != .None);
             self.chooseMove(move.idx, move.dir);
         }
@@ -861,9 +861,10 @@ pub fn createBoard(comptime n_rows: T) !type {
 test "Has Remaining Moves" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
+
     const allo = std.testing.allocator;
     var board: Board = try .init(allo, 0);
-    defer board.deinit();
+    defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, hash_remaining_moves: bool };
     const list_of_instructions = [_]Instruction{
@@ -923,8 +924,8 @@ test "Are Neg Moves Correct" {
 test "Are Pos Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
-    var board: Board = try .init(0);
     const allo = std.testing.allocator;
+    var board: Board = try .init(allo, 0);
     defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
@@ -981,8 +982,9 @@ test "Is Lost" {
 test "Is Won" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
+
     const allo = std.testing.allocator;
-    var board: Board = try .init(0);
+    var board: Board = try .init(allo, 0);
     defer board.deinit(allo);
 
     const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
@@ -1012,7 +1014,7 @@ test "Reset Board" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
     const allo = std.testing.allocator;
-    var board: Board = try .init(0);
+    var board: Board = try .init(allo, 0);
     defer board.deinit(allo);
 
     const start_value: T = board.board.mask;
@@ -1078,4 +1080,17 @@ test "Undo Move + Redo Move" {
         board.redoMove();
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
+}
+
+test "Reduced Memory Footprint" {
+    const N_ROWS = 361;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+
+    const allo = std.testing.allocator;
+    var board = try Board.init(allo, 0);
+    defer board.deinit(allo);
+
+    const no_mem_op = board.board.capacity() * @sizeOf(Move);
+    const mem_op = @sizeOf(Board);
+    try std.testing.expect(mem_op < no_mem_op);
 }
