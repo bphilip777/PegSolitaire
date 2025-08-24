@@ -22,12 +22,12 @@ const Move = @import("Board.zig").Move;
 // - document fns in document.md + add notes in README.md
 // - how to iterate over the fields of an enum
 // should I implement a std.MultiArrayListof these values
-//
 
 pub fn main() !void {
     print("Direction: {}\n", .{@sizeOf(Direction)});
     print("Move: {}\n", .{@sizeOf(Move)});
     print("?Move: {}\n", .{@sizeOf(?Move)});
+    print("15?Move: {}\n", .{15 * @sizeOf(?Move)}); // most of the data space
     // print("Max u16: {}\n", .{std.math.maxInt(u16)});
     print("Board: {}\n", .{@sizeOf(Board)});
 }

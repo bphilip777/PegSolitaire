@@ -167,6 +167,7 @@ const Rotation: type = enum { // 1 byte
 };
 
 pub const Direction: type = enum { // 1 byte
+    None,
     Left,
     UpLeft,
     UpRight,
@@ -182,6 +183,7 @@ pub const Direction: type = enum { // 1 byte
             .Right => .Left,
             .DownRight => .UpLeft,
             .DownLeft => .UpRight,
+            else => unreachable,
         };
     }
 };
@@ -323,20 +325,19 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
         start: T = 0, // 2 bytes
         moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
-        chosen_moves: [n_indices]?Move = undefined, // store past moves
+        chosen_moves: [n_indices]Move = undefined, // store past moves
 
         pub fn init(start: T) !@This() {
             // Validity Check
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // moves
             var moves: [n_indices]Directions = undefined;
-            var chosen_moves: [n_indices]?Move = undefined;
-
+            var chosen_moves: [n_indices]Move = undefined;
             for (0..n_indices) |i| {
                 moves[i] = .initEmpty();
-                chosen_moves[i] = null;
+                chosen_moves[i] = .None;
             }
-
+            // create self
             var self = @This(){
                 .start = start,
                 .moves = moves,
@@ -682,6 +683,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getDownRight(p),
                         .DownRight => getDownLeft(p),
                         .DownLeft => getLeft(p),
+                        else => unreachable,
                     },
                     .one_twenty => return switch (dir) {
                         .Left => getUpRight(p),
@@ -690,6 +692,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getDownLeft(p),
                         .DownRight => getLeft(p),
                         .DownLeft => getUpLeft(p),
+                        else => unreachable,
                     },
                     .one_eighty => return switch (dir) {
                         .Left => getRight(p),
@@ -698,6 +701,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getLeft(p),
                         .DownRight => getUpLeft(p),
                         .DownLeft => getUpRight(p),
+                        else => unreachable,
                     },
                     .two_forty => return switch (dir) {
                         .Left => getDownRight(p),
@@ -706,6 +710,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getUpLeft(p),
                         .DownRight => getUpRight(p),
                         .DownLeft => getRight(p),
+                        else => unreachable,
                     },
                     .three_hundo => return switch (dir) {
                         .Left => getDownLeft(p),
@@ -714,6 +719,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getUpRight(p),
                         .DownRight => getRight(p),
                         .DownLeft => getDownRight(p),
+                        else => unreachable,
                     },
                     .full => return switch (dir) {
                         .Left => getLeft(p),
@@ -722,6 +728,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getRight(p),
                         .DownRight => getDownRight(p),
                         .DownLeft => getDownLeft(p),
+                        else => unreachable,
                     },
                 }
             }
