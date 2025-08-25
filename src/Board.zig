@@ -143,13 +143,13 @@ test "Idx From Position" {
     }
 }
 
-const Rotation: type = enum { // 1 byte
-    sixty,
-    one_twenty,
-    one_eighty,
-    two_forty,
-    three_hundo,
-    full,
+const Rotation: type = enum(u8) {
+    sixty = 1,
+    one_twenty = 2,
+    one_eighty = 3,
+    two_forty = 4,
+    three_hundo = 5,
+    full = 6,
 
     pub fn opposite(input: Rotation) Rotation {
         return switch (input) {
@@ -163,14 +163,14 @@ const Rotation: type = enum { // 1 byte
     }
 };
 
-pub const Direction: type = enum { // 1 byte
-    None,
-    Left,
-    UpLeft,
-    UpRight,
-    Right,
-    DownRight,
-    DownLeft,
+pub const Direction: type = enum(u8) {
+    // None,
+    Left = 1,
+    UpLeft = 2,
+    UpRight = 3,
+    Right = 4,
+    DownRight = 5,
+    DownLeft = 6,
 
     pub fn opposite(input: Direction) Direction {
         return switch (input) {
@@ -197,7 +197,7 @@ fn getNumMoves(move: Directions) T {
     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
         const dir = @field(Direction, field_name);
         n_items += switch (dir) {
-            .None => 0,
+            // .None => 0,
             else => @intFromBool(move.contains(dir)),
         };
     }

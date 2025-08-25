@@ -54,7 +54,7 @@ fn dfs(allo: Allocator) !void {
             // Store at index
             try visited.insert(search.idx, new_board);
         }
-        // Create copy of board
+        // Duplicate board -> take move with new board
         var copied_board: Board = try allo.dupe(allo, Board, new_board);
         // choose dir
         var new_idx: u16 = 0;
@@ -76,10 +76,11 @@ fn dfs(allo: Allocator) !void {
                 copied_board.chooseMove(new_idx, new_dir);
                 // remove move from original
                 new_board.moves[new_idx].remove(new_dir);
+                if (new_board.moves[new_idx] == 0)
+                    new_board.moves[new_idx].set(.None);
             },
         }
     }
-    return visited;
 }
 
 const Search = struct { // 4 bytes
