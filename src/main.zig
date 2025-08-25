@@ -44,8 +44,10 @@ fn dfs(allo: Allocator) !void {
     var visited: std.ArrayList(*Board) = try .initCapacity(allo, n_indices);
     defer visited.deinit(allo);
     defer for (visited.items) |board| board.deinit(allo);
+    // limiter = for testing
+    var limiter: u16 = 0;
     // loop
-    while (stack.items.len > 0) {
+    while (stack.items.len > 0 and limiter < 10) : (limiter += 1) {
         //  in stack -> if last item has 2+ moves - getLast() = keeps on stack
         //           -> else pop()
         const new_board: *Board = //
@@ -139,90 +141,46 @@ fn binarySearch(boards: *const std.ArrayList(*Board), board: *const Board) Searc
     };
 }
 
-// test "Binary Search" {
-//     // create allocator
-//     const allocator = std.testing.allocator;
-//     // create board states
-//     const states = [_]u16{ 1, 3, 5, 7, 20, 30, 40 };
-//     // create board substates
-//     const SubState = struct {
-//         idx: u16,
-//         symbol: u8,
-//         valid: bool,
-//     };
-//     // create board
-//     const MyBoard = struct {
-//         states: SubState,
-//
-//         pub fn init(allo: Allocator) @This() {
-//             var possible_states: std.MultiArrayList(SubState) = {};
-//             try possible_states.ensureUnusedCapacity(allo, n_indices);
-//             return .{
-//                 .states = possible_states,
-//             };
-//         }
-//
-//         pub fn deinit(self: *@This(), allo: Allocator) void {
-//             self.states.deinit(allo);
-//         }
-//     };
-//     // create array
-//     var arr: std.ArrayList(*MyBoard) = try .initCapacity(allocator, states.len);
-//     defer {
-//         for (arr.items) |board| board.deinit(allocator);
-//         arr.deinit(allocator);
-//     }
-//     // set board state
-//     for (states) |v| {
-//         var board: MyBoard = try .init(allo, 0);
-//         board.idx = v;
-//         board.symbol = 'a';
-//         board.valid = true;
-//     }
-// }
+test "Binary Search" {
+    const allo = std.testing.allocator;
+    // states
+    const states = [_]u16{ 1, 3, 5, 7, 20, 30, 40 };
+    // create array
+    var arr: std.ArrayList(*Board) = try .initCapacity(allo, states.len);
+    defer arr.deinit();
+    defer for (arr.items) |board| board.deinit();
+    // add in new boards
+    for (states) |v| {
+        var board: Board = try .init(allo, 0);
+        board.board.mask = @truncate(v);
+        try arr.append(allo, &board);
+    }
+    // create inputs
+    var inputs: std.ArrayList(*Board) = try .initCapacity(allo, 4);
+    defer inputs.deinit(allo);
+    defer for (inputs.items) |board| board.*.deinit(allo);
+    // create board
+    for ([_]u16{ 4, 9, 30, 20 }) |v| {
+        var board: Board = try .init(allo, 0);
+        board.board.mask = @truncate(v);
+        try inputs.append(allo, &board);
+    }
 
-// test "Old Binary Search" {
-//     const allo = std.testing.allocator;
-//     // states
-//     const states = [_]u16{ 1, 3, 5, 7, 20, 30, 40 };
-//     // create array
-//     var arr: std.ArrayList(*Board) = try .initCapacity(allo, states.len);
-//     defer {
-//         arr.items[0].deinit(allo);
-//         arr.deinit(allo);
-//     }
-//     // add in new boards
-//     for (states) |v| {
-//         var board: Board = try .init(allo, 0);
-//         board.board.mask = @truncate(v);
-//         try arr.append(allo, &board);
-//     }
-//
-//     var inputs: std.ArrayList(*Board) = try .initCapacity(allo, 4);
-//     defer inputs.deinit(allo);
-//     defer for (inputs.items) |board| board.*.deinit(allo);
-//
-//     for ([_]u16{ 4, 9, 30, 20 }) |v| {
-//         var board: Board = try .init(allo, 0);
-//         board.board.mask = @truncate(v);
-//         try inputs.append(allo, &board);
-//     }
-//
-//     const answers = [_]Search{
-//         .{ .visited = false, .idx = 3 },
-//         .{ .visited = false, .idx = 4 },
-//         .{ .visited = true, .idx = 5 },
-//         .{ .visited = true, .idx = 4 },
-//     };
-//
-//     for (inputs.items, answers) |input, answer| {
-//         const new_search = binarySearch(&arr, input);
-//         try std.testing.expect(answer.visited == new_search.visited);
-//         if (answer.visited == true) {
-//             try std.testing.expectEqual(answer.idx, new_search.idx);
-//         }
-//     }
-// }
+    const answers = [_]Search{
+        .{ .visited = false, .idx = 3 },
+        .{ .visited = false, .idx = 4 },
+        .{ .visited = true, .idx = 5 },
+        .{ .visited = true, .idx = 4 },
+    };
+    // check answers
+    for (inputs.items, answers) |input, answer| {
+        const new_search = binarySearch(&arr, input);
+        try std.testing.expect(answer.visited == new_search.visited);
+        if (answer.visited == true) {
+            try std.testing.expectEqual(answer.idx, new_search.idx);
+        }
+    }
+}
 
 test "Run All Tests" {
     _ = @import("Board.zig");

@@ -378,6 +378,15 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.chosen_moves.deinit(allo);
         }
 
+        pub fn copy(allo: Allocator, other: *const @This()) !@This() {
+            return @This(){
+                .board = other.board,
+                .start = other.start,
+                .moves = other.moves,
+                .chosen_moves = try other.chosen_moves.clone(allo),
+            };
+        }
+
         pub fn printBoard(self: *const @This()) void {
             const len = n_rows * 2 + 1;
             var buffer: [len]u8 = [_]u8{' '} ** len;
