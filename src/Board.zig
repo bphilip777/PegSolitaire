@@ -334,7 +334,8 @@ pub fn createBoard(comptime n_rows: T) !type {
             // setup chosen moves
             var chosen_moves: std.MultiArrayList(Move) = .{};
             try chosen_moves.ensureUnusedCapacity(allo, n_indices);
-            for (0..n_indices) |_| chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
+            for (0..n_indices) |_| //
+                chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
             // create self
             var self = @This(){
                 .start = start,
