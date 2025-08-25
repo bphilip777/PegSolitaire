@@ -99,7 +99,7 @@ const Position = struct {
     col: T,
 };
 
-fn posFromIdx(idx: T) Position {
+pub fn posFromIdx(idx: T) Position {
     const row = invTriNum(idx);
     const tri_num = triNum(row);
     const col = idx - tri_num;
@@ -352,7 +352,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
         start: T = 0,
         moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
-        chosen_moves: std.MultiArrayList(Move),
+        chosen_moves: std.MultiArrayList(Move), // This might need to be a pointer to this field instead b/c of non const pointer
 
         pub fn init(allo: Allocator, start: T) !@This() {
             // Validity Check
@@ -378,7 +378,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.chosen_moves.deinit(allo);
         }
 
-        pub fn clone(allo: Allocator, other: *const @This()) !@This() {
+        pub fn clone(allo: Allocator, other: *@This()) !@This() {
             return @This(){
                 .board = other.board,
                 .start = other.start,
@@ -410,6 +410,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const idx0: T = @truncate(i);
                 const pos0 = posFromIdx(idx0);
                 for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                    // get positions
                     const pos1 = getRotation(pos0, dir, .full) orelse {
                         self.moves[i].remove(dir);
                         continue;
@@ -418,13 +419,14 @@ pub fn createBoard(comptime n_rows: T) !type {
                         self.moves[i].remove(dir);
                         continue;
                     };
+                    // convert to indices + validate
                     const idx1 = idxFromPos(pos1);
                     const idx2 = idxFromPos(pos2);
                     if (!self.isValidIdx(idx1) or !self.isValidIdx(idx2)) {
                         if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                         continue;
                     }
-
+                    // check that move exists
                     if (self.hasMove(&.{ idx0, idx1, idx2 })) {
                         self.moves[idx0].insert(dir);
                     } else {
@@ -580,8 +582,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 // self.board.unset(idx2);
             }
             // update moves
-            // try self.computeAllMoves();
-            self.computeOptimally(idx0, dir);
+            self.computeAllMoves(); // also does not fix the issue
+            // self.computeOptimally(idx0, dir); -- not correct - found where it was wrong
         }
 
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {

@@ -10,18 +10,16 @@ const Directions = @import("Board.zig").Directions;
 const Move = @import("Board.zig").Move;
 const n_indices = @import("Board.zig").triNum(N_ROWS);
 const getAllMoves = @import("Board.zig").getAllMoves;
+const posFromIdx = @import("Board.zig").posFromIdx;
 
 // TODO:
 // Play Game:
-// - through cli
+// - Manual:
+//  - need an external library for argument parsing
 //  - zig-cli
-//  - implement index vs positional moves
-//  - implement positive vs negative moves
-// - through automatic
-//  - implement binary search for visited nodes
-//      - maybe have upfront allocation cost - number of indices combinations =
-//  - dfs - better for board game?
-//      - want few multiarraylists - reduce that overhead rather than what i am doing
+//  - sigargs ... whatever
+//  - another option is to parse inputs into main from commandline - currently empty
+// - Auto:
 
 pub fn main() !void {
     // memory
@@ -37,24 +35,29 @@ fn dfs(allo: Allocator) !void {
     const start = 0;
     var start_board: Board = try .init(allo, start);
     // stack
-    var stack: std.ArrayList(*Board) = try .initCapacity(allo, n_indices);
+    var stack: std.ArrayList(*Board) = try .initCapacity(allo, N_ROWS);
     defer stack.deinit(allo);
     try stack.append(allo, &start_board);
-    // visited
-    var visited: std.ArrayList(*Board) = try .initCapacity(allo, n_indices);
+    // visited -> expect all boards to end up here in all routes
+    var visited: std.ArrayList(*Board) = try .initCapacity(allo, N_ROWS);
     defer visited.deinit(allo);
     defer for (visited.items) |board| board.deinit(allo);
+    defer {
+        outer: for (stack.items) |s| {
+            for (visited.items) |v| {
+                if (s.board.mask == v.board.mask) continue :outer;
+            }
+            s.deinit(allo);
+        }
+    }
     // limiter = for testing
     var limiter: u16 = 0;
     // loop
-    while (stack.items.len > 0 and limiter < 10) : (limiter += 1) {
+    while (stack.items.len > 0 and limiter < 20) : (limiter += 1) {
         //  in stack -> if last item has 2+ moves - getLast() = keeps on stack
         //           -> else pop()
-        const new_board: *Board = //
-            if (getAllMoves(&(stack.getLast().*.moves)) > 1)
-                stack.getLast() //
-            else //
-                stack.pop().?; //
+        const rem_moves = getAllMoves(&(stack.getLast().*.moves));
+        const new_board: *Board = if (rem_moves > 1) stack.getLast() else stack.pop().?;
         // check: Was Visited + Sorted Index
         const search = binarySearch(&visited, new_board);
         print("{any}\n", .{search});
@@ -63,7 +66,8 @@ fn dfs(allo: Allocator) !void {
             try visited.insert(allo, search.idx, new_board);
         }
         // Duplicate board -> take move with duplicated board
-        var copied_board: *Board = @ptrCast(try allo.dupe(Board, @ptrCast(new_board)));
+        var copied_board: Board = try .clone(allo, new_board); // needs to be deinitialized
+        copied_board.printBoard();
         // choose dir
         var new_idx: u16 = 0;
         var new_dir: Direction = .None;
@@ -92,12 +96,19 @@ fn dfs(allo: Allocator) !void {
         //      -> add new board to stack
         switch (new_dir) {
             .None => {
-                if (copied_board.isWon()) return;
+                if (copied_board.isWon()) {
+                    copied_board.deinit(allo);
+                    return;
+                }
             },
             else => {
+                const pos = posFromIdx(new_idx);
+                print("Chose: ({}, {}) {s}\n", .{ pos.row, pos.col, @tagName(new_dir) });
                 copied_board.chooseMove(new_idx, new_dir);
                 new_board.moves[new_idx].remove(new_dir);
-                try stack.append(allo, copied_board);
+                if (rem_moves == 1) new_board.moves[new_idx].insert(.None);
+                try stack.append(allo, &copied_board);
+                // try stack.append(allo, copied_board);
             },
         }
     }
