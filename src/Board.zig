@@ -2,9 +2,6 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-// TODO:
-// null = 2 bytes -> instead try using just an enum field instead = 1 byte
-
 const T: type = u16;
 
 inline fn numCharsFromDigit(digit: T) T {
@@ -343,7 +340,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 chosen_idxs[i] = 0;
                 chosen_dirs[i] = .None;
             }
-            var chosen_moves = std.MultiArrayList(Move){};
+            var chosen_moves: std.MultiArrayList(Move) = .{};
             try chosen_moves.ensureUnusedCapacity(allo, n_indices);
             for (0..n_indices) |_| chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
             // create self
@@ -358,6 +355,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn deinit(self: *@This(), allo: Allocator) void {
+            if (self.chosen_moves.len == 0) return;
             self.chosen_moves.deinit(allo);
         }
 
