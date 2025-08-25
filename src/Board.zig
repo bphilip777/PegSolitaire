@@ -192,12 +192,12 @@ pub const Move = struct { // 4 = wasted 1 byte
     dir: Direction, // 1 -> 2
 };
 
-fn getNumMoves(move: Directions) T {
+pub fn getNumMoves(move: Directions) T {
     var n_items: T = 0;
     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
         const dir = @field(Direction, field_name);
         n_items += switch (dir) {
-            // .None => 0,
+            .None => 0,
             else => @intFromBool(move.contains(dir)),
         };
     }
@@ -214,6 +214,31 @@ test "Get Number Of Moves" {
     b.insert(.Right);
     const b_moves = getNumMoves(b);
     try std.testing.expectEqual(2, b_moves);
+}
+
+pub fn getAllMoves(moves: []const Directions) T {
+    var total: T = 0;
+    for (moves) |move| total += getNumMoves(move);
+    return total;
+}
+
+test "Get All Moves" {
+    const a = [_]Directions{.initFull()} ** 5;
+    const total_a_moves = getAllMoves(&a);
+    try std.testing.expectEqual(30, total_a_moves);
+
+    var b: Directions = .initEmpty();
+    b.insert(.Left);
+    b.insert(.Right);
+
+    var c: Directions = .initEmpty();
+    c.insert(.UpLeft);
+    c.insert(.None);
+    c.insert(.DownLeft);
+
+    const bc = [2]Directions{ b, c };
+    const total_bc_moves = getAllMoves(&bc);
+    try std.testing.expectEqual(4, total_bc_moves);
 }
 
 fn getNumChars(move: Directions) T {

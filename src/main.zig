@@ -9,6 +9,7 @@ const Direction = @import("Board.zig").Direction;
 const Directions = @import("Board.zig").Directions;
 const Move = @import("Board.zig").Move;
 const n_indices = @import("Board.zig").triNum(N_ROWS);
+const getAllMoves = @import("Board.zig").getAllMoves;
 
 // TODO:
 // Play Game:
@@ -45,22 +46,34 @@ fn dfs(allo: Allocator) !void {
     defer for (visited.items) |board| board.deinit(allo);
     // loop
     while (stack.items.len > 0) {
-        // Pop
-        var new_board: Board = stack.pop().?.*;
-        // check: 1. Was Visited 2. Sorted Index
-        const search = binarySearch(&visited, &new_board);
+        //  in stack -> if last item has 2+ moves - getLast() = keeps on stack
+        //           -> else pop()
+        const new_board: *Board = //
+            if (getAllMoves(&(stack.getLast().*.moves)) > 1)
+                stack.getLast() //
+            else //
+                stack.pop().?; //
+        // check: Was Visited + Sorted Index
+        const search = binarySearch(&visited, new_board);
         print("{any}\n", .{search});
         if (!search.visited) { // Not Visited
-            // Store at index
-            try visited.insert(search.idx, new_board);
+            // Store at index = store in order
+            try visited.insert(allo, search.idx, new_board);
         }
-        // Duplicate board -> take move with new board
+        // Duplicate board -> take move with duplicated board
         var copied_board: Board = try allo.dupe(allo, Board, new_board);
         // choose dir
         var new_idx: u16 = 0;
         var new_dir: Direction = .None;
         outer: for (copied_board.moves, 0..) |move, i| {
-            for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+            for ([_]Direction{
+                .Left,
+                .UpLeft,
+                .UpRight,
+                .Right,
+                .DownRight,
+                .DownLeft,
+            }) |dir| {
                 if (move.contains(dir)) {
                     new_idx = @truncate(i);
                     new_dir = dir;
@@ -68,16 +81,21 @@ fn dfs(allo: Allocator) !void {
                 }
             }
         }
-        // if chosen move == .none -> do not take move + do not remove -> otherwise remove
+        // if chosen move == .None
+        //      -> check if game was won
+        //          -> print winning moves
+        // if chosen move != .None
+        //      -> choose move
+        //      -> remove move from old board
+        //      -> add new board to stack
         switch (new_dir) {
+            .None => {
+                if (copied_board.isWon()) return;
+            },
             else => {
-                // take move
                 copied_board.chooseMove(new_idx, new_dir);
-                // remove move from original
                 new_board.moves[new_idx].remove(new_dir);
-                // if empty,
-                if (new_board.moves[new_idx] == 0)
-                    new_board.moves[new_idx].set(.None);
+                try stack.append(copied_board);
             },
         }
     }
