@@ -223,6 +223,7 @@ pub fn getAllMoves(moves: []const Directions) T {
 }
 
 test "Get All Moves" {
+    // Assumes no overflow
     const a = [_]Directions{.initFull()} ** 5;
     const total_a_moves = getAllMoves(&a);
     try std.testing.expectEqual(30, total_a_moves);
