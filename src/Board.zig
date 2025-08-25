@@ -378,7 +378,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.chosen_moves.deinit(allo);
         }
 
-        pub fn copy(allo: Allocator, other: *const @This()) !@This() {
+        pub fn clone(allo: Allocator, other: *const @This()) !@This() {
             return @This(){
                 .board = other.board,
                 .start = other.start,
