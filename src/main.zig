@@ -61,7 +61,7 @@ fn dfs(allo: Allocator) !void {
             try visited.insert(allo, search.idx, new_board);
         }
         // Duplicate board -> take move with duplicated board
-        var copied_board: Board = try allo.dupe(allo, Board, new_board);
+        var copied_board: *Board = @ptrCast(try allo.dupe(Board, @ptrCast(new_board)));
         // choose dir
         var new_idx: u16 = 0;
         var new_dir: Direction = .None;
@@ -95,7 +95,7 @@ fn dfs(allo: Allocator) !void {
             else => {
                 copied_board.chooseMove(new_idx, new_dir);
                 new_board.moves[new_idx].remove(new_dir);
-                try stack.append(copied_board);
+                try stack.append(allo, copied_board);
             },
         }
     }
@@ -112,6 +112,7 @@ fn binarySearch(boards: *const std.ArrayList(*Board), board: *const Board) Searc
     // visited = bool = does it exist
     // idx = where in array would mask be found if it did exist
     std.debug.assert(boards.items.len < std.math.maxInt(u16));
+    if (boards.items.len == 0) return Search{ .visited = false, .idx = 0 };
     const mask = board.board.mask;
     var lo: u16 = 0;
     var hi: u16 = @truncate(boards.items.len - 1);
