@@ -44,7 +44,7 @@ fn dfs(allo: Allocator) !void {
     defer visited.deinit(allo);
     defer for (visited.items) |board| board.deinit(allo);
     // loop
-    loop: while (stack.items.len > 0) {
+    while (stack.items.len > 0) {
         // Pop
         var new_board: Board = stack.pop().?.*;
         // check: 1. Was Visited 2. Sorted Index
@@ -70,12 +70,12 @@ fn dfs(allo: Allocator) !void {
         }
         // if chosen move == .none -> do not take move + do not remove -> otherwise remove
         switch (new_dir) {
-            .None => continue :loop,
             else => {
                 // take move
                 copied_board.chooseMove(new_idx, new_dir);
                 // remove move from original
                 new_board.moves[new_idx].remove(new_dir);
+                // if empty,
                 if (new_board.moves[new_idx] == 0)
                     new_board.moves[new_idx].set(.None);
             },

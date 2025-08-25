@@ -164,7 +164,7 @@ const Rotation: type = enum(u8) {
 };
 
 pub const Direction: type = enum(u8) {
-    // None,
+    None = 0,
     Left = 1,
     UpLeft = 2,
     UpRight = 3,
@@ -180,7 +180,7 @@ pub const Direction: type = enum(u8) {
             .Right => .Left,
             .DownRight => .UpLeft,
             .DownLeft => .UpRight,
-            else => unreachable,
+            .None => .None,
         };
     }
 };
@@ -323,34 +323,26 @@ pub fn createBoard(comptime n_rows: T) !type {
     // 110 bytes
     // 110 * 65536 =  6_553_600 = just 6 MBs of data - easy to upfront allocate
     return struct {
-        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // 2 bytes
-        start: T = 0, // 2 bytes
-        moves: [n_indices]Directions = undefined, // store neg move, convert pos to neg, 1 byte
+        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
+        start: T = 0,
+        moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
         chosen_moves: std.MultiArrayList(Move),
 
         pub fn init(allo: Allocator, start: T) !@This() {
             // Validity Check
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
-            // moves
-            var moves: [n_indices]Directions = undefined;
-            var chosen_idxs: [n_indices]T = undefined;
-            var chosen_dirs: [n_indices]Direction = undefined;
-            for (0..n_indices) |i| {
-                moves[i] = .initEmpty();
-                chosen_idxs[i] = 0;
-                chosen_dirs[i] = .None;
-            }
+            // setup chosen moves
             var chosen_moves: std.MultiArrayList(Move) = .{};
             try chosen_moves.ensureUnusedCapacity(allo, n_indices);
             for (0..n_indices) |_| chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
             // create self
             var self = @This(){
                 .start = start,
-                .moves = moves,
                 .chosen_moves = chosen_moves,
             };
+            // reset board
             self.resetBoard();
-
+            // return build
             return self;
         }
 

@@ -2,7 +2,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Game = @This();
 
-// Will contain auto and manual code
+// TODO:
+// implement both auto + man modes
 
 allo: Allocator,
 
