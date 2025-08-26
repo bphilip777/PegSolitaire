@@ -107,7 +107,7 @@ pub const Position = struct {
         const min_row = @min(pos1.row, pos2.row);
         const max_col = @max(pos1.col, pos2.col);
         const min_col = @min(pos1.col, pos2.col);
-        return @ceil(((max_row - min_row) + (max_col - min_col)) / 2);
+        return @max(max_row - min_row, max_col - min_col);
     }
 };
 
@@ -194,14 +194,6 @@ pub const Direction: type = enum(u8) {
             .DownLeft => .UpRight,
             .None => .None,
         };
-    }
-
-    pub fn direction(pos1: Position, pos2: Position) Direction {
-        std.debug.assert(!pos1.eql(pos2));
-        std.debug.assert(pos1.dst(pos2) == 1);
-        if (pos1.row == pos2.row) {
-            return if (pos1.col < pos2.col) .Left else if (pos1.col > pos2.col)
-        }
     }
 };
 
@@ -345,3 +337,8 @@ test "Format Move" {
     defer allo.free(moves_str);
     try std.testing.expectEqualStrings(moves_str, "Right, DownRight, DownLeft");
 }
+
+pub const Input = union(enum(bool)) {
+    idx: T,
+    dir: Direction,
+};

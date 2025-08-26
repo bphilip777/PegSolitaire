@@ -1,7 +1,19 @@
 const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
+
+// Helpers
+// Data
 const T = @import("helpers.zig").T;
+const Input = @import("helpers.zig").Input;
+const Direction = @import("helpers.zig").Direction;
+const Directions = @import("helpers.zig").Directions;
+const Position = @import("helpers.zig").Position;
+// Fns
+const invTriNum = @import("helpers.zig").invTriNum;
+const triNum = @import("helpers.zig").triNum;
+const posFromIdx = @import("helpers.zig").posFromIdx;
+const idxFromPos = @import("helpers.zig").idxFromPos;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 
@@ -13,8 +25,7 @@ const GameErrors = error{
     InvalidPosition,
 };
 
-// Idea: just store previous idxs -> compute dir based on new idx to old idx instead of storing the direction
-// n_moves = based on pop count of board mask
+// Idea: Split moves into idxs + dirs
 // removed multiarraylist for ability to compute direction on the fly
 // no longer need internal clone fn as no array -> just use allo.dupe or allo.create
 // easier to update
@@ -32,6 +43,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         n_moves: T = 0,
         moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
         chosen_idxs: [n_indices]T = [_]T{0} ** n_indices,
+        chosen_dirs: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
 
         pub fn init(start: T) !@This() {
             // Validity Check
@@ -91,7 +103,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         if (self.moves[i].contains(dir)) self.moves[i].remove(dir);
                         continue;
                     }
-                    // check that move exists
+                    // check that move is possible
                     if (self.hasMove(&.{ idx0, idx1, idx2 })) {
                         self.moves[idx0].insert(dir);
                     } else {
@@ -117,62 +129,64 @@ pub fn createBoard(comptime n_rows: T) !type {
             //  | x o o o x | -> 3 x o o o x 9
             //   | x x x x |        x x x x
             //    | | | | |        4 3 2 1 0
-            // compute origins
+
+            // compute ring0 - should always exist
             const start0 = posFromIdx(idx);
             const start1 = getRotation(start0, dir, .full);
             const start2 = getRotation(start1, dir, .full);
-            const ring0 = [_]?Position{ start0, start1, start2 };
+            std.debug.assert(start1 != null and start2 != null);
+            const ring0 = [_]?Position{ start0, start1.?, start2.? };
             // loop through origins
             for (ring0) |origin| {
-                if (origin) |pos0| { // otherwise skip missing origins
-                    const idx0 = idxFromPos(pos0);
-                    // rotate about idx0
-                    inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
-                        // compute directions
-                        const new_dir = @field(Direction, field_name);
-                        switch (new_dir) {
-                            .None => {},
-                            else => {
-                                const opp_dir = Direction.opposite(new_dir);
-                                // compute positions
-                                const pos1 = getRotation(pos0, new_dir, .full);
-                                const pos2 = getRotation(pos1, new_dir, .full);
-                                const pos3 = getRotation(pos0, new_dir, .one_eighty);
-                                // move = along all positions
-                                if (pos1 != null and pos2 != null) {
-                                    const idx1 = idxFromPos(pos1.?);
-                                    const idx2 = idxFromPos(pos2.?);
-                                    if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
-                                        // forwards
-                                        if (self.hasMove(&.{ idx0, idx1, idx2 })) {
-                                            self.moves[idx0].insert(new_dir);
-                                        } else if (self.moves[idx0].contains(new_dir)) {
-                                            self.moves[idx0].remove(new_dir);
-                                        }
-                                        // backwards
-                                        if (self.hasMove(&.{ idx2, idx1, idx0 })) {
-                                            self.moves[idx2].insert(opp_dir);
-                                        } else if (self.moves[idx2].contains(opp_dir)) {
-                                            self.moves[idx2].remove(opp_dir);
-                                        }
+                // if (origin) |pos0| { // otherwise skip missing origins - test this
+                const idx0 = idxFromPos(pos0);
+                // rotate about idx0
+                inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
+                    // compute directions
+                    const new_dir = @field(Direction, field_name);
+                    switch (new_dir) {
+                        .None => {},
+                        else => {
+                            const opp_dir = Direction.opposite(new_dir);
+                            // compute positions
+                            const pos1 = getRotation(pos0, new_dir, .full);
+                            const pos2 = getRotation(pos1, new_dir, .full);
+                            const pos3 = getRotation(pos0, new_dir, .one_eighty);
+                            // move = along all positions
+                            if (pos1 != null and pos2 != null) {
+                                const idx1 = idxFromPos(pos1.?);
+                                const idx2 = idxFromPos(pos2.?);
+                                if (self.isValidIdx(idx1) and self.isValidIdx(idx2)) {
+                                    // forwards
+                                    if (self.hasMove(&.{ idx0, idx1, idx2 })) {
+                                        self.moves[idx0].insert(new_dir);
+                                    } else if (self.moves[idx0].contains(new_dir)) {
+                                        self.moves[idx0].remove(new_dir);
+                                    }
+                                    // backwards
+                                    if (self.hasMove(&.{ idx2, idx1, idx0 })) {
+                                        self.moves[idx2].insert(opp_dir);
+                                    } else if (self.moves[idx2].contains(opp_dir)) {
+                                        self.moves[idx2].remove(opp_dir);
                                     }
                                 }
-                                if (pos1 != null and pos3 != null) {
-                                    const idx1 = idxFromPos(pos1.?);
-                                    const idx3 = idxFromPos(pos3.?);
-                                    if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
-                                        // centered
-                                        if (self.hasMove(&.{ idx1, idx0, idx3 })) {
-                                            self.moves[idx1].insert(opp_dir);
-                                        } else if (self.moves[idx1].contains(opp_dir)) {
-                                            self.moves[idx1].remove(opp_dir);
-                                        }
+                            }
+                            if (pos1 != null and pos3 != null) {
+                                const idx1 = idxFromPos(pos1.?);
+                                const idx3 = idxFromPos(pos3.?);
+                                if (self.isValidIdx(idx1) and self.isValidIdx(idx3)) {
+                                    // centered
+                                    if (self.hasMove(&.{ idx1, idx0, idx3 })) {
+                                        self.moves[idx1].insert(opp_dir);
+                                    } else if (self.moves[idx1].contains(opp_dir)) {
+                                        self.moves[idx1].remove(opp_dir);
                                     }
                                 }
                             }
                         }
                     }
                 }
+                // }
             }
         }
 
@@ -181,13 +195,20 @@ pub fn createBoard(comptime n_rows: T) !type {
             inline for (0..3) |i| {
                 if (!self.isValidIdx(idxs[i])) return false;
             }
-            return if (self.board.isSet(idxs[0])) // pos
+            return if (self.board.isSet(idxs[0])) // pos mave
                 (self.board.isSet(idxs[1]) and !self.board.isSet(idxs[2])) //
-            else // neg
+            else // neg move
                 (self.board.isSet(idxs[1]) and self.board.isSet(idxs[2]));
         }
 
-        pub fn chooseMove(self: *@This(), idx0: T, dir: Direction) void {
+        pub fn chooseMove(self: *@This(), input: Input, dir: Direction) void {
+            switch (input) {
+                .idx => |idx| self.chooseMoveIdx(idx, dir),
+                .pos => |pos| self.chooseMovePos(pos, dir),
+            }
+        }
+
+        pub fn chooseMoveIdx(self: *@This(), idx0: T, dir: Direction) void {
             // if idx is not valid return
             if (!self.isValidIdx(idx0)) {
                 print("Idx: {} not valid\n", .{idx0});
@@ -221,16 +242,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     );
                     return;
                 }
-                self.chosen_idxs[self.board.count(), Move{}];
-                // self.chosen_moves.set(self.board.count(), Move{
-                    // .idx = idx2,
-                    // .dir = Direction.opposite(dir),
-                // });
-            
+                // update
+                self.chosen_idxs[self.board.count()] = idx2;
+                self.chosen_dirs[self.board.count()].set(Direction.opposite(dir));
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
-                // self.board.unset(idx0);
-                // self.board.unset(idx1);
-                // self.board.set(idx2);
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
                     print(
@@ -239,24 +254,14 @@ pub fn createBoard(comptime n_rows: T) !type {
                     );
                     return;
                 }
-                self.chosen_moves.set(self.board.count(), Move{
-                    .idx = idx0,
-                    .dir = dir,
-                });
+                // update
+                self.chosen_idxs[self.board.count()] = idx0;
+                self.chosen_moves[self.board.count()].set(dir);
                 self.setNegMove([3]T{ idx0, idx1, idx2 });
-                // self.board.set(idx0);
-                // self.board.unset(idx1);
-                // self.board.unset(idx2);
             }
-            // update moves
-            self.computeAllMoves(); // also does not fix the issue
-            // self.computeOptimally(idx0, dir); -- not correct - found where it was wrong
-        }
-
-        pub fn dirFromIdx(idx1: T, idx2: T) Direction {
-            std.debug.assert(self.isValidIdx(idx1) and self.isValidIdx(idx2));
-            const pos1 = posFromIdx(idx1);
-            const pos2 = posFromIdx(idx2);
+            // update moves - problem - chosen moves are not entirely updated - need to develop test
+            // self.computeAllMoves();
+            self.computeOptimally(idx0, dir);
         }
 
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
