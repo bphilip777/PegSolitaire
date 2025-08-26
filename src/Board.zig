@@ -630,7 +630,7 @@ test "Num Moves" {
     // board.printBoard();
     // try board.printMoves(allo);
 
-    for (list_of_instructions, 0..list_of_instructions.len) |instruction, i| {
+    for (list_of_instructions) |instruction| {
         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         // board.printBoard();
         // try board.printMoves(allo);
