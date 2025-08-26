@@ -283,7 +283,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *@This()) void {
+        pub fn undoMove(self: *@This()) !void {
             // assumes NOT auto mode
             // get idx + move
             const idx = self.board.count() + 1;
@@ -294,10 +294,17 @@ pub fn createBoard(comptime n_rows: T) !type {
             const move_dir = for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
                 break dir;
             } else unreachable;
+            print("Direction: {s}\n", .{@tagName(move_dir)});
             // get positions
             const pos0 = posFromIdx(move_idx);
-            const pos1 = getRotation(pos0, move_dir, .full).?;
-            const pos2 = getRotation(pos1, move_dir, .full).?;
+            const pos1 = getRotation(pos0, move_dir, .full) orelse {
+                print("({}, {}): {s} Impossible\n", .{ pos0.row, pos0.col, @tagName(move_dir) });
+                return error.ImpossibleMove;
+            };
+            const pos2 = getRotation(pos1, move_dir, .full) orelse {
+                print("({}, {}): {s} Impossible\n", .{ pos1.row, pos1.col, @tagName(move_dir) });
+                return error.ImpossibleMove;
+            };
             // get idxs
             const idx1 = idxFromPos(pos1);
             const idx2 = idxFromPos(pos2);
@@ -671,196 +678,196 @@ test "Has Remaining Moves" {
     }
 }
 
-// test "Are Neg Moves Correct" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Negative Moves + Resulting Board States
-//     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
-//         .{ .idx = 3, .dir = .Right, .value = 32717 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
-//         .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
-//         .{ .idx = 2, .dir = .DownRight, .value = 32134 },
-//         .{ .idx = 3, .dir = .DownRight, .value = 27918 },
-//         .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
-//         .{ .idx = 12, .dir = .Left, .value = 28960 },
-//         .{ .idx = 11, .dir = .Right, .value = 18720 },
-//         .{ .idx = 12, .dir = .UpRight, .value = 22528 },
-//         .{ .idx = 10, .dir = .Right, .value = 17408 },
-//     };
-//     // Test
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//         try std.testing.expectEqual(board.board.mask, instruction.value);
-//     }
-// }
+test "Are Neg Moves Correct" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Negative Moves + Resulting Board States
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
+        .{ .idx = 3, .dir = .Right, .value = 32717 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+    // Test
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        try std.testing.expectEqual(board.board.mask, instruction.value);
+    }
+}
 
-// test "Are Pos Moves Correct" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Positive Moves + Resulting Board States
-//     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 3, .dir = .UpRight, .value = 32757 },
-//         .{ .idx = 5, .dir = .Left, .value = 32717 },
-//         .{ .idx = 0, .dir = .DownRight, .value = 32744 },
-//         .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
-//         .{ .idx = 2, .dir = .DownRight, .value = 32134 },
-//         .{ .idx = 3, .dir = .DownRight, .value = 27918 },
-//         .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
-//         .{ .idx = 12, .dir = .Left, .value = 28960 },
-//         .{ .idx = 11, .dir = .Right, .value = 18720 },
-//         .{ .idx = 12, .dir = .UpRight, .value = 22528 },
-//         .{ .idx = 10, .dir = .Right, .value = 17408 },
-//     };
-//     // Test
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//         try std.testing.expectEqual(board.board.mask, instruction.value);
-//     }
-// }
+test "Are Pos Moves Correct" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Positive Moves + Resulting Board States
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 3, .dir = .UpRight, .value = 32757 },
+        .{ .idx = 5, .dir = .Left, .value = 32717 },
+        .{ .idx = 0, .dir = .DownRight, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+    // Test
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        try std.testing.expectEqual(board.board.mask, instruction.value);
+    }
+}
 
-// test "Is Lost" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Lost State
-//     const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
-//         .{ .idx = 3, .dir = .Right, .is_lost = false },
-//         .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
-//         .{ .idx = 1, .dir = .DownLeft, .is_lost = false },
-//         .{ .idx = 2, .dir = .DownRight, .is_lost = false },
-//         .{ .idx = 3, .dir = .DownRight, .is_lost = false },
-//         .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
-//         .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
-//         .{ .idx = 12, .dir = .Left, .is_lost = false },
-//         .{ .idx = 11, .dir = .Right, .is_lost = false },
-//         .{ .idx = 12, .dir = .UpRight, .is_lost = false },
-//         .{ .idx = 10, .dir = .Right, .is_lost = true },
-//     };
-//     // Test
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//         try std.testing.expectEqual(board.isLost(), instruction.is_lost);
-//     }
-// }
+test "Is Lost" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Lost State
+    const Instruction = struct { idx: u16, dir: Direction, is_lost: bool };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 3, .dir = .Right, .is_lost = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
+        .{ .idx = 1, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 2, .dir = .DownRight, .is_lost = false },
+        .{ .idx = 3, .dir = .DownRight, .is_lost = false },
+        .{ .idx = 0, .dir = .DownLeft, .is_lost = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_lost = false },
+        .{ .idx = 12, .dir = .Left, .is_lost = false },
+        .{ .idx = 11, .dir = .Right, .is_lost = false },
+        .{ .idx = 12, .dir = .UpRight, .is_lost = false },
+        .{ .idx = 10, .dir = .Right, .is_lost = true },
+    };
+    // Test
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        try std.testing.expectEqual(board.isLost(), instruction.is_lost);
+    }
+}
 
-// test "Is Won" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Won State
-//     const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 0, .dir = .DownLeft, .is_won = false },
-//         .{ .idx = 3, .dir = .Right, .is_won = false },
-//         .{ .idx = 5, .dir = .UpLeft, .is_won = false },
-//         .{ .idx = 1, .dir = .DownLeft, .is_won = false },
-//         .{ .idx = 2, .dir = .DownRight, .is_won = false },
-//         .{ .idx = 3, .dir = .DownRight, .is_won = false },
-//         .{ .idx = 0, .dir = .DownLeft, .is_won = false },
-//         .{ .idx = 5, .dir = .UpLeft, .is_won = false },
-//         .{ .idx = 12, .dir = .Left, .is_won = false },
-//         .{ .idx = 11, .dir = .Right, .is_won = false },
-//         .{ .idx = 12, .dir = .UpRight, .is_won = false },
-//         .{ .idx = 11, .dir = .Right, .is_won = false },
-//         .{ .idx = 14, .dir = .Left, .is_won = true },
-//     };
-//     // Test
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//         try std.testing.expectEqual(board.isWon(), instruction.is_won);
-//     }
-// }
+test "Is Won" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Won State
+    const Instruction = struct { idx: u16, dir: Direction, is_won: bool };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 3, .dir = .Right, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 1, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 2, .dir = .DownRight, .is_won = false },
+        .{ .idx = 3, .dir = .DownRight, .is_won = false },
+        .{ .idx = 0, .dir = .DownLeft, .is_won = false },
+        .{ .idx = 5, .dir = .UpLeft, .is_won = false },
+        .{ .idx = 12, .dir = .Left, .is_won = false },
+        .{ .idx = 11, .dir = .Right, .is_won = false },
+        .{ .idx = 12, .dir = .UpRight, .is_won = false },
+        .{ .idx = 11, .dir = .Right, .is_won = false },
+        .{ .idx = 14, .dir = .Left, .is_won = true },
+    };
+    // Test
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        try std.testing.expectEqual(board.isWon(), instruction.is_won);
+    }
+}
 
-// test "Reset Board" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Restarting + Resulting Board State
-//     const start_value: T = board.board.mask;
-//     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
-//         .{ .idx = 3, .dir = .Right, .value = 32717 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
-//         .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
-//         .{ .idx = 2, .dir = .DownRight, .value = 32134 },
-//         .{ .idx = 3, .dir = .DownRight, .value = 27918 },
-//         .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
-//         .{ .idx = 12, .dir = .Left, .value = 28960 },
-//         .{ .idx = 11, .dir = .Right, .value = 18720 },
-//         .{ .idx = 12, .dir = .UpRight, .value = 22528 },
-//         .{ .idx = 10, .dir = .Right, .value = 17408 },
-//     };
-//     // Test
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//     }
-//     board.resetBoard();
-//     try std.testing.expectEqual(board.board.mask, start_value);
-// }
+test "Reset Board" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Restarting + Resulting Board State
+    const start_value: T = board.board.mask;
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .value = 32757 },
+        .{ .idx = 3, .dir = .Right, .value = 32717 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+    // Test
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+    }
+    board.resetBoard();
+    try std.testing.expectEqual(board.board.mask, start_value);
+}
 
-// test "Undo Move + Redo Move" {
-//     // Define Board
-//     const N_ROWS = 5;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create Board
-//     var board: Board = try .init(0);
-//     // Define Undo + Redo + Resulting Board States
-//     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
-//     const list_of_instructions = [_]Instruction{
-//         .{ .idx = 3, .dir = .UpRight, .value = 32757 },
-//         .{ .idx = 5, .dir = .Left, .value = 32717 },
-//         .{ .idx = 0, .dir = .DownRight, .value = 32744 },
-//         .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
-//         .{ .idx = 2, .dir = .DownRight, .value = 32134 },
-//         .{ .idx = 3, .dir = .DownRight, .value = 27918 },
-//         .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
-//         .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
-//         .{ .idx = 12, .dir = .Left, .value = 28960 },
-//         .{ .idx = 11, .dir = .Right, .value = 18720 },
-//         .{ .idx = 12, .dir = .UpRight, .value = 22528 },
-//         .{ .idx = 10, .dir = .Right, .value = 17408 },
-//     };
-//     // Test
-//     // Original Moves
-//     for (list_of_instructions) |instruction| {
-//         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-//     }
-//     // Undo
-//     for (0..list_of_instructions.len - 1) |i| {
-//         const j = list_of_instructions.len - i - 2;
-//         const instruction = list_of_instructions[j];
-//         board.undoMove();
-//         try std.testing.expectEqual(instruction.value, board.board.mask);
-//     }
-//     // Redo
-//     for (0..list_of_instructions.len - 1) |i| {
-//         const instruction = list_of_instructions[i + 1];
-//         board.redoMove();
-//         try std.testing.expectEqual(instruction.value, board.board.mask);
-//     }
-// }
-//
+test "Undo Move + Redo Move" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = try .init(0);
+    // Define Undo + Redo + Resulting Board States
+    const Instruction = struct { idx: u16, dir: Direction, value: u16 };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 3, .dir = .UpRight, .value = 32757 },
+        .{ .idx = 5, .dir = .Left, .value = 32717 },
+        .{ .idx = 0, .dir = .DownRight, .value = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .value = 32674 },
+        .{ .idx = 2, .dir = .DownRight, .value = 32134 },
+        .{ .idx = 3, .dir = .DownRight, .value = 27918 },
+        .{ .idx = 0, .dir = .DownLeft, .value = 27909 },
+        .{ .idx = 5, .dir = .UpLeft, .value = 27936 },
+        .{ .idx = 12, .dir = .Left, .value = 28960 },
+        .{ .idx = 11, .dir = .Right, .value = 18720 },
+        .{ .idx = 12, .dir = .UpRight, .value = 22528 },
+        .{ .idx = 10, .dir = .Right, .value = 17408 },
+    };
+    // Test
+    // Original Moves
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+    }
+    // Undo
+    for (0..list_of_instructions.len - 1) |i| {
+        const j = list_of_instructions.len - i - 2;
+        const instruction = list_of_instructions[j];
+        board.undoMove();
+        try std.testing.expectEqual(instruction.value, board.board.mask);
+    }
+    // Redo
+    for (0..list_of_instructions.len - 1) |i| {
+        const instruction = list_of_instructions[i + 1];
+        board.redoMove();
+        try std.testing.expectEqual(instruction.value, board.board.mask);
+    }
+}
+
 // test "Reduced Memory Footprint" {
 //     // Define board
 //     const N_ROWS = 360;
