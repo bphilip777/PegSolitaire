@@ -269,28 +269,31 @@ test "Get Number of Characters" {
 }
 
 fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
-    // 2 problems to fix:
-    // header spacing
-    // removing trailing ,
-    // empty strings
+    // inits
     const empty_buffer = [_]u8{' '} ** 1024;
     var moves_str: []u8 = try std.fmt.allocPrint(allo, "", .{});
     var tmp: []u8 = undefined;
-
+    //
     const n_items: T = getNumMoves(move);
     var first: bool = true;
     if (n_items > 0) {
-        inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
-            const dir = @field(Direction, field_name);
+        for ([_]Direction{
+            .Left,
+            .UpLeft,
+            .UpRight,
+            .Right,
+            .DownRight,
+            .DownLeft,
+        }) |dir| {
             if (move.contains(dir)) {
                 if (first) {
-                    tmp = try std.fmt.allocPrint(allo, "{s}", .{field_name});
+                    tmp = try std.fmt.allocPrint(allo, "{s}", .{@tagName(dir)});
                     first = false;
                 } else {
                     tmp = try std.fmt.allocPrint(
                         allo,
                         "{s}, {s}",
-                        .{ moves_str, field_name },
+                        .{ moves_str, @tagName(dir) },
                     );
                 }
                 allo.free(moves_str);
@@ -336,55 +339,35 @@ const GameErrors = error{
     InvalidPosition,
 };
 
-pub const Moves = struct { // 4
-    idx: T, // 2
-    dir: Direction, // 1 -> 2
-};
+// Idea: just store previous idxs -> compute dir based on new idx to old idx instead of storing the direction
+// n_moves = based on pop count of board mask
+// removed multiarraylist for ability to compute direction on the fly
+// no longer need internal clone fn as no array -> just use allo.dupe or allo.create
+// easier to update
+// no longer need deinit fn as no multiarraylist
+// need to go through all the tests
 
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows < 3) return GameErrors.NRowsTooSmall;
     if (n_rows > MAX_ROWS) return GameErrors.NRowsTooLarge;
     const n_indices = triNum(n_rows);
 
-    // 110 bytes
-    // 110 * 65536 =  6_553_600 = just 6 MBs of data - easy to upfront allocate
     return struct {
         board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
-        start: T = 0,
+        start_idx: T = 0,
+        n_moves: T = 0,
         moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
-        chosen_moves: std.MultiArrayList(Move), // This might need to be a pointer to this field instead b/c of non const pointer
+        chosen_idxs: [n_indices]T = [_]T{0} ** n_indices,
 
-        pub fn init(allo: Allocator, start: T) !@This() {
+        pub fn init(start: T) !@This() {
             // Validity Check
             if (start >= n_indices) return GameErrors.StartMustBeLTNumIndices;
-            // setup chosen moves
-            var chosen_moves: std.MultiArrayList(Move) = .{};
-            try chosen_moves.ensureUnusedCapacity(allo, n_indices);
-            for (0..n_indices) |_| //
-                chosen_moves.appendAssumeCapacity(.{ .idx = 0, .dir = .None });
             // create self
-            var self = @This(){
-                .start = start,
-                .chosen_moves = chosen_moves,
-            };
+            var self = @This(){ .start = start };
             // reset board
             self.resetBoard();
             // return build
             return self;
-        }
-
-        pub fn deinit(self: *@This(), allo: Allocator) void {
-            if (self.chosen_moves.len == 0) return;
-            self.chosen_moves.deinit(allo);
-        }
-
-        pub fn clone(allo: Allocator, other: *@This()) !@This() {
-            return @This(){
-                .board = other.board,
-                .start = other.start,
-                .moves = other.moves,
-                .chosen_moves = try other.chosen_moves.clone(allo),
-            };
         }
 
         pub fn printBoard(self: *const @This()) void {
@@ -406,10 +389,18 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         fn computeAllMoves(self: *@This()) void {
+            // loop through indices
             for (0..n_indices) |i| {
                 const idx0: T = @truncate(i);
                 const pos0 = posFromIdx(idx0);
-                for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                for ([_]Direction{
+                    .Left,
+                    .UpLeft,
+                    .UpRight,
+                    .Right,
+                    .DownRight,
+                    .DownLeft,
+                }) |dir| {
                     // get positions
                     const pos1 = getRotation(pos0, dir, .full) orelse {
                         self.moves[i].remove(dir);
@@ -456,9 +447,9 @@ pub fn createBoard(comptime n_rows: T) !type {
             const start0 = posFromIdx(idx);
             const start1 = getRotation(start0, dir, .full);
             const start2 = getRotation(start1, dir, .full);
-            const origins = [_]?Position{ start0, start1, start2 };
-
-            for (origins) |origin| {
+            const ring0 = [_]?Position{ start0, start1, start2 };
+            // loop through origins
+            for (ring0) |origin| {
                 if (origin) |pos0| { // otherwise skip missing origins
                     const idx0 = idxFromPos(pos0);
                     // rotate about idx0
@@ -824,26 +815,24 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn printMoves(self: *@This(), allo: Allocator) !void {
-            // allocator is passed in instead
+            // pass in allocator
             const headers = [_][]const u8{ "Coords", "Moves" };
+            // compute max chars per line
             var max_moves_char: T = 0;
             for (self.moves) |move| {
                 max_moves_char = @max(max_moves_char, getNumChars(move));
             }
             max_moves_char = @max(headers[1].len, max_moves_char);
-
             const column_buffer = " | ";
-
             {
                 // coords header
-                const coords_extra = "() ";
+                const coords_extra = "(, ) ";
                 const num_buffer = numCharsFromIdx(n_indices) + coords_extra.len;
                 const coord_diff = num_buffer - headers[0].len;
-
                 const diff = max_moves_char - headers[1].len;
-
                 const empty_buffer = [_]u8{' '} ** 1024;
                 const underline_buffer = [_]u8{'-'} ** 1024;
+                // print table header
                 print(
                     "{s}{s}{s}{s}{s}\n",
                     .{
@@ -857,21 +846,23 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const full_length = num_buffer + (column_buffer.len * 2) + max_moves_char;
                 print("{s}\n", .{underline_buffer[0..full_length]});
             }
-
             // loop
             for (self.moves, 0..) |move, i| {
+                // skip
+                if (getNumMoves(move) == 0) continue;
+                // get position
                 const pos = posFromIdx(@truncate(i));
+                // coords
                 const coords_str = try std.fmt.allocPrint(
                     allo,
                     "({}, {}) ",
                     .{ pos.row, pos.col },
                 );
                 defer allo.free(coords_str);
-
-                if (getNumMoves(move) == 0) continue;
-
+                // format moves
                 const moves_str = try formatMove(allo, move, max_moves_char);
                 defer allo.free(moves_str);
+                // print line
                 print("{s}{s}{s}\n", .{ coords_str, column_buffer, moves_str });
             }
         }
