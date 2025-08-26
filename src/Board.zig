@@ -11,8 +11,9 @@ const Directions = @import("helpers.zig").Directions;
 const Position = @import("helpers.zig").Position;
 const Rotation = @import("helpers.zig").Rotation;
 // Fns
-const getNumChars = @import("helpers.zig").getNumChars;
+const numChars = @import("helpers.zig").getNumChars;
 const numCharsFromIdx = @import("helpers.zig").numCharsFromIdx;
+const numMoves = @import("helpers.zig").numMoves;
 const invTriNum = @import("helpers.zig").invTriNum;
 const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
@@ -305,7 +306,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const chosen_idx = self.chosen_idxs[idx];
             const chosen_dir = self.chosen_dirs[idx];
             std.debug.assert(!chosen_dir.contains(.None));
-            self.chooseMove(chosen_idx, chosen_dir);
+            self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
         }
 
         fn setNegMove(self: *@This(), idxs: [3]T) void {
@@ -468,14 +469,14 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self.board.count() == 1;
         }
 
-        pub fn numMoves(self: *const @This()) T {
+        pub fn nMoves(self: *const @This()) T {
             var n_moves: T = 0;
             for (0..self.board.capacity()) |i| n_moves += numMoves(self.moves[i]);
             return n_moves;
         }
 
         pub fn isLost(self: *const @This()) bool {
-            return (self.numMoves() == 0 and self.board.count() > 1);
+            return (self.nMoves() == 0 and self.board.count() > 1);
         }
 
         pub fn reset(self: *@This()) void {
@@ -506,7 +507,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // compute max chars per line
             var max_moves_char: T = 0;
             for (self.moves) |move| {
-                max_moves_char = @max(max_moves_char, getNumChars(move));
+                max_moves_char = @max(max_moves_char, numChars(move));
             }
             max_moves_char = @max(headers[1].len, max_moves_char);
             const column_buffer = " | ";
@@ -586,26 +587,23 @@ test "Num Moves" {
     // Define num moves
     const Instruction = struct { idx: u16, dir: Direction, num_moves: T };
     const list_of_instructions = [_]Instruction{
-        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
-        .{ .idx = 3, .dir = .Right, .hash_remaining_moves = true },
-        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
-        .{ .idx = 1, .dir = .DownLeft, .hash_remaining_moves = true },
-        .{ .idx = 2, .dir = .DownRight, .hash_remaining_moves = true },
-        .{ .idx = 3, .dir = .DownRight, .hash_remaining_moves = true },
-        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
-        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
-        .{ .idx = 12, .dir = .Left, .hash_remaining_moves = true },
-        .{ .idx = 11, .dir = .Right, .hash_remaining_moves = true },
-        .{ .idx = 12, .dir = .UpRight, .hash_remaining_moves = true },
-        .{ .idx = 10, .dir = .Right, .hash_remaining_moves = false },
+        .{ .idx = 0, .dir = .DownLeft, .num_moves = 2 },
+        .{ .idx = 3, .dir = .Right, .num_moves = 3 },
+        .{ .idx = 5, .dir = .UpLeft, .num_moves = 4 },
+        .{ .idx = 1, .dir = .DownLeft, .num_moves = 5 },
+        .{ .idx = 2, .dir = .DownRight, .num_moves = 6 },
+        .{ .idx = 3, .dir = .DownRight, .num_moves = 4 },
+        .{ .idx = 0, .dir = .DownLeft, .num_moves = 3 },
+        .{ .idx = 5, .dir = .UpLeft, .num_moves = 2 },
+        .{ .idx = 12, .dir = .Left, .num_moves = 10 },
+        .{ .idx = 11, .dir = .Right, .num_moves = 1 },
+        .{ .idx = 12, .dir = .UpRight, .num_moves = 1 },
+        .{ .idx = 10, .dir = .Right, .num_moves = 0 },
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
-        try std.testing.expectEqual(
-            board.hasRemainingMoves(),
-            instruction.num_moves,
-        );
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        try std.testing.expectEqual(board.nMoves(), instruction.num_moves);
     }
 }
 
@@ -633,7 +631,7 @@ test "Has Remaining Moves" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         try std.testing.expectEqual(
             board.hasRemainingMoves(),
             instruction.hash_remaining_moves,
@@ -665,7 +663,7 @@ test "Are Neg Moves Correct" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         try std.testing.expectEqual(board.board.mask, instruction.value);
     }
 }
@@ -723,7 +721,7 @@ test "Is Lost" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         try std.testing.expectEqual(board.isLost(), instruction.is_lost);
     }
 }

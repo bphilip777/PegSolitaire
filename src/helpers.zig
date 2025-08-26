@@ -249,7 +249,7 @@ test "Get All Moves" {
     try std.testing.expectEqual(4, total_bc_moves);
 }
 
-pub fn getNumChars(move: Directions) T {
+pub fn numChars(move: Directions) T {
     const n_items = numMoves(move);
     if (n_items == 0) return 0;
     var num_chars: T = 0;
@@ -263,15 +263,15 @@ pub fn getNumChars(move: Directions) T {
 test "Get Number of Characters" {
     var a: Directions = .initEmpty();
     a.insert(.Right);
-    var num_chars = getNumChars(a);
+    var num_chars = numChars(a);
     try std.testing.expectEqual(num_chars, 5);
 
     a.insert(.Left);
-    num_chars = getNumChars(a);
+    num_chars = numChars(a);
     try std.testing.expectEqual(num_chars, 11);
 
     a.insert(.UpLeft);
-    num_chars = getNumChars(a);
+    num_chars = numChars(a);
     try std.testing.expectEqual(num_chars, 19);
 }
 
@@ -331,7 +331,7 @@ test "Format Move" {
     move.insert(.DownRight);
     move.insert(.DownLeft);
 
-    const max_moves_char = getNumChars(move);
+    const max_moves_char = numChars(move);
 
     const moves_str = try formatMove(allo, move, max_moves_char);
     defer allo.free(moves_str);
