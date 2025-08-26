@@ -31,14 +31,14 @@ pub fn main() !void {
 fn dfs(allo: Allocator, start: T) !void {
     // Reduce memory footprint by using a multiarraylist over an arraylist
     var stack: std.ArrayList(Board) = try .initCapacity(allo, N_ROWS);
-    defer stack.deinit();
+    defer stack.deinit(allo);
     // null for initialization
     var visited: std.ArrayList(?Board) = try .initCapacity(allo, N_INDICES);
-    defer visited.deinit();
+    defer visited.deinit(allo);
     for (0..N_INDICES) |i| visited.items[i] = null;
     // add starting board
-    const start_board: Board = .init(start);
-    try stack.append(start_board);
+    const start_board: Board = try .init(start);
+    try stack.append(allo, start_board);
     // loop
     while (stack.items.len > 0) {
         // get last board on stack
@@ -46,7 +46,7 @@ fn dfs(allo: Allocator, start: T) !void {
         // check if game over for early break
         if (stack_board.isGameOver()) {
             stack_board.printBoard();
-            stack_board.isWon();
+            if (stack_board.isWon()) print("You Won!", .{}) else print("You Lost!", .{});
         }
         // check if board was visited
         var was_visited: bool = undefined;
@@ -72,7 +72,7 @@ fn dfs(allo: Allocator, start: T) !void {
                     new_board.moves[move.idx].remove(dir);
                     visited.items[board.board.count()] = new_board;
                 }
-                board.chooseMove(dir);
+                board.chooseMove(.{ .idx = move.idx }, dir);
             },
         }
     }
