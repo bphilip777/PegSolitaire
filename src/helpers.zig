@@ -97,6 +97,18 @@ test "Inv Tri Num 2 - Brute Force" {
 pub const Position = struct {
     row: T,
     col: T,
+
+    pub fn eql(pos1: Position, pos2: Position) bool {
+        return pos1.row == pos2.row and pos1.col == pos2.col;
+    }
+
+    pub fn dst(pos1: Position, pos2: Position) T {
+        const max_row = @max(pos1.row, pos2.row);
+        const min_row = @min(pos1.row, pos2.row);
+        const max_col = @max(pos1.col, pos2.col);
+        const min_col = @min(pos1.col, pos2.col);
+        return @ceil(((max_row - min_row) + (max_col - min_col)) / 2);
+    }
 };
 
 pub fn posFromIdx(idx: T) Position {
@@ -182,6 +194,14 @@ pub const Direction: type = enum(u8) {
             .DownLeft => .UpRight,
             .None => .None,
         };
+    }
+
+    pub fn direction(pos1: Position, pos2: Position) Direction {
+        std.debug.assert(!pos1.eql(pos2));
+        std.debug.assert(pos1.dst(pos2) == 1);
+        if (pos1.row == pos2.row) {
+            return if (pos1.col < pos2.col) .Left else if (pos1.col > pos2.col)
+        }
     }
 };
 

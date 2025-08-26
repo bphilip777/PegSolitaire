@@ -222,10 +222,11 @@ pub fn createBoard(comptime n_rows: T) !type {
                     return;
                 }
                 self.chosen_idxs[self.board.count(), Move{}];
-                self.chosen_moves.set(self.board.count(), Move{
-                    .idx = idx2,
-                    .dir = Direction.opposite(dir),
-                });
+                // self.chosen_moves.set(self.board.count(), Move{
+                    // .idx = idx2,
+                    // .dir = Direction.opposite(dir),
+                // });
+            
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
                 // self.board.unset(idx0);
                 // self.board.unset(idx1);
@@ -250,6 +251,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             // update moves
             self.computeAllMoves(); // also does not fix the issue
             // self.computeOptimally(idx0, dir); -- not correct - found where it was wrong
+        }
+
+        pub fn dirFromIdx(idx1: T, idx2: T) Direction {
+            std.debug.assert(self.isValidIdx(idx1) and self.isValidIdx(idx2));
+            const pos1 = posFromIdx(idx1);
+            const pos2 = posFromIdx(idx2);
         }
 
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
