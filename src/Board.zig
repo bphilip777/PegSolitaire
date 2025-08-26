@@ -9,7 +9,9 @@ const Input = @import("helpers.zig").Input;
 const Direction = @import("helpers.zig").Direction;
 const Directions = @import("helpers.zig").Directions;
 const Position = @import("helpers.zig").Position;
+const Rotation = @import("helpers.zig").Rotation;
 // Fns
+const getNumChars = @import("helpers.zig").getNumChars;
 const invTriNum = @import("helpers.zig").invTriNum;
 const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
@@ -44,7 +46,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         chosen_idxs: [n_indices]T = [_]T{0} ** n_indices,
         chosen_dirs: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
 
-        pub fn init(start_idx: T) !@This() {
+        pub fn init(start_idx: T) @This() {
             // Validity Check
             if (start_idx >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // create self
@@ -134,7 +136,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // loop through origins
             for (ring0) |origin| {
                 // if (origin) |pos0| { // otherwise skip missing origins - test this
-                const idx0 = idxFromPos(pos0);
+                const idx0 = idxFromPos(origin);
                 // rotate about idx0
                 inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
                     // compute directions
@@ -792,3 +794,79 @@ test "Reduced Memory Footprint" {
     // Test
     try std.testing.expect(mem_op < no_mem_op);
 }
+
+// // Leaving this here for now - may not cause trouble
+// fn binarySearch(boards: *const std.ArrayList(*Board), board: *const Board) Search {
+//     // assumes boards is sorted
+//     // Search:
+//     // visited = bool = does it exist
+//     // idx = where in array would mask be found if it did exist
+//     std.debug.assert(boards.items.len < std.math.maxInt(u16));
+//     if (boards.items.len == 0) return Search{ .visited = false, .idx = 0 };
+//     const mask = board.board.mask;
+//     var lo: u16 = 0;
+//     var hi: u16 = @truncate(boards.items.len - 1);
+//     var mid: u16 = undefined;
+//     while (lo <= hi) {
+//         mid = (lo + hi) / 2;
+//         const new_mask = boards.items[mid].board.mask;
+//         if (new_mask == mask) {
+//             return .{
+//                 .visited = true,
+//                 .idx = mid,
+//             };
+//         }
+//         if (mid == 0 or mid == boards.items.len) break;
+//         if (new_mask > mask) {
+//             hi = mid - 1;
+//         } else if (new_mask < mask) {
+//             lo = mid + 1;
+//         }
+//     }
+//     return .{
+//         .visited = false,
+//         .idx = mid,
+//     };
+// }
+//
+// // Needs to be held in another meta-file
+// test "Binary Search" {
+//     const allo = std.testing.allocator;
+//     // states
+//     const states = [_]u16{ 1, 3, 5, 7, 20, 30, 40 };
+//     // create array
+//     var arr: std.ArrayList(*Board) = try .initCapacity(allo, states.len);
+//     defer arr.deinit();
+//     defer for (arr.items) |board| board.deinit();
+//     // add in new boards
+//     for (states) |v| {
+//         var board: Board = try .init(allo, 0);
+//         board.board.mask = @truncate(v);
+//         try arr.append(allo, &board);
+//     }
+//     // create inputs
+//     var inputs: std.ArrayList(*Board) = try .initCapacity(allo, 4);
+//     defer inputs.deinit(allo);
+//     defer for (inputs.items) |board| board.*.deinit(allo);
+//     // create board
+//     for ([_]u16{ 4, 9, 30, 20 }) |v| {
+//         var board: Board = try .init(allo, 0);
+//         board.board.mask = @truncate(v);
+//         try inputs.append(allo, &board);
+//     }
+//
+//     const answers = [_]Search{
+//         .{ .visited = false, .idx = 3 },
+//         .{ .visited = false, .idx = 4 },
+//         .{ .visited = true, .idx = 5 },
+//         .{ .visited = true, .idx = 4 },
+//     };
+//     // check answers
+//     for (inputs.items, answers) |input, answer| {
+//         const new_search = binarySearch(&arr, input);
+//         try std.testing.expect(answer.visited == new_search.visited);
+//         if (answer.visited == true) {
+//             try std.testing.expectEqual(answer.idx, new_search.idx);
+//         }
+//     }
+// }
