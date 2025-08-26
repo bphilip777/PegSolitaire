@@ -340,5 +340,5 @@ test "Format Move" {
 
 pub const Input = union(enum(bool)) {
     idx: T,
-    dir: Direction,
+    pos: Position,
 };
