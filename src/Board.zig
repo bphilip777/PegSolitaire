@@ -17,6 +17,7 @@ const invTriNum = @import("helpers.zig").invTriNum;
 const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
 const idxFromPos = @import("helpers.zig").idxFromPos;
+const formatMove = @import("helpers.zig").formatMove;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 
@@ -133,7 +134,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const start1 = getRotation(start0, dir, .full);
             const start2 = getRotation(start1, dir, .full);
             std.debug.assert(start1 != null and start2 != null);
-            const ring0 = [_]?Position{ start0, start1.?, start2.? };
+            const ring0 = [_]Position{ start0, start1.?, start2.? };
             // loop through origins
             for (ring0) |pos0| {
                 // if (origin) |pos0| { // otherwise skip missing origins - test this
@@ -242,7 +243,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // update
                 self.chosen_idxs[self.board.count()] = idx2;
-                self.chosen_dirs[self.board.count()].set(Direction.opposite(dir));
+                self.chosen_dirs[self.board.count()].insert(Direction.opposite(dir));
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
@@ -254,7 +255,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // update
                 self.chosen_idxs[self.board.count()] = idx0;
-                self.chosen_dirs[self.board.count()].set(dir);
+                self.chosen_dirs[self.board.count()].insert(dir);
                 self.setNegMove([3]T{ idx0, idx1, idx2 });
             }
             // update moves - problem - chosen moves are not entirely updated - need to develop test
@@ -265,7 +266,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
             const idx = idxFromPos(pos);
             if (!self.isValidIdx(idx)) return;
-            self.chooseMoveIdx(idx, dir );
+            self.chooseMoveIdx(idx, dir);
         }
 
         pub fn resetBoard(self: *@This()) void {
@@ -303,7 +304,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx = self.board.count();
             const chosen_idx = self.chosen_idxs[idx];
             const chosen_dir = self.chosen_dirs[idx];
-            std.debug.assert(chosen_dir != .None);
+            std.debug.assert(!chosen_dir.contains(.None));
             self.chooseMove(chosen_idx, chosen_dir);
         }
 
@@ -534,7 +535,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             // loop
             for (self.moves, 0..) |move, i| {
                 // skip
-                if (getNumMoves(move) == 0) continue;
+                if (numMoves(move) == 0) continue;
                 // get position
                 const pos = posFromIdx(@truncate(i));
                 // coords
@@ -558,13 +559,20 @@ pub fn createBoard(comptime n_rows: T) !type {
             } else return false;
         }
 
-        pub fn getMove(self: *const @This()) struct {idx: T, dir: Direction} {
+        pub fn getMove(self: *const @This()) struct { idx: T, dir: Direction } {
             for (self.moves, 0..self.moves.len) |move, i| {
                 if (move.contains(.None)) continue;
-                for ([_] Direction{.Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft}) |dir| {
-                    if (move.contains(dir)) return { .idx = @truncate(i), .dir = dir};
+                for ([_]Direction{
+                    .Left,
+                    .UpLeft,
+                    .UpRight,
+                    .Right,
+                    .DownRight,
+                    .DownLeft,
+                }) |dir| {
+                    if (move.contains(dir)) return .{ .idx = @truncate(i), .dir = dir };
                 }
-            } else return {.idx = 0, .dir = .None};
+            } else return .{ .idx = 0, .dir = .None };
         }
     };
 }
@@ -592,7 +600,7 @@ test "Num Moves" {
         .{ .idx = 10, .dir = .Right, .hash_remaining_moves = false },
     };
     // Test
-for (list_of_instructions) |instruction| {
+    for (list_of_instructions) |instruction| {
         board.chooseMove(instruction.idx, instruction.dir);
         try std.testing.expectEqual(
             board.hasRemainingMoves(),
@@ -686,7 +694,7 @@ test "Are Pos Moves Correct" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         try std.testing.expectEqual(board.board.mask, instruction.value);
     }
 }
@@ -745,7 +753,7 @@ test "Is Won" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         try std.testing.expectEqual(board.isWon(), instruction.is_won);
     }
 }
@@ -775,7 +783,7 @@ test "Reset Board" {
     };
     // Test
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
     }
     board.resetBoard();
     try std.testing.expectEqual(board.board.mask, start_value);
@@ -835,4 +843,3 @@ test "Reduced Memory Footprint" {
     // Test
     try std.testing.expect(mem_op < no_mem_op);
 }
-
