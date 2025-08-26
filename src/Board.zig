@@ -43,17 +43,17 @@ pub fn createBoard(comptime n_rows: T) !type {
     const n_indices = triNum(n_rows);
 
     return struct {
-        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(),
-        start_idx: T = 0,
-        moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
-        chosen_idxs: [n_indices]T = [_]T{0} ** n_indices,
-        chosen_dirs: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices,
+        board: std.bit_set.IntegerBitSet(n_indices) = .initFull(), // current board value
+        moves: [n_indices]Directions = [_]Directions{.initEmpty()} ** n_indices, // list of possible moves
+        chosen_idxs: [n_indices]T = [_]T{0} ** n_indices, // list of chosen idxs
+        chosen_dirs: [n_indices]Direction = [_]Direction{.None} ** n_indices, // list of chosen moves
 
         pub fn init(start_idx: T) !@This() {
             // Validity Check
             if (start_idx >= n_indices) return GameErrors.StartMustBeLTNumIndices;
             // create self
-            var self = @This(){ .start_idx = start_idx };
+            var self = @This(){};
+            self.chosen_idxs[n_indices - 1] = start_idx;
             self.resetBoard();
             return self;
         }
@@ -246,7 +246,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // update
                 self.chosen_idxs[self.board.count()] = idx2;
-                self.chosen_dirs[self.board.count()].insert(Direction.opposite(dir));
+                self.chosen_dirs[self.board.count()] = Direction.opposite(dir);
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
@@ -258,7 +258,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // update
                 self.chosen_idxs[self.board.count()] = idx0;
-                self.chosen_dirs[self.board.count()].insert(dir);
+                self.chosen_dirs[self.board.count()] = dir;
                 self.setNegMove([3]T{ idx0, idx1, idx2 });
             }
             // update moves - problem - chosen moves are not entirely updated - need to develop test
@@ -276,35 +276,25 @@ pub fn createBoard(comptime n_rows: T) !type {
             // set board to all 1s
             // set start position to 0
             // set moves to empty
-            for (0..n_indices) |i| {
-                self.board.set(i);
-            }
-            self.board.unset(self.start_idx);
+            for (0..n_indices) |i| self.board.set(i);
+            self.board.unset(self.chosen_idxs[n_indices - 1]);
             self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *@This()) !void {
+        pub fn undoMove(self: *@This()) void {
             // assumes NOT auto mode
-            // get idx + move
+            // get idx
             const idx = self.board.count() + 1;
-            if (idx == n_indices) return;
+            // if idx == n_indices = @ start
+            if (idx >= n_indices - 1) return;
+            // get move idx + move direction
             const move_idx = self.chosen_idxs[idx];
-            const move_dir_idx = self.chosen_dirs[idx];
-            std.debug.assert(!move_dir_idx.contains(.None));
-            const move_dir = for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
-                break dir;
-            } else unreachable;
-            print("Direction: {s}\n", .{@tagName(move_dir)});
+            const move_dir = self.chosen_dirs[idx];
+            std.debug.assert(move_dir != .None);
             // get positions
             const pos0 = posFromIdx(move_idx);
-            const pos1 = getRotation(pos0, move_dir, .full) orelse {
-                print("({}, {}): {s} Impossible\n", .{ pos0.row, pos0.col, @tagName(move_dir) });
-                return error.ImpossibleMove;
-            };
-            const pos2 = getRotation(pos1, move_dir, .full) orelse {
-                print("({}, {}): {s} Impossible\n", .{ pos1.row, pos1.col, @tagName(move_dir) });
-                return error.ImpossibleMove;
-            };
+            const pos1 = getRotation(pos0, move_dir, .full).?;
+            const pos2 = getRotation(pos1, move_dir, .full).?;
             // get idxs
             const idx1 = idxFromPos(pos1);
             const idx2 = idxFromPos(pos2);
@@ -319,15 +309,12 @@ pub fn createBoard(comptime n_rows: T) !type {
             // assumes NOT auto mode
             // get board idx
             const idx = self.board.count();
+            if (idx >= self.board.capacity()) return;
             // grab chosen values
             const chosen_idx = self.chosen_idxs[idx];
-            const chosen_dir_idx = self.chosen_dirs[idx];
+            const chosen_dir = self.chosen_dirs[idx];
             // assert that it is not a none case
-            std.debug.assert(!chosen_dir_idx.contains(.None));
-            // iterate through moves
-            const chosen_dir = for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
-                break dir;
-            } else unreachable;
+            std.debug.assert(chosen_dir != .None);
             // choose move
             self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
         }
@@ -868,15 +855,10 @@ test "Undo Move + Redo Move" {
     }
 }
 
-// test "Reduced Memory Footprint" {
-//     // Define board
-//     const N_ROWS = 360;
-//     const Board: type = createBoard(N_ROWS) catch unreachable;
-//     // Create board
-//     var board: Board = try .init(0);
-//     // Compute no mem op + mem op
-//     const no_mem_op = board.board.capacity() * @sizeOf(T) + board.board.capacity() * @sizeOf(Directions);
-//     const mem_op = @sizeOf(Board);
-//     // Test
-//     try std.testing.expect(mem_op < no_mem_op);
-// }
+test "Reduced Memory Footprint" {
+    // Define board
+    const N_ROWS = 360;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    try std.testing.expectEqual(@sizeOf(Board), 268048);
+    try std.testing.expectEqual(@sizeOf(std.MultiArrayList(Board)), 24); // list of slices
+}
