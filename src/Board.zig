@@ -300,9 +300,10 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         pub fn redoMove(self: *@This()) void {
             const idx = self.board.count();
-            const move = self.chosen_dir[idx];
-            std.debug.assert(move.dir != .None);
-            self.chooseMove(move.idx, move.dir);
+            const chosen_idx = self.chosen_idxs[idx];
+            const chosen_dir = self.chosen_dirs[idx];
+            std.debug.assert(chosen_dir != .None);
+            self.chooseMove(chosen_idx, chosen_dir);
         }
 
         fn setNegMove(self: *@This(), idxs: [3]T) void {
@@ -405,7 +406,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getDownRight(p),
                         .DownRight => getDownLeft(p),
                         .DownLeft => getLeft(p),
-                        else => unreachable,
+                        else => null,
                     },
                     .one_twenty => return switch (dir) {
                         .Left => getUpRight(p),
@@ -414,7 +415,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getDownLeft(p),
                         .DownRight => getLeft(p),
                         .DownLeft => getUpLeft(p),
-                        else => unreachable,
+                        else => null,
                     },
                     .one_eighty => return switch (dir) {
                         .Left => getRight(p),
@@ -423,7 +424,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getLeft(p),
                         .DownRight => getUpLeft(p),
                         .DownLeft => getUpRight(p),
-                        else => unreachable,
+                        else => null,
                     },
                     .two_forty => return switch (dir) {
                         .Left => getDownRight(p),
@@ -432,7 +433,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getUpLeft(p),
                         .DownRight => getUpRight(p),
                         .DownLeft => getRight(p),
-                        else => unreachable,
+                        else => null,
                     },
                     .three_hundo => return switch (dir) {
                         .Left => getDownLeft(p),
@@ -441,7 +442,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getUpRight(p),
                         .DownRight => getRight(p),
                         .DownLeft => getDownRight(p),
-                        else => unreachable,
+                        else => null,
                     },
                     .full => return switch (dir) {
                         .Left => getLeft(p),
@@ -450,7 +451,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         .Right => getRight(p),
                         .DownRight => getDownRight(p),
                         .DownLeft => getDownLeft(p),
-                        else => unreachable,
+                        else => null,
                     },
                 }
             }
