@@ -51,7 +51,7 @@ fn dfs(allo: Allocator, start: T) !void {
         // check if board was visited
         var was_visited: bool = undefined;
         var board: Board = undefined;
-        if (visited.items[board.board.capacity()]) |visited_board| {
+        if (visited.items[board.board.count()]) |visited_board| {
             board = visited_board;
             was_visited = true;
         } else {
@@ -66,11 +66,11 @@ fn dfs(allo: Allocator, start: T) !void {
             },
             else => |dir| {
                 if (was_visited) {
-                    visited.items[board.board.capacity()].?.moves[move.idx].remove(dir);
+                    visited.items[board.board.count()].?.moves[move.idx].remove(dir);
                 } else {
                     var new_board = board;
                     new_board.moves[move.idx].remove(dir);
-                    visited.items[board.board.capacity()] = new_board;
+                    visited.items[board.board.count()] = new_board;
                 }
                 board.chooseMove(dir);
             },

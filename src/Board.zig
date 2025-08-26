@@ -282,11 +282,12 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn undoMove(self: *@This()) void {
+            // assumes NOT auto mode
             // get idx + move
             const idx = self.board.count() + 1;
             if (idx == n_indices) return;
             const move = self.chosen_dirs[idx];
-            std.debug.assert(move.dir != .None);
+            std.debug.assert(!move.contains(.None));
             // get positions
             const pos0 = posFromIdx(move.idx);
             const pos1 = getRotation(pos0, move.dir, .full).?;
@@ -302,46 +303,61 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn redoMove(self: *@This()) void {
+            // assumes NOT auto mode
+            // get board idx
             const idx = self.board.count();
+            // grab chosen values
             const chosen_idx = self.chosen_idxs[idx];
-            const chosen_dir = self.chosen_dirs[idx];
-            std.debug.assert(!chosen_dir.contains(.None));
+            const chosen_dir_idx = self.chosen_dirs[idx];
+            // assert that it is not a none case
+            std.debug.assert(!chosen_dir_idx.contains(.None));
+            // iterate through moves
+            const chosen_dir = for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| break dir;
+            // choose move
             self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
         }
 
         fn setNegMove(self: *@This(), idxs: [3]T) void {
+            // asserts
             std.debug.assert(idxs.len == 3);
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]));
+            // set neg mave
             self.board.set(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.unset(idxs[2]);
         }
 
         fn setPosMove(self: *@This(), idxs: [3]T) void {
+            // asserts
             std.debug.assert(idxs.len == 3);
             std.debug.assert(self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]));
+            // set pos move
             self.board.unset(idxs[0]);
             self.board.unset(idxs[1]);
             self.board.set(idxs[2]);
         }
 
         fn unsetNegMove(self: *@This(), idxs: [3]T) void {
+            // assert
             std.debug.assert(self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]));
+            // unset neg move
             self.board.unset(idxs[0]);
             self.board.set(idxs[1]);
             self.board.set(idxs[2]);
         }
 
         fn unsetPosMove(self: *@This(), idxs: [3]T) void {
+            // assert
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 !self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]));
+            // unset pos move
             self.board.set(idxs[0]);
             self.board.set(idxs[1]);
             self.board.unset(idxs[2]);
