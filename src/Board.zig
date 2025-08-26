@@ -12,6 +12,7 @@ const Position = @import("helpers.zig").Position;
 const Rotation = @import("helpers.zig").Rotation;
 // Fns
 const getNumChars = @import("helpers.zig").getNumChars;
+const numCharsFromIdx = @import("helpers.zig").numCharsFromIdx;
 const invTriNum = @import("helpers.zig").invTriNum;
 const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
@@ -134,9 +135,9 @@ pub fn createBoard(comptime n_rows: T) !type {
             std.debug.assert(start1 != null and start2 != null);
             const ring0 = [_]?Position{ start0, start1.?, start2.? };
             // loop through origins
-            for (ring0) |origin| {
+            for (ring0) |pos0| {
                 // if (origin) |pos0| { // otherwise skip missing origins - test this
-                const idx0 = idxFromPos(origin);
+                const idx0 = idxFromPos(pos0);
                 // rotate about idx0
                 inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
                     // compute directions
@@ -264,7 +265,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn chooseMovePos(self: *@This(), pos: Position, dir: Direction) void {
             const idx = idxFromPos(pos);
             if (!self.isValidIdx(idx)) return;
-            self.chooseMove(idx, dir);
+            self.chooseMoveIdx(idx, dir );
         }
 
         pub fn resetBoard(self: *@This()) void {
@@ -466,16 +467,14 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self.board.count() == 1;
         }
 
+        pub fn numMoves(self: *const @This()) T {
+            var n_moves: T = 0;
+            for (0..self.board.capacity()) |i| n_moves += numMoves(self.moves[i]);
+            return n_moves;
+        }
+
         pub fn isLost(self: *const @This()) bool {
-            var n_moves: usize = 0;
-            for (0..self.board.capacity()) |i| {
-                inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
-                    const dir = @field(Direction, field_name);
-                    n_moves += @intFromBool(self.moves[i].contains(dir));
-                }
-                // if (n_moves > 0) break;
-            }
-            return (n_moves == 0 and self.board.count() > 1);
+            return (self.numMoves() == 0 and self.board.count() > 1);
         }
 
         pub fn reset(self: *@This()) void {
@@ -558,7 +557,48 @@ pub fn createBoard(comptime n_rows: T) !type {
                 if (!move.eql(move.xorWith(move))) return true;
             } else return false;
         }
+
+        pub fn getMove(self: *const @This()) struct {idx: T, dir: Direction} {
+            for (self.moves, 0..self.moves.len) |move, i| {
+                if (move.contains(.None)) continue;
+                for ([_] Direction{.Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft}) |dir| {
+                    if (move.contains(dir)) return { .idx = @truncate(i), .dir = dir};
+                }
+            } else return {.idx = 0, .dir = .None};
+        }
     };
+}
+
+test "Num Moves" {
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create Board
+    var board: Board = .init(5);
+    // Define num moves
+    const Instruction = struct { idx: u16, dir: Direction, num_moves: T };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 3, .dir = .Right, .hash_remaining_moves = true },
+        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
+        .{ .idx = 1, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 2, .dir = .DownRight, .hash_remaining_moves = true },
+        .{ .idx = 3, .dir = .DownRight, .hash_remaining_moves = true },
+        .{ .idx = 0, .dir = .DownLeft, .hash_remaining_moves = true },
+        .{ .idx = 5, .dir = .UpLeft, .hash_remaining_moves = true },
+        .{ .idx = 12, .dir = .Left, .hash_remaining_moves = true },
+        .{ .idx = 11, .dir = .Right, .hash_remaining_moves = true },
+        .{ .idx = 12, .dir = .UpRight, .hash_remaining_moves = true },
+        .{ .idx = 10, .dir = .Right, .hash_remaining_moves = false },
+    };
+    // Test
+for (list_of_instructions) |instruction| {
+        board.chooseMove(instruction.idx, instruction.dir);
+        try std.testing.expectEqual(
+            board.hasRemainingMoves(),
+            instruction.num_moves,
+        );
+    }
 }
 
 test "Has Remaining Moves" {
@@ -627,7 +667,7 @@ test "Are Pos Moves Correct" {
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
     // Create Board
-    var board: Board = try .init(0);
+    var board: Board = .init(0);
     // Define Positive Moves + Resulting Board States
     const Instruction = struct { idx: u16, dir: Direction, value: u16 };
     const list_of_instructions = [_]Instruction{
@@ -766,7 +806,7 @@ test "Undo Move + Redo Move" {
     // Test
     // Original Moves
     for (list_of_instructions) |instruction| {
-        board.chooseMove(instruction.idx, instruction.dir);
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
     }
     // Undo
     for (0..list_of_instructions.len - 1) |i| {
@@ -796,78 +836,3 @@ test "Reduced Memory Footprint" {
     try std.testing.expect(mem_op < no_mem_op);
 }
 
-// // Leaving this here for now - may not cause trouble
-// fn binarySearch(boards: *const std.ArrayList(*Board), board: *const Board) Search {
-//     // assumes boards is sorted
-//     // Search:
-//     // visited = bool = does it exist
-//     // idx = where in array would mask be found if it did exist
-//     std.debug.assert(boards.items.len < std.math.maxInt(u16));
-//     if (boards.items.len == 0) return Search{ .visited = false, .idx = 0 };
-//     const mask = board.board.mask;
-//     var lo: u16 = 0;
-//     var hi: u16 = @truncate(boards.items.len - 1);
-//     var mid: u16 = undefined;
-//     while (lo <= hi) {
-//         mid = (lo + hi) / 2;
-//         const new_mask = boards.items[mid].board.mask;
-//         if (new_mask == mask) {
-//             return .{
-//                 .visited = true,
-//                 .idx = mid,
-//             };
-//         }
-//         if (mid == 0 or mid == boards.items.len) break;
-//         if (new_mask > mask) {
-//             hi = mid - 1;
-//         } else if (new_mask < mask) {
-//             lo = mid + 1;
-//         }
-//     }
-//     return .{
-//         .visited = false,
-//         .idx = mid,
-//     };
-// }
-//
-// // Needs to be held in another meta-file
-// test "Binary Search" {
-//     const allo = std.testing.allocator;
-//     // states
-//     const states = [_]u16{ 1, 3, 5, 7, 20, 30, 40 };
-//     // create array
-//     var arr: std.ArrayList(*Board) = try .initCapacity(allo, states.len);
-//     defer arr.deinit();
-//     defer for (arr.items) |board| board.deinit();
-//     // add in new boards
-//     for (states) |v| {
-//         var board: Board = try .init(allo, 0);
-//         board.board.mask = @truncate(v);
-//         try arr.append(allo, &board);
-//     }
-//     // create inputs
-//     var inputs: std.ArrayList(*Board) = try .initCapacity(allo, 4);
-//     defer inputs.deinit(allo);
-//     defer for (inputs.items) |board| board.*.deinit(allo);
-//     // create board
-//     for ([_]u16{ 4, 9, 30, 20 }) |v| {
-//         var board: Board = try .init(allo, 0);
-//         board.board.mask = @truncate(v);
-//         try inputs.append(allo, &board);
-//     }
-//
-//     const answers = [_]Search{
-//         .{ .visited = false, .idx = 3 },
-//         .{ .visited = false, .idx = 4 },
-//         .{ .visited = true, .idx = 5 },
-//         .{ .visited = true, .idx = 4 },
-//     };
-//     // check answers
-//     for (inputs.items, answers) |input, answer| {
-//         const new_search = binarySearch(&arr, input);
-//         try std.testing.expect(answer.visited == new_search.visited);
-//         if (answer.visited == true) {
-//             try std.testing.expectEqual(answer.idx, new_search.idx);
-//         }
-//     }
-// }

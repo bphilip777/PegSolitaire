@@ -199,7 +199,7 @@ pub const Direction: type = enum(u8) {
 
 pub const Directions: type = std.enums.EnumSet(Direction);
 
-pub fn getNumMoves(move: Directions) T {
+pub fn numMoves(move: Directions) T {
     var n_items: T = 0;
     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
         const dir = @field(Direction, field_name);
@@ -213,19 +213,19 @@ pub fn getNumMoves(move: Directions) T {
 
 test "Get Number Of Moves" {
     const a: Directions = .initFull();
-    const a_moves = getNumMoves(a);
+    const a_moves = numMoves(a);
     try std.testing.expectEqual(6, a_moves);
 
     var b: Directions = .initEmpty();
     b.insert(.Left);
     b.insert(.Right);
-    const b_moves = getNumMoves(b);
+    const b_moves = numMoves(b);
     try std.testing.expectEqual(2, b_moves);
 }
 
 pub fn getAllMoves(moves: []const Directions) T {
     var total: T = 0;
-    for (moves) |move| total += getNumMoves(move);
+    for (moves) |move| total += numMoves(move);
     return total;
 }
 
@@ -250,7 +250,7 @@ test "Get All Moves" {
 }
 
 pub fn getNumChars(move: Directions) T {
-    const n_items = getNumMoves(move);
+    const n_items = numMoves(move);
     if (n_items == 0) return 0;
     var num_chars: T = 0;
     inline for (comptime std.meta.fieldNames(Direction)) |field_name| {
@@ -281,7 +281,7 @@ pub fn formatMove(allo: Allocator, move: Directions, max_moves_char: T) ![]u8 {
     var moves_str: []u8 = try std.fmt.allocPrint(allo, "", .{});
     var tmp: []u8 = undefined;
     //
-    const n_items: T = getNumMoves(move);
+    const n_items: T = numMoves(move);
     var first: bool = true;
     if (n_items > 0) {
         for ([_]Direction{
@@ -338,7 +338,7 @@ test "Format Move" {
     try std.testing.expectEqualStrings(moves_str, "Right, DownRight, DownLeft");
 }
 
-pub const Input = union(enum(bool)) {
+pub const Input = union(enum(u8)) {
     idx: T,
     pos: Position,
 };
