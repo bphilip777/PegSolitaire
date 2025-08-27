@@ -149,7 +149,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     switch (new_dir) {
                         .None => {},
                         else => {
-                            const opp_dir = Direction.opposite(new_dir);
+                            const opp_dir = new_dir.opposite();
                             // compute positions
                             const pos1 = getRotation(pos0, new_dir, .full);
                             const pos2 = getRotation(pos1, new_dir, .full);
@@ -237,7 +237,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             const idx2 = idxFromPos(p2);
             // check move -> apply move = update board
             if (self.board.isSet(idx0)) { // pos
-                if (!self.moves[idx2].contains(Direction.opposite(dir))) {
+                if (!self.moves[idx2].contains(dir.opposite())) {
                     print(
                         "3. Pos: ({}, {}), Dir: {s}, Does Not Exist",
                         .{ p2.row, p2.col, @tagName(dir) },
@@ -246,7 +246,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 // update
                 self.chosen_idxs[self.board.count()] = idx2;
-                self.chosen_dirs[self.board.count()] = Direction.opposite(dir);
+                self.chosen_dirs[self.board.count()] = dir.opposite();
                 self.setPosMove([3]T{ idx0, idx1, idx2 });
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
@@ -616,12 +616,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 0..self.chosen_dirs.len,
             ) |chosen_dir, chosen_idx, move, i| {
                 if (chosen_dir == .None) continue;
-                // dir
-                flipped.chosen_dirs[i] = Direction.flip(chosen_dir);
-                // idx
-                const pos = posFromIdx(chosen_idx);
-                const flipped_pos = pos.flip();
-                flipped.chosen_idxs[i] = idxFromPos(flipped_pos);
+                flipped.chosen_dirs[i] = chosen_dir.flip();
+                flipped.chosen_idxs[i] = flipIdx(chosen_idx);
                 // move
                 var flipped_move: Directions = .initEmpty();
                 inline for ([_]Direction{
@@ -640,10 +636,10 @@ pub fn createBoard(comptime n_rows: T) !type {
             return flipped;
         }
 
-        pub fn idxFromFlip(self: *const @This(), idx: T) T {
-            const pos = posFromIdx(T);
-            const flip_pos = Position{.row = pos.row, .col = pos.row - pos.col};
-            const flip_idx = 
+        fn flipIdx(idx: T) T {
+            const pos = posFromIdx(idx);
+            const flip_pos = pos.flip();
+            return idxFromPos(flip_pos);
         }
     };
 }

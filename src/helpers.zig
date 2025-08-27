@@ -195,7 +195,7 @@ pub const Direction: type = enum(u8) {
     DownRight = 5,
     DownLeft = 6,
 
-    pub fn opposite(input: Direction) Direction {
+    pub fn opposite(input: *const Direction) Direction {
         return switch (input) {
             .Left => .Right,
             .UpLeft => .DownRight,
@@ -207,7 +207,7 @@ pub const Direction: type = enum(u8) {
         };
     }
 
-    pub fn flip(input: Direction) Direction {
+    pub fn flip(input: *const Direction) Direction {
         return switch (input) {
             .Left => .Right,
             .UpLeft => .UpRight,
