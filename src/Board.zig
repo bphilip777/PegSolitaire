@@ -23,7 +23,17 @@ const flipIdx = @import("helpers.zig").flipIdx;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 
-const Move = struct { idx: T, dir: Direction };
+const Move = struct {
+    idx: T,
+    dir: Direction,
+
+    pub fn flip(move: *const Move) Move {
+        return .{
+            .idx = flipIdx(move.idx),
+            .dir = move.dir.flip(),
+        };
+    }
+};
 
 const GameErrors = error{
     NRowsTooSmall,
@@ -588,10 +598,6 @@ pub fn createBoard(comptime n_rows: T) !type {
                     if (move.contains(dir)) return .{ .idx = @truncate(i), .dir = dir };
                 }
             } else return .{ .idx = 0, .dir = .None };
-        }
-
-        pub fn flipMove(move: Move) Move {
-            return Move{ .idx = flipIdx(move.idx), .dir = move.dir.flip() };
         }
 
         pub fn flip(self: *const @This()) @This() {

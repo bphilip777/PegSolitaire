@@ -11,7 +11,7 @@ const Direction = @import("helpers.zig").Direction;
 // board
 const createBoard = @import("Board.zig").createBoard;
 const T = @import("helpers.zig").T;
-const N_ROWS: T = 3;
+const N_ROWS: T = 5; // 7 -> 86 -> 768
 const N_INDICES = triNum(N_ROWS);
 const Board = createBoard(N_ROWS) catch unreachable;
 
@@ -22,6 +22,7 @@ const Board = createBoard(N_ROWS) catch unreachable;
 //  - zig-cli
 //  - sigargs ... whatever
 //  - another option is to parse inputs into main from commandline - currently empty
+//  - Automatic: Complete
 
 pub fn main() !void {
     // memory
@@ -98,9 +99,8 @@ test "Binary Search" {
 fn dfs(allo: Allocator, start: Board) !void {
     // To Do:
     // - reduce memory foot print with std.MultiArrayList
-    // - reduce number of solutions checked by removing symmetrical answers
-
     // stack
+    print("Memory Size: {} - {}\n", .{ @sizeOf(std.ArrayList(Board)), @sizeOf(std.MultiArrayList(Board)) });
     var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer stack.deinit(allo);
     // append initial board state
@@ -108,74 +108,90 @@ fn dfs(allo: Allocator, start: Board) !void {
     // previously visited boards
     var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer visited.deinit(allo);
+    // check if won
+    var has_won: bool = false;
     // loop controls
-    // var loop: usize = 0;
-    // const limit: usize = 1_024;
+    var loop: usize = 0;
+    const limit: usize = std.math.maxInt(T);
     // // loop
-    // while (stack.items.len > 0 and loop < limit) : (loop += 1) {
-    // print("Loop: {}\n", .{loop});
-    print("Stack Depth: {}\n", .{stack.items.len});
-    // pop previous board
-    const prev_board = stack.pop().?;
-    prev_board.printBoard();
-    // if (prev_board.isLost()) continue;
-    if (prev_board.isWon()) {
-        print("Winning Sequence:\n", .{});
-        for (0..prev_board.chosen_idxs.len) |i| {
-            const j = prev_board.board.capacity() - i - 1;
-            if (prev_board.chosen_dirs[j] == .None) break;
-            print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
+    while (stack.items.len > 0 and loop < limit) : (loop += 1) {
+        // print("Loop: {}\n", .{loop});
+        // print("Stack Depth: {}\n", .{stack.items.len});
+        // pop previous board
+        const prev_board = stack.pop().?;
+        // prev_board.printBoard();
+        if (prev_board.isLost()) continue;
+        if (prev_board.isWon()) {
+            has_won = true;
+            print("Winning Sequence:\n", .{});
+            for (0..prev_board.chosen_idxs.len) |i| {
+                const j = prev_board.board.capacity() - i - 1;
+                if (prev_board.chosen_dirs[j] == .None) break;
+                print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
+            }
+            break;
         }
-        // break;
+        const search = binarySearch(&visited, &prev_board);
+        var board = if (search.visited) visited.items[search.idx] //
+            else prev_board;
+        // const num_moves = board.numMovesLeft();
+        // print("Num Moves: {}\n", .{num_moves});
+        // try board.printMoves(allo);
+        // get move
+        const move = board.getMove();
+        if (move.dir == .None) continue;
+        // choose move
+        var new_board = board;
+        new_board.chooseMove(.{ .idx = move.idx }, move.dir);
+        // Get symmetrical board
+        const flip_prev_board = prev_board.flip();
+        const search2 = binarySearch(&visited, &flip_prev_board);
+        var flipped_board = if (search2.visited) visited.items[search2.idx] //
+            else flip_prev_board;
+        const flip_move = move.flip();
+        { // Remove Moves
+            board.moves[move.idx].remove(move.dir);
+            const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
+            const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+            const other_dir = move.dir.opposite();
+            board.moves[other_idx].remove(other_dir);
+            // if board has moves, append onto stack
+            if (board.numMovesLeft() > 0) {
+                try stack.append(allo, board);
+            }
+            // if board was visited, modify, if board wasn't append
+            if (search.visited) {
+                visited.items[search.idx] = board;
+            } else {
+                try visited.append(allo, board);
+            }
+        }
+        { // Remove symmetrical moves
+            flipped_board.moves[flip_move.idx].remove(flip_move.dir);
+            const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+            const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+            const flip_other_dir = flip_move.dir.opposite();
+            flipped_board.moves[flip_other_idx].remove(flip_other_dir);
+            // if flipboard was visited, modify, if flipped board wasn't append
+            if (search2.visited) {
+                visited.items[search2.idx] = flipped_board;
+            } else {
+                try visited.append(allo, flipped_board);
+            }
+        }
+        // update stack with new board
+        try stack.append(allo, new_board);
     }
-    const search = binarySearch(&visited, &prev_board);
-    var board = if (search.visited) visited.items[search.idx] //
-        else prev_board;
-    const num_moves = board.numMovesLeft();
-    print("Num Moves: {}\n", .{num_moves});
-    try board.printMoves(allo);
-    const move = board.getMove();
-    // if (move.dir == .None) continue;
-    var new_board = board;
-    new_board.chooseMove(.{ .idx = move.idx }, move.dir);
-    // remove moves
-    board.moves[move.idx].remove(move.dir);
-    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
-    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
-    const other_dir = move.dir.opposite();
-    board.moves[other_idx].remove(other_dir);
-    // if board has moves, append onto stack
-    if (board.numMovesLeft() > 0) {
-        try stack.append(allo, board);
+    if (!has_won) {
+        print("No Solutions Found for {} rows!\n", .{N_ROWS});
     }
-    // if board was visited, modify, if board wasn't append
-    if (search.visited) {
-        visited.items[search.idx] = board;
-    } else {
-        try visited.append(allo, board);
-    }
-    // flip board = remove symmetrical moves
-    const flip_prev_board = prev_board.flip();
-    const search2 = binarySearch(&visited, &flip_prev_board);
-    var flipped_board = if (search2.visited) visited.items[search2.idx] //
-        else flip_prev_board;
-    const flip_move = Board.flipMove(move);
-    // remove flip moves
-    flipped_board.moves[flip_move.idx].remove(flip_move.dir);
-    const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
-    const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
-    const flip_other_dir = flip_move.dir.opposite();
-    flipped_board.moves[flip_other_idx].remove(flip_other_dir);
+}
 
-    // if flipboard was visited, modify, if flipped board wasn't append
-    if (search2.visited) {
-        visited.items[search2.idx] = flipped_board;
-    } else {
-        try visited.append(allo, flipped_board);
-    }
-    // update stack with new board
-    try stack.append(allo, new_board);
-    // }
+test "Will MultiArrayList Help" {
+    const al = std.ArrayList(Board);
+    const ma = std.MultiArrayList(Board);
+    try std.testing.expect(@sizeOf(al) == @sizeOf(ma));
+    print("Memory Size: {} - {}\n", .{ @sizeOf(std.ArrayList(Board)), @sizeOf(std.MultiArrayList(Board)) });
 }
 
 // future dfs - don't search every move, just unique ones

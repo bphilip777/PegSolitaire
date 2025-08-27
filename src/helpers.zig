@@ -366,7 +366,7 @@ pub const Input = union(enum(u8)) {
     pos: Position,
 };
 
-fn flipIdx(idx: T) T {
+pub fn flipIdx(idx: T) T {
     const pos = posFromIdx(idx);
     const flip_pos = pos.flip();
     return idxFromPos(flip_pos);
