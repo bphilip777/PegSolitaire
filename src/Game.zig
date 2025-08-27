@@ -41,9 +41,9 @@ fn binarySearch(visited: *const std.ArrayList(Board), board: *const Board) Searc
     if (visited.items.len == 0) return .{ .idx = 0, .visited = false };
     var lo: T = 0;
     var hi: T = @truncate(visited.items.len - 1);
-    var mid: T = (hi + lo) / 2;
+    var mid: T = lo + (hi - lo) / 2;
     while (lo <= hi) {
-        mid = (hi + lo) / 2;
+        mid = lo + (hi - lo) / 2;
         if (visited.items[mid].board.mask == board.board.mask) {
             return .{ .idx = mid, .visited = true };
         } else if (visited.items[mid].board.mask > board.board.mask) {
@@ -209,6 +209,11 @@ fn dfsAll(allo: Allocator, start: Board) !void {
     while (stack.items.len > 0) {
         // pop previous board
         const prev_board = stack.pop().?;
+        // prev_board.printBoard();
+        // if (stack.items.len > 10_000 or visited.items.len > std.math.maxInt(u16)) {
+        //     print("Something Went Wrong!\n", .{});
+        //     break;
+        // }
         // if (prev_board.isLost()) continue;
         if (prev_board.isWon()) {
             // ordered insert into list
@@ -233,40 +238,43 @@ fn dfsAll(allo: Allocator, start: Board) !void {
         // choose move
         var new_board = board;
         new_board.chooseMove(.{ .idx = move.idx }, move.dir);
-        // Get symmetrical board
-        const flip_prev_board = prev_board.flip();
-        const search2 = binarySearch(&visited, &flip_prev_board);
-        var flipped_board = if (search2.visited) visited.items[search2.idx] //
-            else flip_prev_board;
-        const flip_move = move.flip();
+
         { // Remove Moves
             board.moves[move.idx].remove(move.dir);
             const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
             const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
             const other_dir = move.dir.opposite();
             board.moves[other_idx].remove(other_dir);
-            // if board has moves, append onto stack
-            if (board.numMovesLeft() > 0) {
+            if (board.numMovesLeft() > 0) { // append to stack
                 try stack.append(allo, board);
             }
-            // if board was visited, modify, if board wasn't append
-            if (search.visited) {
+            if (search.visited) { // modify visited
                 visited.items[search.idx] = board;
-            } else {
+            } else { // append visited
                 try visited.append(allo, board);
             }
         }
         { // Remove symmetrical moves
-            flipped_board.moves[flip_move.idx].remove(flip_move.dir);
-            const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
-            const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
-            const flip_other_dir = flip_move.dir.opposite();
-            flipped_board.moves[flip_other_idx].remove(flip_other_dir);
-            // if flipboard was visited, modify, if flipped board wasn't append
-            if (search2.visited) {
-                visited.items[search2.idx] = flipped_board;
-            } else {
-                try visited.append(allo, flipped_board);
+            // Get symmetrical board
+            const flip_prev_board = prev_board.flip();
+            const search2 = binarySearch(&visited, &flip_prev_board);
+            var flipped_board = if (search2.visited) visited.items[search2.idx] //
+                else flip_prev_board;
+            const flip_move = move.flip();
+            // make sure it has that move
+            if (flipped_board.moves[flip_move.idx].contains(flip_move.dir)) {
+                // remove moves
+                flipped_board.moves[flip_move.idx].remove(flip_move.dir);
+                const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+                const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+                const flip_other_dir = flip_move.dir.opposite();
+                flipped_board.moves[flip_other_idx].remove(flip_other_dir);
+                // if flipped was visited, modify, if flipped board wasn't append
+                if (search2.visited) {
+                    visited.items[search2.idx] = flipped_board;
+                } else {
+                    try visited.append(allo, flipped_board);
+                }
             }
         }
         // update stack with new board
@@ -302,6 +310,7 @@ fn dfsAll(allo: Allocator, start: Board) !void {
             const k = N_INDICES - j - 1;
             const idx = curr.chosen_idxs[k];
             const dir = curr.chosen_dirs[k];
+            if (dir == .None) break;
             print("{}: {s} ", .{ idx, @tagName(dir) });
             initial.chooseMove(.{ .idx = idx }, dir);
             initial.printBoard();

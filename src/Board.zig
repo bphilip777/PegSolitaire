@@ -595,7 +595,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .DownRight,
                     .DownLeft,
                 }) |dir| {
-                    if (move.contains(dir)) return .{ .idx = @truncate(i), .dir = dir };
+                    if (move.contains(dir)) return .{
+                        .idx = @truncate(i),
+                        .dir = dir,
+                    };
                 }
             } else return .{ .idx = 0, .dir = .None };
         }
