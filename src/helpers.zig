@@ -365,3 +365,22 @@ pub const Input = union(enum(u8)) {
     idx: T,
     pos: Position,
 };
+
+fn flipIdx(idx: T) T {
+    const pos = posFromIdx(idx);
+    const flip_pos = pos.flip();
+    return idxFromPos(flip_pos);
+}
+
+test "Idx From Flip" {
+    // 0
+    // 1 2
+    // 3 4 5
+    // 6 7 8 9
+    const values = [_]T{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    const expects = [_]T{ 0, 2, 1, 5, 4, 3, 9, 8, 7, 6 };
+    for (values, expects) |value, expect| {
+        const answer = flipIdx(value);
+        try std.testing.expectEqual(expect, answer);
+    }
+}

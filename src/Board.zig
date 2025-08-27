@@ -30,13 +30,6 @@ const GameErrors = error{
     InvalidPosition,
 };
 
-// Idea: Split moves into idxs + dirs
-// removed multiarraylist for ability to compute direction on the fly
-// no longer need internal clone fn as no array -> just use allo.dupe or allo.create
-// easier to update
-// no longer need deinit fn as no multiarraylist
-// need to go through all the tests
-
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows < 3) return GameErrors.NRowsTooSmall;
     if (n_rows > MAX_ROWS) return GameErrors.NRowsTooLarge;

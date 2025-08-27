@@ -148,9 +148,9 @@ fn dfs(allo: Allocator, start: Board) !void {
     const search2 = binarySearch(&visited, &flip_prev_board);
     var flip_board = if (search2.visited) visited.items[search2.idx] //
         else flip_prev_board;
-    flip_board.moves[move.idx].remove(move.dir.flip());
+    const flip_move = struct{idx: T = Board.flipIdx(move.idx), dir: Direction = move.dir.flip()};
     // remove flip moves
-    // flip_board.moves[flip_move.idx]
+    flip_board.moves[flip_move.idx]
     // if board has moves, append onto stack
     if (board.numMovesLeft() > 0) {
         try stack.append(allo, board);
