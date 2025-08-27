@@ -593,6 +593,15 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
             } else return .{ .idx = 0, .dir = .None };
         }
+
+        pub fn scopy(self: *const @This()) @This() {
+            return @This(){
+                .board = self.board,
+                .moves = self.moves,
+                .chosen_idxs = self.chosen_idxs,
+                .chosen_dirs = self.chosen_dirs,
+            };
+        }
     };
 }
 
