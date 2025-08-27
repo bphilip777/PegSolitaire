@@ -663,7 +663,6 @@ test "Idx From Flip" {
 }
 
 test "Flip Board" {
-    // Compute all necessary moves to flip board - probably overkill
     // Define board
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
