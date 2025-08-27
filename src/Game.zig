@@ -12,8 +12,8 @@ const Direction = @import("helpers.zig").Direction;
 const createBoard = @import("Board.zig").createBoard;
 const T = @import("helpers.zig").T;
 const N_ROWS: T = 5; // 7 -> 86 -> 768
-const N_INDICES = triNum(N_ROWS);
-const Board = createBoard(N_ROWS) catch unreachable;
+const N_INDICES: T = triNum(N_ROWS);
+const Board: type = createBoard(N_ROWS) catch unreachable;
 
 pub fn manual() void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -22,12 +22,13 @@ pub fn manual() void {
     _ = allo;
 }
 
-pub fn auto() void {
+pub fn auto() !void {
     // Auto-Solve Board
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-    try dfsFirst(allo, try .init(0));
+    // try dfsFirst(allo, try .init(0));
+    try dfsAll(allo, try .init(0));
 }
 
 // Move All Of Below Into Auto Section of Game
@@ -103,7 +104,7 @@ fn dfsFirst(allo: Allocator, start: Board) !void {
     var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer visited.deinit(allo);
     // check if won
-    var has_won: bool = false;
+    var winning_board: ?Board = null;
     // loop controls
     var loop: usize = 0;
     const limit: usize = std.math.maxInt(T);
@@ -116,13 +117,7 @@ fn dfsFirst(allo: Allocator, start: Board) !void {
         // prev_board.printBoard();
         if (prev_board.isLost()) continue;
         if (prev_board.isWon()) {
-            has_won = true;
-            print("Winning Sequence:\n", .{});
-            for (0..prev_board.chosen_idxs.len) |i| {
-                const j = prev_board.board.capacity() - i - 1;
-                if (prev_board.chosen_dirs[j] == .None) break;
-                print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
-            }
+            winning_board = prev_board;
             break;
         }
         const search = binarySearch(&visited, &prev_board);
@@ -176,7 +171,14 @@ fn dfsFirst(allo: Allocator, start: Board) !void {
         // update stack with new board
         try stack.append(allo, new_board);
     }
-    if (!has_won) {
+    if (winning_board) |win| {
+        print("Winning Sequence:\n", .{});
+        for (0..win.chosen_idxs.len) |i| {
+            const j = win.board.capacity() - i - 1;
+            if (winning_board.?.chosen_dirs[j] == .None) break;
+            print("{}: {s}\n", .{ win.chosen_idxs[j], @tagName(win.chosen_dirs[j]) });
+        }
+    } else {
         print("No Solutions Found for {} rows!\n", .{N_ROWS});
     }
 }
@@ -189,7 +191,6 @@ test "Will MultiArrayList Help" {
 }
 
 fn dfsAll(allo: Allocator, start: Board) !void {
-    // Finds All Solutions And Prints Them
     // stack
     var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer stack.deinit(allo);
@@ -198,34 +199,34 @@ fn dfsAll(allo: Allocator, start: Board) !void {
     // previously visited boards
     var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer visited.deinit(allo);
-    // check if won
-    var has_won: bool = false;
-    // loop controls
-    var loop: usize = 0;
-    const limit: usize = std.math.maxInt(T);
-    // // loop
-    while (stack.items.len > 0 and loop < limit) : (loop += 1) {
-        // print("Loop: {}\n", .{loop});
-        // print("Stack Depth: {}\n", .{stack.items.len});
+    // store wins
+    var wins: std.ArrayList(Board) = try .initCapacity(allo, 5);
+    defer wins.deinit(allo);
+    // loop
+    // var loop: usize = 0;
+    // const limit: usize = std.math.maxInt(u16);
+    // while (stack.items.len > 0 and loop < limit) : (loop += 1) {
+    while (stack.items.len > 0) {
         // pop previous board
         const prev_board = stack.pop().?;
-        // prev_board.printBoard();
-        if (prev_board.isLost()) continue;
+        // if (prev_board.isLost()) continue;
         if (prev_board.isWon()) {
-            has_won = true;
-            print("Winning Sequence:\n", .{});
-            for (0..prev_board.chosen_idxs.len) |i| {
-                const j = prev_board.board.capacity() - i - 1;
-                if (prev_board.chosen_dirs[j] == .None) break;
-                print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
+            // ordered insert into list
+            const search = binarySearch(&wins, &prev_board);
+            if (search.visited) {
+                try wins.insert(allo, search.idx, prev_board);
+            } else {
+                if (search.idx < wins.items.len) {
+                    try wins.insert(allo, search.idx, prev_board);
+                } else {
+                    try wins.append(allo, prev_board);
+                }
             }
         }
+        if (prev_board.isGameOver()) continue;
         const search = binarySearch(&visited, &prev_board);
         var board = if (search.visited) visited.items[search.idx] //
             else prev_board;
-        // const num_moves = board.numMovesLeft();
-        // print("Num Moves: {}\n", .{num_moves});
-        // try board.printMoves(allo);
         // get move
         const move = board.getMove();
         if (move.dir == .None) continue;
@@ -271,7 +272,40 @@ fn dfsAll(allo: Allocator, start: Board) !void {
         // update stack with new board
         try stack.append(allo, new_board);
     }
-    if (!has_won) {
+    // Prune Wins
+    if (wins.items.len > 0) {
+        print("# of Wins: {}\n", .{wins.items.len});
+        var i: usize = 0;
+        var n_wins: usize = wins.items.len;
+        while (i <= n_wins - 2) : (i += 1) {
+            var j: usize = i + 1;
+            const curr = wins.items[i];
+            const flip = curr.flip();
+            while (j <= n_wins - 1) : (j += 1) {
+                const next = wins.items[j];
+                if (curr.board.mask == next.board.mask or flip.board.mask == next.board.mask) {
+                    _ = wins.swapRemove(j);
+                    n_wins -= 1;
+                }
+            }
+        }
+        print("# of Wins: {}\n", .{wins.items.len});
+    } else {
         print("No Solutions Found for {} rows!\n", .{N_ROWS});
+    }
+    // Print All Wins
+    for (0..wins.items.len) |i| {
+        const curr = wins.items[i];
+        print("Solution {}:\n", .{i});
+        var initial: Board = start;
+        for (0..N_INDICES) |j| {
+            const k = N_INDICES - j - 1;
+            const idx = curr.chosen_idxs[k];
+            const dir = curr.chosen_dirs[k];
+            print("{}: {s} ", .{ idx, @tagName(dir) });
+            initial.chooseMove(.{ .idx = idx }, dir);
+            initial.printBoard();
+        }
+        print("\n", .{});
     }
 }
