@@ -620,7 +620,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 flipped.chosen_dirs[i] = Direction.flip(chosen_dir);
                 // idx
                 const pos = posFromIdx(chosen_idx);
-                const flipped_pos = Position{ .row = pos.row, .col = pos.row - pos.col };
+                const flipped_pos = pos.flip();
                 flipped.chosen_idxs[i] = idxFromPos(flipped_pos);
                 // move
                 var flipped_move: Directions = .initEmpty();
@@ -639,7 +639,17 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             return flipped;
         }
+
+        pub fn idxFromFlip(self: *const @This(), idx: T) T {
+            const pos = posFromIdx(T);
+            const flip_pos = Position{.row = pos.row, .col = pos.row - pos.col};
+            const flip_idx = 
+        }
     };
+}
+
+test "Idx From Flip" {
+    // Check that new idx is flipped
 }
 
 test "Flip Board" {

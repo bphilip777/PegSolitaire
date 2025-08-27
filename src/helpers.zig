@@ -109,6 +109,13 @@ pub const Position = struct {
         const min_col = @min(pos1.col, pos2.col);
         return @max(max_row - min_row, max_col - min_col);
     }
+
+    pub fn flip(pos: *const Position) Position {
+        return Position{
+            .row = pos.row,
+            .col = pos.row - pos.col,
+        };
+    }
 };
 
 pub fn posFromIdx(idx: T) Position {
@@ -133,6 +140,10 @@ test "Position From Idx" {
             pos.col = 0;
         }
     }
+}
+
+pub fn idxFromFlip(pos: Position) T {
+    return triNum(pos.row) + pos.col;
 }
 
 pub fn idxFromPos(pos: Position) T {
