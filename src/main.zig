@@ -3,7 +3,8 @@ const auto = @import("Game.zig").auto;
 const manual = @import("Game.zig").manual;
 
 pub fn main() !void {
-    try auto();
+    // try auto();
+    try manual();
 }
 
 test "Run All Tests" {

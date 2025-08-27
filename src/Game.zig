@@ -19,7 +19,19 @@ pub fn manual() void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-    _ = allo;
+
+    const stdin = std.io.getStdIn().reader();
+    const stdout = std.io.getStdOut().writer();
+    var buf: [64]u8 = undefined;
+
+    try stdout.print("Enter A Number: ", .{});
+    if (try stdin.readUntilDelimiterOrEof(buf[0..], '\n')) |user_input| {
+        const trimmed = std.mem.trimRight(u8, user_input, "\r\n");
+        const number = try std.fmt.parseInt(i64, trimmed, 10);
+        try stdout.print("You entered: {}\n", .{number});
+    } else {
+        try stdout.print("No input received\n", .{});
+    }
 }
 
 pub fn auto() !void {
