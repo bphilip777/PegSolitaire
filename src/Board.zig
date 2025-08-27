@@ -594,41 +594,76 @@ pub fn createBoard(comptime n_rows: T) !type {
             } else return .{ .idx = 0, .dir = .None };
         }
 
-        pub fn flippedBoard(self: *const @This()) @This() {
-            var new_self: @This() = try .init(self.chosen_idxs[n_indices - 1]);
-            new_self.printBoard();
-            const len = self.board.capacity() - self.board.mask;
-            for (0..len) |i| {
-                const j = n_indices - i - 1;
-                const prev_chosen_idx = self.chosen_idxs[j];
-                const prev_pos = posFromIdx(prev_chosen_idx);
-                const new_pos = Position{ .row = prev_pos.row, .col = prev_pos.row - prev_pos.col };
+        pub fn flip(self: *const @This()) @This() {
+            var flipped: @This() = self.*;
+            // flip board
+            for (0..n_rows) |row| {
+                for (0..row / 2) |col1| {
+                    const col2 = row - col1;
+                    const idx1 = idxFromPos(.{ .row = @truncate(row), .col = @truncate(col1) });
+                    if (col2 == col1) continue;
+                    const idx2 = idxFromPos(.{ .row = @truncate(row), .col = @truncate(col2) });
+                    if (self.board.isSet(idx1) == self.board.isSet(idx2)) continue;
+                    flipped.board.toggle(idx1);
+                    flipped.board.toggle(idx2);
+                }
             }
-            return new_self;
+            // flip chosen dirs + idxs + moves
+            for (
+                self.chosen_dirs,
+                self.chosen_idxs,
+                self.moves,
+                0..self.chosen_dirs.len,
+            ) |chosen_dir, chosen_idx, move, i| {
+                if (chosen_dir == .None) continue;
+                // dir
+                flipped.chosen_dirs[i] = Direction.flip(chosen_dir);
+                // idx
+                const pos = posFromIdx(chosen_idx);
+                const flipped_pos = Position{ .row = pos.row, .col = pos.row - pos.col };
+                flipped.chosen_idxs[i] = idxFromPos(flipped_pos);
+                // move
+                var flipped_move: Directions = .initEmpty();
+                inline for ([_]Direction{
+                    .Left,
+                    .UpLeft,
+                    .UpRight,
+                    .Right,
+                    .DownRight,
+                    .DownLeft,
+                }) |dir| {
+                    if (move.contains(dir)) {
+                        flipped_move.insert(Direction.flip(dir));
+                    }
+                }
+            }
+            return flipped;
         }
     };
 }
 
 test "Flip Board" {
-    // used to reduce redundant cases when searching for solutions
+    // Compute all necessary moves to flip board - probably overkill
     // Define board
     const N_ROWS = 5;
     const Board: type = createBoard(N_ROWS) catch unreachable;
     // Create board
     var board: Board = try .init(0);
     // Define moves
-
-    // Test
-    try std.testing.expectEqual(board.nMoves(), 4);
-    // board.printBoard();
-    // try board.printMoves(allo);
-
+    const Instruction = struct { idx: u16, dir: Direction, flip_mask: T };
+    const list_of_instructions = [_]Instruction{
+        .{ .idx = 0, .dir = .DownLeft, .flip_mask = 32733 },
+        .{ .idx = 3, .dir = .Right, .flip_mask = 32741 },
+        .{ .idx = 5, .dir = .UpLeft, .flip_mask = 32744 },
+        .{ .idx = 1, .dir = .DownLeft, .flip_mask = 32202 },
+        .{ .idx = 2, .dir = .DownRight, .flip_mask = 32134 },
+    };
     for (list_of_instructions) |instruction| {
         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
         // board.printBoard();
-        // try board.printMoves(allo);
-
-        try std.testing.expectEqual(board.nMoves(), instruction.num_moves);
+        const flipped_board = board.flip();
+        // flipped_board.printBoard();
+        try std.testing.expectEqual(flipped_board.board.mask, instruction.flip_mask);
     }
 }
 
@@ -656,7 +691,7 @@ test "Num Moves" {
         .{ .idx = 10, .dir = .Right, .num_moves = 0 },
     };
     // Test
-    try std.testing.expectEqual(board.nMoves(), 4);
+    try std.testing.expectEqual(board.numMovesLeft(), 4);
     // board.printBoard();
     // try board.printMoves(allo);
 
@@ -665,7 +700,7 @@ test "Num Moves" {
         // board.printBoard();
         // try board.printMoves(allo);
 
-        try std.testing.expectEqual(board.nMoves(), instruction.num_moves);
+        try std.testing.expectEqual(board.numMovesLeft(), instruction.num_moves);
     }
 }
 

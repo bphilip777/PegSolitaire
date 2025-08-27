@@ -21,7 +21,6 @@ const Board = createBoard(N_ROWS) catch unreachable;
 //  - zig-cli
 //  - sigargs ... whatever
 //  - another option is to parse inputs into main from commandline - currently empty
-// - Auto:
 
 pub fn main() !void {
     // memory
@@ -33,6 +32,7 @@ pub fn main() !void {
     try dfs(allo, try .init(0));
 }
 
+// Move All Of Below Into Auto Section of Game
 const Search = struct {
     idx: T,
     visited: bool,
