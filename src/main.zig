@@ -3,12 +3,16 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 // helpers
 const triNum = @import("helpers.zig").triNum;
+const numMoves = @import("helpers.zig").numMoves;
+const idxFromPos = @import("helpers.zig").idxFromPos;
+const posFromIdx = @import("helpers.zig").posFromIdx;
+const Direction = @import("helpers.zig").Direction;
 // board
 const createBoard = @import("Board.zig").createBoard;
 const T = @import("helpers.zig").T;
 const N_ROWS: T = 3;
 const N_INDICES = triNum(N_ROWS);
-const Board = createBoard(5) catch unreachable;
+const Board = createBoard(N_ROWS) catch unreachable;
 
 // TODO:
 // Play Game:
@@ -27,57 +31,6 @@ pub fn main() !void {
     // _ = allo;
     // auto-solve board
     try dfs(allo, try .init(0));
-}
-
-fn dfs(allo: Allocator, start: Board) !void {
-    // Aim: Get All Solutions
-    // stack
-    var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
-    defer stack.deinit(allo);
-    // add start position
-    try stack.append(allo, start);
-    // visited boards
-    var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
-    defer visited.deinit(allo);
-    // loop
-    while (stack.items.len > 0) {
-        // moves stored in stack + visited
-        const keep_on_stack = stack.getLast().nMoves() > 1;
-        const prev_board = if (keep_on_stack) stack.getLast() else stack.pop().?;
-        // check visited for prev_board
-        const search = binarySearch(&visited, &prev_board);
-        var board: Board = if (search.visited) visited.items[search.idx] else prev_board;
-        // choose move
-        const move = board.getMove();
-        switch (move.dir) {
-            .None => continue,
-            else => {
-                // copy board -> take move -> add to stack
-                var new_board: Board = board.scopy();
-                new_board.chooseMove(.{ .idx = move.idx }, move.dir);
-                try stack.append(allo, new_board);
-                // update stack + visited
-                if (keep_on_stack) {
-                    stack.items[stack.items.len - 1].moves[move.idx].remove(move.dir);
-                }
-                if (search.visited) {
-                    visited.items[search.idx].moves[move.idx].remove(move.dir);
-                } else {
-                    if (search.idx >= visited.items.len) {
-                        try visited.append(allo, board);
-                    } else {
-                        try visited.insert(allo, search.idx, board);
-                    }
-                }
-            },
-        }
-    }
-}
-
-// future dfs - don't search every move, just unique ones
-
-test "Run All Tests" {
-    _ = @import("Board.zig");
 }
 
 const Search = struct {
@@ -140,3 +93,65 @@ test "Binary Search" {
         try std.testing.expectEqual(search.idx, answer.idx);
     }
 }
+
+fn dfs(allo: Allocator, start: Board) !void {
+    var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
+    defer stack.deinit(allo);
+
+    try stack.append(allo, start);
+
+    var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
+    defer visited.deinit(allo);
+
+    var loop: usize = 0;
+    const limit: usize = 1_024;
+    while (stack.items.len > 0 and loop < limit) : (loop += 1) {
+        print("Loop: {}\n", .{loop});
+        print("Stack Depth: {}\n", .{stack.items.len});
+        const prev_board = stack.pop().?;
+        prev_board.printBoard();
+        if (prev_board.isLost()) continue;
+        if (prev_board.isWon()) {
+            print("Winning Sequence:\n", .{});
+            for (0..prev_board.chosen_idxs.len) |i| {
+                const j = prev_board.board.capacity() - i - 1;
+                if (prev_board.chosen_dirs[j] == .None) break;
+                print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
+            }
+            break;
+        }
+        const search = binarySearch(&visited, &prev_board);
+        var board = if (search.visited) visited.items[search.idx] else prev_board;
+        const num_moves = board.numMovesLeft();
+        print("Num Moves: {}\n", .{num_moves});
+        try board.printMoves(allo);
+        const move = board.getMove();
+        if (move.dir == .None) continue;
+        var new_board = board;
+        new_board.chooseMove(.{ .idx = move.idx }, move.dir);
+        // remove moves
+        board.moves[move.idx].remove(move.dir); // pos or neg
+        const other_idx = idxFromPos(Board.getRotation(Board.getRotation(posFromIdx(move.idx), move.dir, .full).?, move.dir, .full).?);
+        const other_dir = Direction.opposite(move.dir);
+        board.moves[other_idx].remove(other_dir);
+
+        if (board.numMovesLeft() > 0) {
+            try stack.append(allo, board);
+        }
+        if (search.visited) {
+            visited.items[search.idx] = board;
+        } else {
+            try visited.append(allo, board);
+        }
+        try stack.append(allo, new_board);
+    }
+}
+
+// future dfs - don't search every move, just unique ones
+
+test "Run All Tests" {
+    _ = @import("Board.zig");
+}
+
+// Board Size 3 = Unwinnable
+// Board Size 4 = Unwinnable

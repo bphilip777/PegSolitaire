@@ -417,7 +417,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             };
         }
 
-        fn getRotation(pos: ?Position, dir: Direction, rot: Rotation) ?Position {
+        pub fn getRotation(pos: ?Position, dir: Direction, rot: Rotation) ?Position {
             if (pos) |p| {
                 switch (rot) {
                     .sixty => return switch (dir) {
@@ -487,14 +487,14 @@ pub fn createBoard(comptime n_rows: T) !type {
             return self.board.count() == 1;
         }
 
-        pub fn nMoves(self: *const @This()) T {
+        pub fn numMovesLeft(self: *const @This()) T {
             var n_moves: T = 0;
             for (0..self.board.capacity()) |i| n_moves += numMoves(self.moves[i]);
             return n_moves;
         }
 
         pub fn isLost(self: *const @This()) bool {
-            return (self.nMoves() == 0 and self.board.count() > 1);
+            return (self.numMovesLeft() == 0 and self.board.count() > 1);
         }
 
         pub fn reset(self: *@This()) void {
@@ -519,7 +519,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn printMoves(self: *@This(), allo: Allocator) !void {
+        pub fn printMoves(self: *const @This(), allo: Allocator) !void {
             // pass in allocator
             const headers = [_][]const u8{ "Coords", "Moves" };
             // compute max chars per line
