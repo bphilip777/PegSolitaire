@@ -112,12 +112,12 @@ fn dfs(allo: Allocator, start: Board) !void {
     // const limit: usize = 1_024;
     // // loop
     // while (stack.items.len > 0 and loop < limit) : (loop += 1) {
-    print("Loop: {}\n", .{loop});
+    // print("Loop: {}\n", .{loop});
     print("Stack Depth: {}\n", .{stack.items.len});
     // pop previous board
     const prev_board = stack.pop().?;
     prev_board.printBoard();
-    if (prev_board.isLost()) continue;
+    // if (prev_board.isLost()) continue;
     if (prev_board.isWon()) {
         print("Winning Sequence:\n", .{});
         for (0..prev_board.chosen_idxs.len) |i| {
@@ -125,7 +125,7 @@ fn dfs(allo: Allocator, start: Board) !void {
             if (prev_board.chosen_dirs[j] == .None) break;
             print("{}: {s}\n", .{ prev_board.chosen_idxs[j], @tagName(prev_board.chosen_dirs[j]) });
         }
-        break;
+        // break;
     }
     const search = binarySearch(&visited, &prev_board);
     var board = if (search.visited) visited.items[search.idx] //
@@ -134,22 +134,23 @@ fn dfs(allo: Allocator, start: Board) !void {
     print("Num Moves: {}\n", .{num_moves});
     try board.printMoves(allo);
     const move = board.getMove();
-    if (move.dir == .None) continue;
+    // if (move.dir == .None) continue;
     var new_board = board;
     new_board.chooseMove(.{ .idx = move.idx }, move.dir);
     // remove moves
     board.moves[move.idx].remove(move.dir);
-    const other_idx = idxFromPos(Board.getRotation(Board.getRotation(posFromIdx(move.idx), move.dir, .full).?, move.dir, .full).?);
-    const other_dir = Direction.opposite(move.dir);
+    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
+    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+    const other_dir = move.dir.opposite();
     board.moves[other_idx].remove(other_dir);
     // flip board
     const flip_prev_board = prev_board.flip();
     const search2 = binarySearch(&visited, &flip_prev_board);
     var flip_board = if (search2.visited) visited.items[search2.idx] //
         else flip_prev_board;
-    flip_board.moves[move.idx].remove(Direction.flip(move.dir));
+    flip_board.moves[move.idx].remove(move.dir.flip());
     // remove flip moves
-    flip_board.moves[flip_move.idx]
+    // flip_board.moves[flip_move.idx]
     // if board has moves, append onto stack
     if (board.numMovesLeft() > 0) {
         try stack.append(allo, board);

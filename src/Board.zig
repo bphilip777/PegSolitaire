@@ -629,7 +629,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     .DownLeft,
                 }) |dir| {
                     if (move.contains(dir)) {
-                        flipped_move.insert(Direction.flip(dir));
+                        flipped_move.insert(dir.flip());
                     }
                 }
             }
@@ -646,6 +646,20 @@ pub fn createBoard(comptime n_rows: T) !type {
 
 test "Idx From Flip" {
     // Check that new idx is flipped
+
+    // Define Board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // 0
+    // 1 2
+    // 3 4 5
+    // 6 7 8 9
+    const values = [_]T{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    const expects = [_]T{ 0, 2, 1, 5, 4, 3, 9, 8, 7, 6 };
+    for (values, expects) |value, expect| {
+        const answer = Board.flipIdx(value);
+        try std.testing.expectEqual(expect, answer);
+    }
 }
 
 test "Flip Board" {
