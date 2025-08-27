@@ -19,6 +19,7 @@ const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
 const idxFromPos = @import("helpers.zig").idxFromPos;
 const formatMove = @import("helpers.zig").formatMove;
+const flipIdx = @import("helpers.zig").flipIdx;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 
@@ -628,31 +629,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             return flipped;
         }
-
-        fn flipIdx(idx: T) T {
-            const pos = posFromIdx(idx);
-            const flip_pos = pos.flip();
-            return idxFromPos(flip_pos);
-        }
     };
-}
-
-test "Idx From Flip" {
-    // Check that new idx is flipped
-
-    // Define Board
-    const N_ROWS = 5;
-    const Board: type = createBoard(N_ROWS) catch unreachable;
-    // 0
-    // 1 2
-    // 3 4 5
-    // 6 7 8 9
-    const values = [_]T{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    const expects = [_]T{ 0, 2, 1, 5, 4, 3, 9, 8, 7, 6 };
-    for (values, expects) |value, expect| {
-        const answer = Board.flipIdx(value);
-        try std.testing.expectEqual(expect, answer);
-    }
 }
 
 test "Flip Board" {

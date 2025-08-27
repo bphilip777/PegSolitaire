@@ -6,6 +6,7 @@ const triNum = @import("helpers.zig").triNum;
 const numMoves = @import("helpers.zig").numMoves;
 const idxFromPos = @import("helpers.zig").idxFromPos;
 const posFromIdx = @import("helpers.zig").posFromIdx;
+const flipIdx = @import("helpers.zig").flipIdx;
 const Direction = @import("helpers.zig").Direction;
 // board
 const createBoard = @import("Board.zig").createBoard;
@@ -148,7 +149,7 @@ fn dfs(allo: Allocator, start: Board) !void {
     const search2 = binarySearch(&visited, &flip_prev_board);
     var flip_board = if (search2.visited) visited.items[search2.idx] //
         else flip_prev_board;
-    const flip_move = struct{idx: T = Board.flipIdx(move.idx), dir: Direction = move.dir.flip()};
+    const flip_move = struct{idx: T = flipIdx(move.idx), dir: Direction = move.dir.flip()};
     // remove flip moves
     flip_board.moves[flip_move.idx]
     // if board has moves, append onto stack
