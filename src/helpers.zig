@@ -195,6 +195,18 @@ pub const Direction: type = enum(u8) {
             .None => .None,
         };
     }
+
+    pub fn flipped(input: Direction) Direction {
+        return switch (input) {
+            .Left => .Right,
+            .UpLeft => .UpRight,
+            .UpRight => .UpLeft,
+            .Right => .Left,
+            .DownRight => .DownLeft,
+            .DownLeft => .DownRight,
+            .None => .None,
+        };
+    }
 };
 
 pub const Directions: type = std.enums.EnumSet(Direction);

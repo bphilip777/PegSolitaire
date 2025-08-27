@@ -95,19 +95,26 @@ test "Binary Search" {
 }
 
 fn dfs(allo: Allocator, start: Board) !void {
+    // To Do:
+    // - reduce memory foot print with std.MultiArrayList
+    // - reduce number of solutions checked by removing symmetrical answers
+
+    // stack
     var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer stack.deinit(allo);
-
+    // append initial board state
     try stack.append(allo, start);
-
+    // previously visited boards
     var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer visited.deinit(allo);
-
+    // loop controls
     var loop: usize = 0;
     const limit: usize = 1_024;
+    // loop
     while (stack.items.len > 0 and loop < limit) : (loop += 1) {
         print("Loop: {}\n", .{loop});
         print("Stack Depth: {}\n", .{stack.items.len});
+        // pop previous board
         const prev_board = stack.pop().?;
         prev_board.printBoard();
         if (prev_board.isLost()) continue;
@@ -130,19 +137,22 @@ fn dfs(allo: Allocator, start: Board) !void {
         var new_board = board;
         new_board.chooseMove(.{ .idx = move.idx }, move.dir);
         // remove moves
-        board.moves[move.idx].remove(move.dir); // pos or neg
+        board.moves[move.idx].remove(move.dir);
         const other_idx = idxFromPos(Board.getRotation(Board.getRotation(posFromIdx(move.idx), move.dir, .full).?, move.dir, .full).?);
         const other_dir = Direction.opposite(move.dir);
         board.moves[other_idx].remove(other_dir);
-
+        // remove flipped board states
+        // if board has moves, append onto stack
         if (board.numMovesLeft() > 0) {
             try stack.append(allo, board);
         }
+        // if board was visited, modify, if board wasn't append
         if (search.visited) {
             visited.items[search.idx] = board;
         } else {
             try visited.append(allo, board);
         }
+        // update stack with new board
         try stack.append(allo, new_board);
     }
 }

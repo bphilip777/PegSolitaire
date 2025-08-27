@@ -594,15 +594,42 @@ pub fn createBoard(comptime n_rows: T) !type {
             } else return .{ .idx = 0, .dir = .None };
         }
 
-        pub fn scopy(self: *const @This()) @This() {
-            return @This(){
-                .board = self.board,
-                .moves = self.moves,
-                .chosen_idxs = self.chosen_idxs,
-                .chosen_dirs = self.chosen_dirs,
-            };
+        pub fn flippedBoard(self: *const @This()) @This() {
+            var new_self: @This() = try .init(self.chosen_idxs[n_indices - 1]);
+            new_self.printBoard();
+            const len = self.board.capacity() - self.board.mask;
+            for (0..len) |i| {
+                const j = n_indices - i - 1;
+                const prev_chosen_idx = self.chosen_idxs[j];
+                const prev_pos = posFromIdx(prev_chosen_idx);
+                const new_pos = Position{ .row = prev_pos.row, .col = prev_pos.row - prev_pos.col };
+            }
+            return new_self;
         }
     };
+}
+
+test "Flip Board" {
+    // used to reduce redundant cases when searching for solutions
+    // Define board
+    const N_ROWS = 5;
+    const Board: type = createBoard(N_ROWS) catch unreachable;
+    // Create board
+    var board: Board = try .init(0);
+    // Define moves
+
+    // Test
+    try std.testing.expectEqual(board.nMoves(), 4);
+    // board.printBoard();
+    // try board.printMoves(allo);
+
+    for (list_of_instructions) |instruction| {
+        board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
+        // board.printBoard();
+        // try board.printMoves(allo);
+
+        try std.testing.expectEqual(board.nMoves(), instruction.num_moves);
+    }
 }
 
 test "Num Moves" {
