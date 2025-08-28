@@ -43,7 +43,7 @@ pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-    // _ = allo;
+    _ = allo;
 
     var board: Board = try .init(0);
     print("Welcome To Peg Solitaire!!!\n\n", .{});
@@ -53,22 +53,31 @@ pub fn manual() !void {
     var in = std.fs.File.stdin().reader(&buf);
     var out = std.fs.File.stdout();
 
-    while (!board.isGameOver()) {
-        // print board
-        board.printBoard();
-        try board.printMoves(allo);
-        // show board
-        try out.writeAll("(Row, Col) Dir: ");
+    // while (!board.isGameOver()) {
+    // print board
+    board.printBoard();
+    // show board
+    try out.writeAll("(Row, Col) Dir: ");
 
-        const len = try in.read(&buf); // EndOfStream
-        const input = buf[0..len];
-        var it = std.mem.splitScalar(u8, input, ',');
-        while (it.next()) |item| {
-            print("{s}\n", .{item});
-        }
-        // output result
-        try out.writeAll(input);
+    const len = try in.read(&buf); // EndOfStream, ReadFailed
+    const input = buf[0..len];
+
+    // trim trailing + starting whitespace
+    const trim_input = std.mem.trim(u8, input, " ");
+    print("Input: {s}\n", .{trim_input});
+
+    // parse spaces
+    const n_spaces = std.mem.count(u8, input, " ");
+    if (n_spaces != 3) return error.InvalidInput;
+
+    var it = std.mem.splitScalar(u8, input, ',');
+    while (it.next()) |item| {
+        print("{s}\n", .{item});
     }
+
+    // output result
+    try out.writeAll(input);
+    // }
 }
 
 pub fn auto() !void {
