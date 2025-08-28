@@ -64,38 +64,77 @@ test "Is Match" {
     }
 }
 
-// const Token = enum {
-//     redo,
-//     undo,
-//     reset,
-//     help,
-//     identifier = struct {},
-// };
-//
-// pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
-//     var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
-//
-//     var i: usize = 0;
-//     while (i < input.len) : (i += 1) {
-//         switch (input[i]) {
-//             ' ' => continue,
-//             '0'...'9' => {
-//                 const start: usize = 0;
-//                 const end: usize = loop: while (i < input.len) : (i += 1) {
-//                     switch (input[i]) {
-//                         '0'...'9' => continue,
-//                         else => break :loop i,
-//                     }
-//                 };
-//                 const num = try std.fmt.parseInt(T, input[start..end], 10);
-//                 try tokens.append();
-//             },
-//         }
-//     }
-//
-//     return tokens;
-// }
-//
+const Token = struct { // 3 bytes
+    start: u8,
+    end: u8,
+    key: Key,
+};
+
+const Key = enum {
+    redo,
+    undo,
+    reset,
+    help,
+    quit,
+    num,
+    dir,
+};
+
+pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
+    if (input.len > 255) return error.InputStrTooLong;
+
+    var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
+
+    var i: u8 = 0;
+    while (i < input.len) : (i += 1) {
+        switch (input[i]) {
+            ' ', ',' => continue,
+            '0'...'9' => {
+                const start: u8 = i;
+                i += 1;
+                const end: u8 = loop: while (i < input.len) : (i += 1) {
+                    switch (input[i]) {
+                        '0'...'9' => continue,
+                        else => break :loop i,
+                    }
+                };
+                try tokens.append(.{
+                    .start = start,
+                    .end = end,
+                    .key = .num,
+                });
+            },
+            'a'...'z', 'A'...'Z' => {
+                const start: u8 = i;
+                i += 1;
+                const end: u8 = loop: while (i < input.len) : (i += 1) {
+                    switch (input[i]) {
+                        'a'...'z', 'A'...'Z' => {},
+                        else => break :loop i,
+                    }
+                };
+                const key: Key = if (isMatch(input[start..end], "undo")) .undo //
+                    else if (isMatch(input[start..end], "redo")) .redo //
+                    else if (isMatch(input[start..end], "reset")) .reset //
+                    else if (isMatch(input[start..end], "help")) .help //
+                    else if (isMatch(input[start..end], "quit")) .quit //
+                    else return error.InvalidString;
+
+                try tokens.append(.{
+                    .start = start,
+                    .end = end,
+                    .key = key,
+                });
+            },
+            else => return error.InvalidCharacter,
+        }
+    }
+
+    // loop through .str and find which type it is
+
+    return tokens;
+}
+
 // test "Tokenize" {
 //     const allo = std.testing.allocator;
 //
