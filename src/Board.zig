@@ -4,22 +4,22 @@ const Allocator = std.mem.Allocator;
 
 // Helpers
 // Data
-const T = @import("helpers.zig").T;
-const Input = @import("helpers.zig").Input;
-const Direction = @import("helpers.zig").Direction;
-const Directions = @import("helpers.zig").Directions;
-const Position = @import("helpers.zig").Position;
-const Rotation = @import("helpers.zig").Rotation;
+const T = @import("Helpers.zig").T;
+const Input = @import("Helpers.zig").Input;
+const Direction = @import("Helpers.zig").Direction;
+const Directions = @import("Helpers.zig").Directions;
+const Position = @import("Helpers.zig").Position;
+const Rotation = @import("Helpers.zig").Rotation;
 // Fns
-const numChars = @import("helpers.zig").numChars;
-const numCharsFromIdx = @import("helpers.zig").numCharsFromIdx;
-const numMoves = @import("helpers.zig").numMoves;
-const invTriNum = @import("helpers.zig").invTriNum;
-const triNum = @import("helpers.zig").triNum;
-const posFromIdx = @import("helpers.zig").posFromIdx;
-const idxFromPos = @import("helpers.zig").idxFromPos;
-const formatMove = @import("helpers.zig").formatMove;
-const flipFromIdx = @import("helpers.zig").flipFromIdx;
+const numChars = @import("Helpers.zig").numChars;
+const numCharsFromIdx = @import("Helpers.zig").numCharsFromIdx;
+const numMoves = @import("Helpers.zig").numMoves;
+const invTriNum = @import("Helpers.zig").invTriNum;
+const triNum = @import("Helpers.zig").triNum;
+const posFromIdx = @import("Helpers.zig").posFromIdx;
+const idxFromPos = @import("Helpers.zig").idxFromPos;
+const formatMove = @import("Helpers.zig").formatMove;
+const flipFromIdx = @import("Helpers.zig").flipFromIdx;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 

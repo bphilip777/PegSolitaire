@@ -1,43 +1,21 @@
 const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
+
 // helpers
-const triNum = @import("helpers.zig").triNum;
-const numMoves = @import("helpers.zig").numMoves;
-const idxFromPos = @import("helpers.zig").idxFromPos;
-const posFromIdx = @import("helpers.zig").posFromIdx;
-const flipFromIdx = @import("helpers.zig").flipFromIdx;
-const Direction = @import("helpers.zig").Direction;
+const triNum = @import("Helpers.zig").triNum;
+const numMoves = @import("Helpers.zig").numMoves;
+const idxFromPos = @import("Helpers.zig").idxFromPos;
+const posFromIdx = @import("Helpers.zig").posFromIdx;
+const flipFromIdx = @import("Helpers.zig").flipFromIdx;
+const Direction = @import("Helpers.zig").Direction;
+const T = @import("Helpers.zig").T;
+
 // board
 const createBoard = @import("Board.zig").createBoard;
-const T = @import("helpers.zig").T;
 const N_ROWS: T = 5; // 7 -> 86 -> 768
 const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
-
-// TODO:
-// manual:
-// - ignore trailing or starting whitespaces, commas, spaces
-// - parse h, help, HELP, Help, ? = bring up help page
-// - parse u, undo, UNDO, Undo = undo move
-// - parse r, reset, RESET, reset = reset board
-// - parse (num1, num2) as coordinate on board
-// - parse directions:
-//  - Left, L, l, .Left = .Left
-// - parse toggles:
-//  - show moves
-//  - show positions
-// - parse as moves:
-//      - (num1, num2) -> (num1, num2)
-//      - num1, num2 -> num1, num2
-//      - num1, num2, num3, num4
-//      - num1 num2 num3 num4
-//      - num1 num2 DownLeft
-// - error handling:
-//  - input cannot be too long
-//  - input cannot perform a random command - only internal commands
-//  - input cannot escape string
-//  - Ex: EndOfStream, TooLong, InvalidMove, InvalidIdx
 
 pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
