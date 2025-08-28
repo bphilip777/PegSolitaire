@@ -227,7 +227,6 @@ test "Will MultiArrayList Help" {
     const al = std.ArrayList(Board);
     const ma = std.MultiArrayList(Board);
     try std.testing.expect(@sizeOf(al) == @sizeOf(ma));
-    print("Memory Size: {} - {}\n", .{ @sizeOf(std.ArrayList(Board)), @sizeOf(std.MultiArrayList(Board)) });
 }
 
 fn dfsAll(allo: Allocator, start: Board) !void {
