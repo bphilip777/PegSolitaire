@@ -11,4 +11,5 @@ test "Run All Tests" {
     _ = @import("Board.zig");
     _ = @import("Helpers.zig");
     _ = @import("Tokenizer.zig");
+    _ = @import("Game.zig");
 }
