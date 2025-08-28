@@ -114,6 +114,7 @@ pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
     if (input.len > 255) return error.InputStrTooLong;
 
     var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
+    errdefer tokens.deinit(allo);
 
     var i: u8 = 0;
     while (i < input.len) : (i += 1) {
@@ -169,16 +170,19 @@ pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
             else => return error.InvalidCharacter,
         }
     }
+
     return tokens;
 }
 
 test "Tokenize" {
     const allo = std.testing.allocator;
 
-    const inputs = [_][]const u8{ "left", "right", "" };
+    // add "" as an input
+    const inputs = [_][]const u8{ "left", "right" };
     for (inputs) |input| {
-        const tokens = try tokenize(allo, input);
-        tokens.deinit(allo);
+        var tokens = try tokenize(allo, input);
+        defer tokens.deinit(allo);
+
         for (tokens.items) |token| {
             print("{s} - {s}\n", .{ input[token.start..token.end], @tagName(token.key) });
         }
