@@ -1,9 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-// Helper fns + data
-// used to simplify board.zig file
-
 pub const T: type = u16;
 
 pub inline fn numCharsFromDigit(digit: T) T {
