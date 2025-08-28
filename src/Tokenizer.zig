@@ -46,12 +46,21 @@ fn isMatch(input: []const u8, key: []const u8) bool {
 }
 
 test "Is Match" {
-    const input_strings = [_][]const u8{ "redo", "r", "z", "undo", "u", "q", "reset", "r", "t" };
-    const command_strings = [_][]const u8{ "redo", "redo", "redo", "undo", "undo", "undo", "reset", "reset", "reset" };
-    const exp_matches = [_]bool{ true, true, false, true, true, false, true, true, false };
-    for (command_strings, input_strings, exp_matches) |command, input, exp_match| {
-        const got_match = isMatch(input, command);
-        try std.testing.expectEqual(exp_match, got_match);
+    const Instruction = struct { input: []const u8, command: []const u8, match: bool };
+    const instructions = [_]Instruction{
+        .{ .input = "redo", .command = "redo", .match = true },
+        .{ .input = "r", .command = "redo", .match = true },
+        .{ .input = "z", .command = "redo", .match = false },
+        .{ .input = "undo", .command = "undo", .match = true },
+        .{ .input = "u", .command = "undo", .match = true },
+        .{ .input = "q", .command = "undo", .match = false },
+        .{ .input = "reset", .command = "reset", .match = true },
+        .{ .input = "r", .command = "reset", .match = true },
+        .{ .input = "t", .command = "reset", .match = false },
+    };
+    for (instructions) |ins| {
+        const match = isMatch(ins.input, ins.command);
+        try std.testing.expectEqual(match, ins.match);
     }
 }
 
