@@ -37,12 +37,14 @@ const T = @import("Helpers.zig");
 fn singleCharMatches(input: []const u8) !Key {
     // q = quit, r = reset, u = undo
     std.debug.assert(input.len == 1);
-    return switch (input) {
+    return switch (input[0]) {
         'r' => .reset,
         'u' => .undo,
         'q' => .quit,
         'h', '?' => .help,
-        'l', 'r' => .dir,
+        'b' => .board,
+        'm' => .move,
+        // 'l', 'r' => .dir, -- needs to be handled differently
         else => error.InvalidCharacter,
     };
 }
@@ -104,6 +106,8 @@ const Key = enum { // 1 byte
     quit,
     num,
     dir,
+    board, // print board
+    move, // print moves
 };
 
 pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
