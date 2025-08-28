@@ -84,7 +84,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                         break :buffer_loop;
                     }
                 }
-                if (!match) print("{}: {s}\n", .{ row, &buffer });
+                if (!match) print("{}: {s}\n", .{ row - 1, &buffer });
             }
             print("\n", .{});
         }
@@ -671,9 +671,7 @@ test "Flip Board" {
     };
     for (list_of_instructions) |instruction| {
         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-        // board.printBoard();
         const flipped_board = board.flip();
-        // flipped_board.printBoard();
         try std.testing.expectEqual(flipped_board.board.mask, instruction.flip_mask);
     }
 }
@@ -703,13 +701,9 @@ test "Num Moves" {
     };
     // Test
     try std.testing.expectEqual(board.numMovesLeft(), 4);
-    // board.printBoard();
-    // try board.printMoves(allo);
 
     for (list_of_instructions) |instruction| {
         board.chooseMove(.{ .idx = instruction.idx }, instruction.dir);
-        // board.printBoard();
-        // try board.printMoves(allo);
 
         try std.testing.expectEqual(board.numMovesLeft(), instruction.num_moves);
     }

@@ -24,6 +24,9 @@ const Board: type = createBoard(N_ROWS) catch unreachable;
 // - parse (num1, num2) as coordinate on board
 // - parse directions:
 //  - Left, L, l, .Left = .Left
+// - parse toggles:
+//  - show moves
+//  - show positions
 // - parse as moves:
 //      - (num1, num2) -> (num1, num2)
 //      - num1, num2 -> num1, num2
@@ -43,8 +46,8 @@ pub fn manual() !void {
     // _ = allo;
 
     var board: Board = try .init(0);
-    print("Welcome To Peg Solitaire!", .{});
-    print("Choose a position and direction Ex: (1, 1) Right", .{});
+    print("Welcome To Peg Solitaire!!!\n\n", .{});
+    print("Choose a position and direction!\nEx: (1, 1) DownRight\n\n", .{});
 
     var buf: [1024]u8 = undefined;
     var in = std.fs.File.stdin().reader(&buf);
@@ -57,10 +60,7 @@ pub fn manual() !void {
         // show board
         try out.writeAll("(Row, Col) Dir: ");
 
-        const len = in.read(&buf) catch |err| {
-            print("Caught Error Here\n", .{});
-            return err;
-        };
+        const len = try in.read(&buf); // EndOfStream
         const input = buf[0..len];
         var it = std.mem.splitScalar(u8, input, ',');
         while (it.next()) |item| {
