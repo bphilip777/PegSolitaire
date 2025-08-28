@@ -15,6 +15,26 @@ const N_ROWS: T = 5; // 7 -> 86 -> 768
 const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
+// TODO:
+// manual:
+// - ignore trailing or starting whitespaces, commas, spaces
+// - parse h, help, HELP, Help, ? = bring up help page
+// - parse u, undo, UNDO, Undo = undo move
+// - parse r, reset, RESET, reset = reset board
+// - parse (num1, num2) as coordinate on board
+// - parse directions:
+//  - Left, L, l, .Left = .Left
+// - parse as moves:
+//      - (num1, num2) -> (num1, num2)
+//      - num1, num2 -> num1, num2
+//      - num1, num2, num3, num4
+//      - num1 num2 num3 num4
+//      - num1 num2 DownLeft
+// - error handling:
+//  - input cannot be too long
+//  - input cannot perform a random command - only internal commands
+//  - input cannot escape string
+
 pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
@@ -23,22 +43,27 @@ pub fn manual() !void {
 
     var board: Board = try .init(0);
     print("Welcome To Peg Solitaire!", .{});
+    print("Choose a position and direction Ex: (1, 1) Right", .{});
+
+    var buf: [1024]u8 = undefined;
+    var in = std.fs.File.stdin().reader(&buf);
+    var out = std.fs.File.stdout();
+
     while (!board.isGameOver()) {
         // print board
         board.printBoard();
         // show board
-        var buf: [1024]u8 = undefined;
-        const init_statement: []const u8 = "Your Move: ";
-        @memcpy(buf[0..init_statement.len], init_statement);
-        var in = std.fs.File.stdin().reader(&buf);
+        try out.writeAll("(Row, Col, Dir): ");
         const len = in.read(&buf) catch |err| {
             print("Caught Error Here\n", .{});
             return err;
         };
         const input = buf[0..len];
-        // parse input
+        var it = std.mem.splitScalar(u8, input, ',');
+        while (it.next()) |item| {
+            print("{s} ", .{item});
+        }
         // output result
-        const out = std.fs.File.stdout();
         try out.writeAll(input);
     }
 }
@@ -139,16 +164,10 @@ fn dfsFirst(allo: Allocator, start: Board) !void {
     defer visited.deinit(allo);
     // check if won
     var winning_board: ?Board = null;
-    // loop controls
-    var loop: usize = 0;
-    const limit: usize = std.math.maxInt(T);
     // // loop
-    while (stack.items.len > 0 and loop < limit) : (loop += 1) {
-        // print("Loop: {}\n", .{loop});
-        // print("Stack Depth: {}\n", .{stack.items.len});
+    while (stack.items.len > 0) {
         // pop previous board
         const prev_board = stack.pop().?;
-        // prev_board.printBoard();
         if (prev_board.isLost()) continue;
         if (prev_board.isWon()) {
             winning_board = prev_board;
@@ -157,9 +176,6 @@ fn dfsFirst(allo: Allocator, start: Board) !void {
         const search = binarySearch(&visited, &prev_board);
         var board = if (search.visited) visited.items[search.idx] //
             else prev_board;
-        // const num_moves = board.numMovesLeft();
-        // print("Num Moves: {}\n", .{num_moves});
-        // try board.printMoves(allo);
         // get move
         const move = board.getMove();
         if (move.dir == .None) continue;
