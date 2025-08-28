@@ -34,139 +34,59 @@ const T = @import("Helpers.zig");
 //  - input cannot escape string
 //  - Ex: EndOfStream, TooLong, InvalidMove, InvalidIdx
 
-fn singleCharMatches(input: []const u8) !Key {
-    // q = quit, r = reset, u = undo
-    std.debug.assert(input.len == 1);
-    return switch (input[0]) {
-        'r' => .reset,
-        'u' => .undo,
-        'q' => .quit,
-        'h', '?' => .help,
-        'b' => .board,
-        'm' => .move,
-        // 'l', 'r' => .dir, -- needs to be handled differently
-        else => error.InvalidCharacter,
-    };
-}
-
-fn doubleCharMatches(input: []const u8) !Key {
-    std.debug.assert(input.len == 2);
-    return switch (input[0]) {
-        'd' => switch (input[1]) {
-            'r', 'l' => .dir,
-            else => error.InvalidCharacter,
-        },
-        'u' => switch (input[1]) {
-            'r', 'l' => .dir,
-            else => error.InvalidCharacter,
-        },
-        else => error.InvalidCharacter,
-    };
-}
-
-fn isMatch(input: []const u8, key: []const u8) bool {
-    if (input.len != key.len) return false;
-    var i: usize = 0;
-    while (i < input.len) : (i += 1) {
-        if (std.ascii.toLower(input[i]) != key[i]) return false;
-    }
-    return true;
-}
-
-test "Is Match" {
-    const Instruction = struct { input: []const u8, command: []const u8, match: bool };
-    const instructions = [_]Instruction{
-        .{ .input = "redo", .command = "redo", .match = true },
-        .{ .input = "r", .command = "redo", .match = false },
-        .{ .input = "z", .command = "redo", .match = false },
-        .{ .input = "undo", .command = "undo", .match = true },
-        .{ .input = "u", .command = "undo", .match = false },
-        .{ .input = "q", .command = "undo", .match = false },
-        .{ .input = "reset", .command = "reset", .match = true },
-        .{ .input = "r", .command = "reset", .match = false },
-        .{ .input = "t", .command = "reset", .match = false },
-    };
-    for (instructions) |ins| {
-        const match = isMatch(ins.input, ins.command);
-        try std.testing.expectEqual(match, ins.match);
-    }
-}
-
-const Token = struct { // 3 bytes
-    start: u8,
-    end: u8,
-    key: Key,
-};
-
-const Key = enum { // 1 byte
+const Tag = enum {
+    help,
+    reset,
     redo,
     undo,
-    reset,
-    help,
     quit,
     num,
     dir,
-    board, // print board
-    move, // print moves
 };
 
-pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
-    if (input.len > 255) return error.InputStrTooLong;
+const Token = struct {
+    start: u8,
+    end: u8,
+    tag: Tag,
+};
 
+fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
+    if (input.len > std.math.maxInt(u8)) return error.IncorrectStringSize;
     var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
-    errdefer tokens.deinit(allo);
 
     var i: u8 = 0;
     while (i < input.len) : (i += 1) {
         switch (input[i]) {
-            ' ', ',', '(', ')' => continue,
             '0'...'9' => {
-                const start: u8 = i;
-                i += 1;
-                const end: u8 = loop: while (i < input.len) : (i += 1) {
+                const start = i;
+                inner: while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         '0'...'9' => continue,
-                        ' ', ',' => break :loop i,
-                        else => return error.InvalidCharacter,
+                        else => break :inner,
                     }
-                } else break :loop @truncate(input.len);
-                try tokens.append(allo, .{
-                    .start = start,
-                    .end = end,
-                    .key = .num,
-                });
+                }
+                const end = i;
+                try tokens.append(allo, .{ .start = start, .end = end, .tag = .num });
             },
             'a'...'z', 'A'...'Z' => {
-                const start: u8 = i;
-                i += 1;
-                const end: u8 = loop: while (i < input.len) : (i += 1) {
+                const start = i;
+                inner: while (i < input.len) : (i += 1) {
                     switch (input[i]) {
-                        'a'...'z', 'A'...'Z' => {},
-                        ' ', ',' => break :loop i,
-                        else => return error.InvalidCharacter,
+                        'a'...'z', 'A'...'Z' => continue,
+                        else => break :inner,
                     }
-                } else break :loop @truncate(input.len);
-                const key: Key = if (input.len == 1) try singleCharMatches(input) //
-                    else if (input.len == 2) try doubleCharMatches(input) //
-                    else if (isMatch(input[start..end], "undo")) .undo //
-                    else if (isMatch(input[start..end], "redo")) .redo //
-                    else if (isMatch(input[start..end], "reset")) .reset //
-                    else if (isMatch(input[start..end], "help")) .help //
-                    else if (isMatch(input[start..end], "quit")) .quit //
-                    else if (isMatch(input[start..end], "Left")) .dir //
-                    else if (isMatch(input[start..end], "UpLeft")) .dir //
-                    else if (isMatch(input[start..end], "UpRight")) .dir //
-                    else if (isMatch(input[start..end], "Right")) .dir //
-                    else if (isMatch(input[start..end], "DownRight")) .dir //
-                    else if (isMatch(input[start..end], "DownLeft")) .dir //
-                    else return error.InvalidString;
-
-                try tokens.append(allo, .{
-                    .start = start,
-                    .end = end,
-                    .key = key,
-                });
+                }
+                const end = i;
+                // identify tag
+                try tokens.append(allo, .{ .start = start, .end = end, .tag = .dir });
             },
+            '?' => {
+                if (i == 0) //
+                    try tokens.append(allo, .{ .start = 0, .end = 1, .tag = .help }) //
+                else //
+                    return error.InvalidCharacter;
+            },
+            ' ', ',', '(', ')' => continue,
             else => return error.InvalidCharacter,
         }
     }
@@ -174,18 +94,12 @@ pub fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
     return tokens;
 }
 
-test "Tokenize" {
+test "Tokenizer" {
     const allo = std.testing.allocator;
-
-    // add "" as an input
-    const inputs = [_][]const u8{ "left", "right" };
-    for (inputs) |input| {
-        var tokens = try tokenize(allo, input);
-        defer tokens.deinit(allo);
-
-        for (tokens.items) |token| {
-            print("{s} - {s}\n", .{ input[token.start..token.end], @tagName(token.key) });
-        }
-        print("\n", .{});
+    const Instruction = struct {input: []const u8, outputs: [3], };
+    const instructions = [_]Instruction {
+        .{.input = "redo 5 5",  .output = ""};
     }
+    var tokens = try tokenize(allo, "redo 5 5");
+    defer tokens.deinit(allo);
 }
