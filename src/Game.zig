@@ -15,22 +15,31 @@ const N_ROWS: T = 5; // 7 -> 86 -> 768
 const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
-pub fn manual() void {
+pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
+    _ = allo;
 
-    const stdin = std.io.getStdIn().reader();
-    const stdout = std.io.getStdOut().writer();
-    var buf: [64]u8 = undefined;
-
-    try stdout.print("Enter A Number: ", .{});
-    if (try stdin.readUntilDelimiterOrEof(buf[0..], '\n')) |user_input| {
-        const trimmed = std.mem.trimRight(u8, user_input, "\r\n");
-        const number = try std.fmt.parseInt(i64, trimmed, 10);
-        try stdout.print("You entered: {}\n", .{number});
-    } else {
-        try stdout.print("No input received\n", .{});
+    var board: Board = try .init(0);
+    print("Welcome To Peg Solitaire!", .{});
+    while (!board.isGameOver()) {
+        // print board
+        board.printBoard();
+        // show board
+        var buf: [1024]u8 = undefined;
+        const init_statement: []const u8 = "Your Move: ";
+        @memcpy(buf[0..init_statement.len], init_statement);
+        var in = std.fs.File.stdin().reader(&buf);
+        const len = in.read(&buf) catch |err| {
+            print("Caught Error Here\n", .{});
+            return err;
+        };
+        const input = buf[0..len];
+        // parse input
+        // output result
+        const out = std.fs.File.stdout();
+        try out.writeAll(input);
     }
 }
 
@@ -41,6 +50,19 @@ pub fn auto() !void {
     defer std.debug.assert(gpa.deinit() == .ok);
     // try dfsFirst(allo, try .init(0));
     try dfsAll(allo, try .init(0));
+}
+
+fn helpStatement() void {
+    print("Choose a row and col and a direction to play\n", .{});
+    print("Directions: ", .{});
+    const main_dirs = [_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft };
+    for (main_dirs, 0..main_dirs.len) |dir, i| {
+        if (i < main_dirs.len - 1) {
+            print("{s} ", .{@tagName(dir)});
+        } else {
+            print("{s}\n", .{@tagName(dir)});
+        }
+    }
 }
 
 // Move All Of Below Into Auto Section of Game
