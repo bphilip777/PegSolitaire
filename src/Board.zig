@@ -19,7 +19,7 @@ const triNum = @import("helpers.zig").triNum;
 const posFromIdx = @import("helpers.zig").posFromIdx;
 const idxFromPos = @import("helpers.zig").idxFromPos;
 const formatMove = @import("helpers.zig").formatMove;
-const flipIdx = @import("helpers.zig").flipIdx;
+const flipFromIdx = @import("helpers.zig").flipFromIdx;
 
 const MAX_ROWS: T = invTriNum(std.math.maxInt(T)) - 1;
 
@@ -29,7 +29,7 @@ const Move = struct {
 
     pub fn flip(move: *const Move) Move {
         return .{
-            .idx = flipIdx(move.idx),
+            .idx = flipFromIdx(move.idx),
             .dir = move.dir.flip(),
         };
     }
@@ -77,7 +77,14 @@ pub fn createBoard(comptime n_rows: T) !type {
                     buffer[idx + 1] = ' ';
                     i += 1;
                 }
-                print("{s}\n", .{&buffer});
+                var match: bool = true;
+                buffer_loop: for (buffer) |ch| {
+                    if (ch != ' ') {
+                        match = false;
+                        break :buffer_loop;
+                    }
+                }
+                if (!match) print("{}: {s}\n", .{ row, &buffer });
             }
             print("\n", .{});
         }
@@ -626,7 +633,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             ) |chosen_dir, chosen_idx, move, i| {
                 if (chosen_dir == .None) continue;
                 flipped.chosen_dirs[i] = chosen_dir.flip();
-                flipped.chosen_idxs[i] = flipIdx(chosen_idx);
+                flipped.chosen_idxs[i] = flipFromIdx(chosen_idx);
                 // move
                 var flipped_move: Directions = .initEmpty();
                 inline for ([_]Direction{

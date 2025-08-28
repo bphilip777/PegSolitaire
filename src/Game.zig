@@ -6,7 +6,7 @@ const triNum = @import("helpers.zig").triNum;
 const numMoves = @import("helpers.zig").numMoves;
 const idxFromPos = @import("helpers.zig").idxFromPos;
 const posFromIdx = @import("helpers.zig").posFromIdx;
-const flipIdx = @import("helpers.zig").flipIdx;
+const flipFromIdx = @import("helpers.zig").flipFromIdx;
 const Direction = @import("helpers.zig").Direction;
 // board
 const createBoard = @import("Board.zig").createBoard;
@@ -34,12 +34,13 @@ const Board: type = createBoard(N_ROWS) catch unreachable;
 //  - input cannot be too long
 //  - input cannot perform a random command - only internal commands
 //  - input cannot escape string
+//  - Ex: EndOfStream, TooLong, InvalidMove, InvalidIdx
 
 pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-    _ = allo;
+    // _ = allo;
 
     var board: Board = try .init(0);
     print("Welcome To Peg Solitaire!", .{});
@@ -52,8 +53,10 @@ pub fn manual() !void {
     while (!board.isGameOver()) {
         // print board
         board.printBoard();
+        try board.printMoves(allo);
         // show board
-        try out.writeAll("(Row, Col, Dir): ");
+        try out.writeAll("(Row, Col) Dir: ");
+
         const len = in.read(&buf) catch |err| {
             print("Caught Error Here\n", .{});
             return err;
@@ -61,7 +64,7 @@ pub fn manual() !void {
         const input = buf[0..len];
         var it = std.mem.splitScalar(u8, input, ',');
         while (it.next()) |item| {
-            print("{s} ", .{item});
+            print("{s}\n", .{item});
         }
         // output result
         try out.writeAll(input);
@@ -253,18 +256,9 @@ fn dfsAll(allo: Allocator, start: Board) !void {
     var wins: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer wins.deinit(allo);
     // loop
-    // var loop: usize = 0;
-    // const limit: usize = std.math.maxInt(u16);
-    // while (stack.items.len > 0 and loop < limit) : (loop += 1) {
     while (stack.items.len > 0) {
         // pop previous board
         const prev_board = stack.pop().?;
-        // prev_board.printBoard();
-        // if (stack.items.len > 10_000 or visited.items.len > std.math.maxInt(u16)) {
-        //     print("Something Went Wrong!\n", .{});
-        //     break;
-        // }
-        // if (prev_board.isLost()) continue;
         if (prev_board.isWon()) {
             // ordered insert into list
             const search = binarySearch(&wins, &prev_board);

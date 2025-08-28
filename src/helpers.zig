@@ -363,7 +363,7 @@ pub const Input = union(enum(u8)) {
     pos: Position,
 };
 
-pub fn flipIdx(idx: T) T {
+pub fn flipFromIdx(idx: T) T {
     const pos = posFromIdx(idx);
     const flip_pos = pos.flip();
     return idxFromPos(flip_pos);
@@ -377,7 +377,7 @@ test "Idx From Flip" {
     const values = [_]T{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     const expects = [_]T{ 0, 2, 1, 5, 4, 3, 9, 8, 7, 6 };
     for (values, expects) |value, expect| {
-        const answer = flipIdx(value);
+        const answer = flipFromIdx(value);
         try std.testing.expectEqual(expect, answer);
     }
 }
