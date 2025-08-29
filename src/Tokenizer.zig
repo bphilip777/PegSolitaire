@@ -92,7 +92,8 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         '0'...'9' => continue,
                         ' ', ',', ')', 'a'...'z', 'A'...'Z' => break :inner,
                         else => {
-                            print("Failed On: {s}\n", .{input[start .. i + 1]});
+                            if (@import("builtin").mode == .debug) //
+                                print("Failed On: {s}\n", .{input[start .. i + 1]});
                             return TokenError.InvalidInput;
                         },
                     }
@@ -107,7 +108,8 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         'a'...'z', 'A'...'Z' => continue,
                         '(', ')', ',', ' ' => break :inner,
                         else => {
-                            print("Failed On: {s}\n", .{input[start .. i + 1]});
+                            if (@import("builtin").mode == .debug) //
+                                print("Failed On: {s}\n", .{input[start .. i + 1]});
                             return TokenError.InvalidInput;
                         },
                     }
@@ -125,7 +127,11 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         'q' => .quit,
                         'l' => .dir,
                         'r' => .dir,
-                        else => return TokenError.InvalidInput,
+                        else => {
+                            if (@import("builtin").mode == .debug) //
+                                print("Failed On: {s}\n", .{input[start .. start + 1]});
+                            return TokenError.InvalidInput;
+                        },
                     };
                 } else if (word.len == 2) { // two letter combo
                     const kws = [_][]const u8{ "ul", "ur", "dl", "dr" };
@@ -136,7 +142,11 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                             match = true;
                         }
                     }
-                    if (!match) return TokenError.InvalidInput;
+                    if (!match) {
+                        if (@import("builtin").mode == .debug) //
+                            print("Failed On: {s}\n", .{word});
+                        return TokenError.InvalidInput;
+                    }
                 } else { // longer inputs
                     var match: bool = false;
                     outer: for (keywords) |keyword| {
@@ -149,7 +159,8 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         break :outer;
                     }
                     if (!match) {
-                        print("Failed On: {s}\n", .{word});
+                        if (@import("builtin").mode == .debug) //
+                            print("Failed On: {s}\n", .{word});
                         return TokenError.InvalidInput;
                     }
                 }
@@ -159,10 +170,13 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                 try tokens.append(allo, .{ .start = 0, .end = 1, .tag = .help });
             },
             ' ', ',', '(', ')' => continue,
-            else => return TokenError.InvalidInput,
+            else => {
+                if (@import("builtin").mode == .debug) //
+                    print("Failed On: {s}\n", .{input[i .. i + 1]});
+                return TokenError.InvalidInput;
+            },
         }
     }
-
     return tokens;
 }
 
