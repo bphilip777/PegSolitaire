@@ -200,9 +200,47 @@ test "Tokenizer" {
     // show that there is an input size limit
 }
 
-fn validateTokens(tokens: *const std.ArrayList(Token)) !void {
-    // validate parsed tokens
-    _ = tokens;
+fn validateTokens(tokens: *const std.ArrayList(Token)) !bool {
+    var is_valid: bool = false;
+    switch (tokens.len) {
+        0 => is_valid = true,
+        1 => {
+            switch (tokens.items[0].tag) {
+                .undo, .help, .reset, .redo, .quit => is_valid = true,
+                .num, .dir => return false,
+            }
+        },
+        2 => {
+            for (tokens.items) |token| {
+                switch (token.tag) {
+                    .undo, .help, .reset, .redo, .quit => is_valid = true,
+                    .num, .dir => return false,
+                }
+            }
+        },
+        3 => {
+            for (tokens.items) |token| {
+                var n_dirs: u8 = 0;
+                var n_nums: u8 = 0;
+                switch (tokens.tag) {
+                    .num => n_nums += 1,
+                    .dir => n_dirs += 1,
+                    else => return false,
+                }
+                is_valid = (n_dirs == 1) and (n_nums == 2);
+            }
+        },
+        4 => {
+            for (tokens.items) |token| {
+                switch (token.tag) {
+                    .num => continue,
+                    else => return false,
+                }
+            }
+        },
+        else => return false,
+    }
+    return is_valid;
 }
 
 test "Validate Tokens" {}
