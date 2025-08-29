@@ -1,4 +1,5 @@
 const std = @import("std");
+const print = std.debug.print;
 
 const Tag = enum(u8) {
     alpha,
@@ -30,7 +31,7 @@ pub fn lexer(input: []const u8, tokens: [4]Token) !void {
                     }
                 }
                 const end = i;
-                try tokens[tok_pos] = .{ .start = start, .end = end, .tag = .alpha };
+                tokens[tok_pos] = .{ .start = start, .end = end, .tag = .alpha };
             },
             '0'...'9' => {
                 const start: u8 = i;
@@ -43,19 +44,27 @@ pub fn lexer(input: []const u8, tokens: [4]Token) !void {
                 }
                 const end = i;
                 tokens[tok_pos] = .{ .start = start, .end = end, .tag = .num };
-            }
+            },
             '?' => {
                 const start: u8 = i;
                 i += 1;
-                while (i < input.len) :(i += 1) {
+                while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         '?' => continue,
                         else => break,
                     }
                 }
                 const end = i;
-                tokens[tok_pos] = .{.start = start, .end = end, .tag = .help};
-            }
+                tokens[tok_pos] = .{ .start = start, .end = end, .tag = .help };
+            },
+            ' ' => continue,
+            else => {
+                print("Failed On {s}\nAt {}: {c}\n", .{ input, i, input[i] });
+                return error.InvalidCharacter;
+            },
         }
+        tok_pos += 1;
     }
 }
+
+test "Lexer" {}
