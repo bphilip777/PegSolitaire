@@ -35,10 +35,10 @@ const Tag = enum {
     reset,
     redo,
     quit,
-    num,
-    dir,
     board,
     moves,
+    dir,
+    num,
 };
 
 const Keyword = struct { str: []const u8, tag: Tag };
