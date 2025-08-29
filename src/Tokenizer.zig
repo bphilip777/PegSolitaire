@@ -5,6 +5,9 @@ const Tag = enum(u8) {
     alpha,
     help,
     num,
+    open_paren,
+    close_paren,
+    comma,
 };
 
 const Token = struct {
@@ -13,17 +16,24 @@ const Token = struct {
     tag: Tag,
 };
 
-const TokenError = error{};
+const TokenError = error{
+    InputTooSmall,
+    InputTooLarge,
+    TooManyTokens,
+    InvalidCharacter,
+};
 
-pub fn lexer(input: []const u8, tokens: [4]Token) !void {
-    std.debug.assert(input.len > 0 and input.len < std.math.maxInt(u8));
-    var tok_pos: u8 = 0;
+pub fn lexer(input: []const u8, tokens: *[8]Token) !void {
+    if (input.len == 0) return TokenError.InputTooSmall;
+    if (input.len > std.math.maxInt(u8)) return TokenError.InputTooLarge;
+
+    var token_position: u8 = 0;
     var i: u8 = 0;
     while (i < input.len) : (i += 1) {
         switch (input[i]) {
             'a'...'z', 'A'...'Z' => {
+                if (token_position == tokens.len) return TokenError.TooManyTokens;
                 const start: u8 = i;
-                i += 1;
                 while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         'a'...'z', 'A'...'Z' => continue,
@@ -31,11 +41,12 @@ pub fn lexer(input: []const u8, tokens: [4]Token) !void {
                     }
                 }
                 const end = i;
-                tokens[tok_pos] = .{ .start = start, .end = end, .tag = .alpha };
+                i -= 1;
+                tokens[token_position] = .{ .start = start, .end = end, .tag = .alpha };
             },
             '0'...'9' => {
+                if (token_position == tokens.len) return TokenError.TooManyTokens;
                 const start: u8 = i;
-                i += 1;
                 while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         '0'...'9' => continue,
@@ -43,28 +54,79 @@ pub fn lexer(input: []const u8, tokens: [4]Token) !void {
                     }
                 }
                 const end = i;
-                tokens[tok_pos] = .{ .start = start, .end = end, .tag = .num };
+                i -= 1;
+                tokens[token_position] = .{ .start = start, .end = end, .tag = .num };
             },
-            '?' => {
-                const start: u8 = i;
-                i += 1;
-                while (i < input.len) : (i += 1) {
-                    switch (input[i]) {
-                        '?' => continue,
-                        else => break,
-                    }
-                }
-                const end = i;
-                tokens[tok_pos] = .{ .start = start, .end = end, .tag = .help };
+            '?', '(', ')', ',' => |ch| {
+                if (token_position == tokens.len) return TokenError.TooManyTokens;
+                const tag: Tag = switch (ch) {
+                    '?' => .help,
+                    '(' => .open_paren,
+                    ')' => .close_paren,
+                    ',' => .comma,
+                    else => unreachable,
+                };
+                tokens[token_position] = .{ .start = i, .end = i + 1, .tag = tag };
             },
             ' ' => continue,
             else => {
-                print("Failed On {s}\nAt {}: {c}\n", .{ input, i, input[i] });
-                return error.InvalidCharacter;
+                print("Failed On: {s}\nAt {}: {c}\n", .{ input, i, input[i] });
+                return TokenError.InvalidCharacter;
             },
         }
-        tok_pos += 1;
+        token_position += 1;
     }
 }
 
-test "Lexer" {}
+test "Positiive Lexer Tests" {
+    const Instructions = struct { input: []const u8, tags: []const Tag };
+    const instructions = [_]Instructions{
+        .{ .input = "(hello, goodbye)", .tags = &.{ .open_paren, .alpha, .comma, .alpha, .close_paren } },
+        .{ .input = "12, 45", .tags = &.{ .num, .comma, .num } },
+    };
+    print("Input: {s}\n", .{instructions[0].input});
+    var tokens: [8]Token = undefined;
+    resetTokens(&tokens);
+    try lexer(instructions[0].input, &tokens);
+    print("{s} ", .{@tagName(tokens[0].tag)});
+    print("{s} ", .{@tagName(tokens[1].tag)});
+    print("{s} ", .{@tagName(tokens[2].tag)});
+    print("\n", .{});
+
+    // for (instructions) |ins| {
+    //     var tokens: [8]Token = undefined;
+    //     resetTokens(&tokens);
+    //
+    //     try lexer(ins.input, &tokens);
+    //
+    //     for (tokens[0..ins.tags.len]) |token| print("{s} ", .{@tagName(token.tag)});
+    //     for (0..ins.tags.len) |i| {
+    //         const tag1 = ins.tags[i];
+    //         const tag2 = tokens[i].tag;
+    //         print("Tags: {s} {s}\n", .{ @tagName(tag1), @tagName(tag2) });
+    //         try std.testing.expectEqual(tag1, tag2);
+    //     }
+    // }
+}
+
+fn resetTokens(tokens: []Token) void {
+    for (0..tokens.len) |i| {
+        tokens[i].start = undefined;
+        tokens[i].end = undefined;
+        tokens[i].tag = undefined;
+    }
+}
+
+test "Negative Lexer Tests" {
+    const Instructions = struct { input: []const u8, token_error: TokenError };
+    const instructions = [_]Instructions{
+        .{ .input = "", .token_error = TokenError.InputTooSmall },
+        .{ .input = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", .token_error = TokenError.InputTooLarge },
+        .{ .input = "(hello, goodbye)()()()", .token_error = TokenError.TooManyTokens },
+        .{ .input = "%$!\\", .token_error = TokenError.InvalidCharacter },
+    };
+    for (instructions) |ins| {
+        var tokens: [8]Token = undefined;
+        try std.testing.expectError(ins.token_error, lexer(ins.input, &tokens));
+    }
+}
