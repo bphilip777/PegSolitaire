@@ -83,30 +83,23 @@ test "Positiive Lexer Tests" {
     const instructions = [_]Instructions{
         .{ .input = "(hello, goodbye)", .tags = &.{ .open_paren, .alpha, .comma, .alpha, .close_paren } },
         .{ .input = "12, 45", .tags = &.{ .num, .comma, .num } },
+        .{ .input = "redo, undo, quit", .tags = &.{ .num, .comma, .num, .comma, .alpha } },
     };
-    print("Input: {s}\n", .{instructions[0].input});
-    var tokens: [8]Token = undefined;
-    resetTokens(&tokens);
-    try lexer(instructions[0].input, &tokens);
-    print("{s} ", .{@tagName(tokens[0].tag)});
-    print("{s} ", .{@tagName(tokens[1].tag)});
-    print("{s} ", .{@tagName(tokens[2].tag)});
-    print("\n", .{});
 
-    // for (instructions) |ins| {
-    //     var tokens: [8]Token = undefined;
-    //     resetTokens(&tokens);
-    //
-    //     try lexer(ins.input, &tokens);
-    //
-    //     for (tokens[0..ins.tags.len]) |token| print("{s} ", .{@tagName(token.tag)});
-    //     for (0..ins.tags.len) |i| {
-    //         const tag1 = ins.tags[i];
-    //         const tag2 = tokens[i].tag;
-    //         print("Tags: {s} {s}\n", .{ @tagName(tag1), @tagName(tag2) });
-    //         try std.testing.expectEqual(tag1, tag2);
-    //     }
-    // }
+    for (instructions) |ins| {
+        print("\nInput: {s}\n", .{ins.input});
+
+        var tokens: [8]Token = undefined;
+        resetTokens(&tokens);
+        try lexer(ins.input, &tokens);
+
+        const len = ins.tags.len;
+        for (0..len) |i| {
+            const tag1 = ins.tags[i];
+            const tag2 = tokens[i].tag;
+            print("{s} - {s}\n", .{ @tagName(tag1), @tagName(tag2) });
+        }
+    }
 }
 
 fn resetTokens(tokens: []Token) void {
