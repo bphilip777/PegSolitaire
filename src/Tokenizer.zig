@@ -68,9 +68,16 @@ const Token = struct {
     tag: Tag,
 };
 
-fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
+const TokenError = error{
+    InputTooSmall,
+    InputTooLarge,
+    InvalidInput,
+};
+
+fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!std.ArrayList(Token) {
     // only goal is to parse into tokens - not necessarily validate tokens
-    if (input.len > std.math.maxInt(u8)) return error.IncorrectStringSize;
+    if (input.len == 0) return TokenError.InputTooSmall;
+    if (input.len > std.math.maxInt(u8)) return TokenError.InputTooLarge;
 
     var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
     errdefer tokens.deinit(allo);
@@ -83,8 +90,11 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                 inner: while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         '0'...'9' => continue,
-                        ' ', ',', ')' => break :inner,
-                        else => return error.InvalidCharacter,
+                        ' ', ',', ')', 'a'...'z', 'A'...'Z' => break :inner,
+                        else => {
+                            print("Failed On: {s}\n", .{input[start .. i + 1]});
+                            return TokenError.InvalidInput;
+                        },
                     }
                 }
                 const end = i;
@@ -98,7 +108,7 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                         '(', ')', ',', ' ' => break :inner,
                         else => {
                             print("Failed On: {s}\n", .{input[start .. i + 1]});
-                            return error.InvalidCharacter;
+                            return TokenError.InvalidInput;
                         },
                     }
                 }
@@ -115,7 +125,7 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                         'q' => .quit,
                         'l' => .dir,
                         'r' => .dir,
-                        else => return error.InvalidCharacter,
+                        else => return TokenError.InvalidInput,
                     };
                 } else if (word.len == 2) { // two letter combo
                     const kws = [_][]const u8{ "ul", "ur", "dl", "dr" };
@@ -126,7 +136,7 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                             match = true;
                         }
                     }
-                    if (!match) return error.InvalidInput;
+                    if (!match) return TokenError.InvalidInput;
                 } else { // longer inputs
                     var match: bool = false;
                     outer: for (keywords) |keyword| {
@@ -140,7 +150,7 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                     }
                     if (!match) {
                         print("Failed On: {s}\n", .{word});
-                        return error.InvalidInput;
+                        return TokenError.InvalidInput;
                     }
                 }
                 try tokens.append(allo, .{ .start = start, .end = end, .tag = tag });
@@ -149,14 +159,14 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                 try tokens.append(allo, .{ .start = 0, .end = 1, .tag = .help });
             },
             ' ', ',', '(', ')' => continue,
-            else => return error.InvalidCharacter,
+            else => return TokenError.InvalidInput,
         }
     }
 
     return tokens;
 }
 
-test "Tokenizer" {
+test "Successful Tokenizer" {
     const allo = std.testing.allocator;
 
     // Expect these to pass
@@ -195,9 +205,25 @@ test "Tokenizer" {
             try std.testing.expectEqual(token.tag, tag);
         }
     }
+}
 
+test "Failing Tokenizer" {
+    const allo = std.testing.allocator;
     // Expect these to fail
     // show that there is an input size limit
+    const Instruction = struct { input: []const u8, error_tag: TokenError };
+    const instructions = [_]Instruction{
+        // show order does not matter at this point
+        .{ .input = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", .error_tag = TokenError.InputTooLarge },
+        .{ .input = "", .error_tag = TokenError.InputTooSmall },
+        .{ .input = "39%2", .error_tag = TokenError.InvalidInput },
+        .{ .input = "39!2", .error_tag = TokenError.InvalidInput },
+        .{ .input = "39<2", .error_tag = TokenError.InvalidInput },
+    };
+    // loop
+    for (instructions) |ins| {
+        try std.testing.expectError(ins.error_tag, tokenize(allo, ins.input));
+    }
 }
 
 fn validateTokens(tokens: *const std.ArrayList(Token)) !bool {
@@ -222,7 +248,7 @@ fn validateTokens(tokens: *const std.ArrayList(Token)) !bool {
             for (tokens.items) |token| {
                 var n_dirs: u8 = 0;
                 var n_nums: u8 = 0;
-                switch (tokens.tag) {
+                switch (token.tag) {
                     .num => n_nums += 1,
                     .dir => n_dirs += 1,
                     else => return false,
