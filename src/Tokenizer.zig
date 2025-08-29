@@ -147,7 +147,8 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         bo_kw => .board,
                         mo_kw => .moves,
                         else => {
-                            print("Failed On: {s}\n", .{word});
+                            if (@import("builtin").mode == .Debug) //
+                                print("Failed On: {s}\n", .{word});
                             return error.InvalidInput;
                         },
                     };
