@@ -69,6 +69,7 @@ const Token = struct {
 };
 
 fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
+    // only goal is to parse into tokens - not necessarily validate tokens
     if (input.len > std.math.maxInt(u8)) return error.IncorrectStringSize;
 
     var tokens: std.ArrayList(Token) = try .initCapacity(allo, 5);
@@ -82,7 +83,8 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                 inner: while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         '0'...'9' => continue,
-                        else => break :inner,
+                        ' ', ',', ')' => break :inner,
+                        else => return error.InvalidCharacter,
                     }
                 }
                 const end = i;
@@ -93,12 +95,17 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                 inner: while (i < input.len) : (i += 1) {
                     switch (input[i]) {
                         'a'...'z', 'A'...'Z' => continue,
-                        else => break :inner,
+                        '(', ')', ',', ' ' => break :inner,
+                        else => {
+                            print("Failed On: {s}\n", .{input[start .. i + 1]});
+                            return error.InvalidCharacter;
+                        },
                     }
                 }
                 const end = i;
                 // identify tag
                 const word = input[start..end];
+                // print("Word: {s}\n", .{word});
                 var tag: Tag = undefined;
                 if (word.len == 1) { // 1 letter combo
                     // "u", "h", "q", "l", "r",
@@ -111,20 +118,15 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                         else => return error.InvalidCharacter,
                     };
                 } else if (word.len == 2) { // two letter combo
-                    const value: u16 = (@as(u16, toLower(input[start])) << 8) + @as(u16, toLower(input[end]));
-                    const kws = [_]u16{
-                        @as(u16, 'u' << 8) + @as(u16, 'l'),
-                        @as(u16, 'u' << 8) + @as(u16, 'r'),
-                        @as(u16, 'd' << 8) + @as(u16, 'l'),
-                        @as(u16, 'd' << 8) + @as(u16, 'r'),
-                    };
-                    tag = switch (value) {
-                        kws[0], kws[1], kws[2], kws[3] => .dir,
-                        else => {
-                            print("\nFailed on {s}!!!\n", .{word});
-                            return error.InvalidInput;
-                        },
-                    };
+                    const kws = [_][]const u8{ "ul", "ur", "dl", "dr" };
+                    var match: bool = false;
+                    for (kws) |kw| {
+                        if (eql(u8, kw, word)) {
+                            tag = .dir;
+                            match = true;
+                        }
+                    }
+                    if (!match) return error.InvalidInput;
                 } else { // longer inputs
                     var match: bool = false;
                     outer: for (keywords) |keyword| {
@@ -136,15 +138,15 @@ fn tokenize(allo: Allocator, input: []const u8) !std.ArrayList(Token) {
                         match = true;
                         break :outer;
                     }
-                    if (!match) return error.InvalidInput;
+                    if (!match) {
+                        print("Failed On: {s}\n", .{word});
+                        return error.InvalidInput;
+                    }
                 }
                 try tokens.append(allo, .{ .start = start, .end = end, .tag = tag });
             },
             '?' => {
-                if (i == 0) //
-                    try tokens.append(allo, .{ .start = 0, .end = 1, .tag = .help }) //
-                else //
-                    return error.InvalidCharacter;
+                try tokens.append(allo, .{ .start = 0, .end = 1, .tag = .help });
             },
             ' ', ',', '(', ')' => continue,
             else => return error.InvalidCharacter,
@@ -166,9 +168,20 @@ test "Tokenizer" {
         .{ .input = "0 right 0", .tags = &.{ .num, .dir, .num } },
         // show that single values or double values or full values don't matter
         .{ .input = "ul l h", .tags = &.{ .dir, .dir, .help } },
-        // .{ .input = "ur ? dr", .tags = &.{ .dir, .help, .dir } },
-        // .{ .input = "ul q r", .tags = &.{ .dir, .quit, .dir } },
+        .{ .input = "ur ?)(, dr", .tags = &.{ .dir, .help, .dir } },
+        .{ .input = "ul q r", .tags = &.{ .dir, .quit, .dir } },
+        .{ .input = "ul)(, q r", .tags = &.{ .dir, .quit, .dir } },
+        .{ .input = "quit q ?", .tags = &.{ .quit, .quit, .help } },
+        // show that whitespaces and '(' ')' and ',' don't matter
+        .{ .input = "(5, 6) r", .tags = &.{ .num, .num, .dir } },
+        .{ .input = "r (5, 6)", .tags = &.{ .dir, .num, .num } },
+        .{ .input = "r (5, 6)", .tags = &.{ .dir, .num, .num } },
+        .{ .input = "r, (5, 6)", .tags = &.{ .dir, .num, .num } },
+        .{ .input = "r (5) 6)", .tags = &.{ .dir, .num, .num } },
+        .{ .input = "r                 (5) ()())() 6)", .tags = &.{ .dir, .num, .num } },
+        .{ .input = "r (5) 6)", .tags = &.{ .dir, .num, .num } },
     };
+    // loop
     for (instructions) |ins| {
         var tokens: std.ArrayList(Token) = try tokenize(allo, ins.input);
         defer tokens.deinit(allo);
@@ -184,4 +197,12 @@ test "Tokenizer" {
     }
 
     // Expect these to fail
+    // show that there is an input size limit
 }
+
+fn validateTokens(tokens: *const std.ArrayList(Token)) !void {
+    // validate parsed tokens
+    _ = tokens;
+}
+
+test "Validate Tokens" {}
