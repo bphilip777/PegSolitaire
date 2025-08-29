@@ -12,13 +12,6 @@ const T = @import("Helpers.zig");
 
 // TODO:
 // manual:
-// - ignore trailing or starting whitespaces, commas, spaces
-// - parse h, help, HELP, Help, ? = bring up help page
-// - parse u, undo, UNDO, Undo = undo move
-// - parse r, reset, RESET, reset = reset board
-// - parse (num1, num2) as coordinate on board
-// - parse directions:
-//  - Left, L, l, .Left = .Left
 // - parse toggles:
 //  - show moves
 //  - show positions
@@ -44,6 +37,8 @@ const Tag = enum {
     quit,
     num,
     dir,
+    board,
+    moves,
 };
 
 const Keyword = struct { str: []const u8, tag: Tag };
@@ -54,6 +49,8 @@ const keywords = [_]Keyword{
     .{ .str = "Reset", .tag = .reset },
     .{ .str = "Redo", .tag = .redo },
     .{ .str = "Quit", .tag = .quit },
+    .{ .str = "Board", .tag = .board },
+    .{ .str = "Moves", .tag = .moves },
     .{ .str = "Left", .tag = .dir },
     .{ .str = "UpLeft", .tag = .dir },
     .{ .str = "UpRight", .tag = .dir },
@@ -92,7 +89,7 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         '0'...'9' => continue,
                         ' ', ',', ')', 'a'...'z', 'A'...'Z' => break :inner,
                         else => {
-                            if (@import("builtin").mode == .debug) //
+                            if (@import("builtin").mode == .Debug) //
                                 print("Failed On: {s}\n", .{input[start .. i + 1]});
                             return TokenError.InvalidInput;
                         },
@@ -108,7 +105,7 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         'a'...'z', 'A'...'Z' => continue,
                         '(', ')', ',', ' ' => break :inner,
                         else => {
-                            if (@import("builtin").mode == .debug) //
+                            if (@import("builtin").mode == .Debug) //
                                 print("Failed On: {s}\n", .{input[start .. i + 1]});
                             return TokenError.InvalidInput;
                         },
@@ -127,26 +124,33 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         'q' => .quit,
                         'l' => .dir,
                         'r' => .dir,
+                        'b' => .board,
+                        'm' => .moves,
                         else => {
-                            if (@import("builtin").mode == .debug) //
+                            if (@import("builtin").mode == .Debug) //
                                 print("Failed On: {s}\n", .{input[start .. start + 1]});
                             return TokenError.InvalidInput;
                         },
                     };
                 } else if (word.len == 2) { // two letter combo
-                    const kws = [_][]const u8{ "ul", "ur", "dl", "dr" };
-                    var match: bool = false;
-                    for (kws) |kw| {
-                        if (eql(u8, kw, word)) {
-                            tag = .dir;
-                            match = true;
-                        }
-                    }
-                    if (!match) {
-                        if (@import("builtin").mode == .debug) //
+                    const w: u16 = (@as(u16, word[0]) << 8) + word[1];
+                    const dir_kws = [_]u16{
+                        (@as(u16, 'u') << 8) + 'l',
+                        (@as(u16, 'u') << 8) + 'r',
+                        (@as(u16, 'd') << 8) + 'l',
+                        (@as(u16, 'd') << 8) + 'r',
+                    };
+                    const bo_kw = (@as(u16, 'b') << 8) + 'o';
+                    const mo_kw = (@as(u16, 'm') << 8) + 'o';
+                    tag = switch (w) {
+                        dir_kws[0], dir_kws[1], dir_kws[2], dir_kws[3] => .dir,
+                        bo_kw => .board,
+                        mo_kw => .moves,
+                        else => {
                             print("Failed On: {s}\n", .{word});
-                        return TokenError.InvalidInput;
-                    }
+                            return error.InvalidInput;
+                        },
+                    };
                 } else { // longer inputs
                     var match: bool = false;
                     outer: for (keywords) |keyword| {
@@ -159,7 +163,7 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
                         break :outer;
                     }
                     if (!match) {
-                        if (@import("builtin").mode == .debug) //
+                        if (@import("builtin").mode == .Debug) //
                             print("Failed On: {s}\n", .{word});
                         return TokenError.InvalidInput;
                     }
@@ -171,7 +175,7 @@ fn tokenize(allo: Allocator, input: []const u8) (Allocator.Error || TokenError)!
             },
             ' ', ',', '(', ')' => continue,
             else => {
-                if (@import("builtin").mode == .debug) //
+                if (@import("builtin").mode == .Debug) //
                     print("Failed On: {s}\n", .{input[i .. i + 1]});
                 return TokenError.InvalidInput;
             },
