@@ -133,6 +133,7 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                             num2 = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
                             switch (t2.tag) {
                                 .alpha => {
+                                    print("Input: {} - {s}\n", .{ t2.end - t2.start, input[t2.start..t2.end] });
                                     dir = Direction.parse(input[t2.start..t2.end]);
                                     if (dir == .None) return ParserError.InvalidInput;
                                 },
@@ -143,14 +144,14 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     }
                 },
                 .alpha => {
-                    dir = Direction.parse(input[t2.start..t2.end]);
+                    dir = Direction.parse(input[t0.start..t0.end]);
                     if (dir == .None) return ParserError.InvalidInput;
                     switch (t1.tag) {
                         .num => {
-                            num1 = try std.fmt.parseInt(T, input[t0.start..t0.end], 10);
+                            num1 = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
                             switch (t2.tag) {
                                 .num => {
-                                    num2 = try std.fmt.parseInt(T, input[t0.start..t0.end], 10);
+                                    num2 = try std.fmt.parseInt(T, input[t2.start..t2.end], 10);
                                 },
                                 else => return ParserError.InvalidInput,
                             }
@@ -201,30 +202,24 @@ test "Positive Parser" {
         .{ .input = "19 r", .tags = &.{ .{ .num = 19 }, .{ .dir = .Right } } },
         .{ .input = "ur 4", .tags = &.{ .{ .dir = .UpRight }, .{ .num = 4 } } }, // if i want redo - i can't accept this?
         // triple
-        // .{ .input = "10 7 r", .tags = &.{ .{ .num = 10 }, .{ .num = 7 }, .{ .dir = .Right } } },
-        // .{ .input = "r 7 10", .tags = &.{ .num, .num, .{ .dir = .Right } } },
-        // .{ .input = "left 0 1", .tags = &.{ .num, .num, .{ .dir = .Left } } },
-        // .{ .input = "upleft 1 1", .tags = &.{ .num, .num, .{ .dir = .UpLeft } } },
-        // .{ .input = "UR 1 1", .tags = &.{ .num, .num, .{ .dir = .UpRight } } },
-        // .{ .input = "ur 1 1", .tags = &.{ .num, .num, .{ .dir = .UpRight } } },
-        // .{ .input = "uR 1 1", .tags = &.{ .num, .num, .{ .dir = .UpRight } } },
+        .{ .input = "10 7 r", .tags = &.{ .{ .num = 10 }, .{ .num = 7 }, .{ .dir = .Right } } },
+        .{ .input = "r 7 10", .tags = &.{ .{ .num = 7 }, .{ .num = 10 }, .{ .dir = .Right } } },
+        .{ .input = "left 0 1", .tags = &.{ .{ .num = 0 }, .{ .num = 1 }, .{ .dir = .Left } } },
+        .{ .input = "upleft 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .dir = .UpLeft } } },
+        .{ .input = "UR 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .dir = .UpRight } } },
+        .{ .input = "ur 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .dir = .UpRight } } },
+        .{ .input = "uR 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .dir = .UpRight } } },
+        .{ .input = "Ur 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .dir = .UpRight } } },
         // quadruple
-        // .{ .input = "1 1 1 1", .tags = &.{ .num, .num, .num, .num } },
+        .{ .input = "1 1 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 } } },
     };
     for (instructions, 0..) |ins, i| {
-        var parsed_tokens = Parser(allo, ins.input) catch |err| {
-            print("\nFailed {}: {s}\n", .{ i, ins.input });
-            return err;
-        };
+        var parsed_tokens = Parser(allo, ins.input);
         defer parsed_tokens.deinit(allo);
 
         try std.testing.expectEqual(ins.tags.len, parsed_tokens.items.len);
         for (parsed_tokens.items, ins.tags) |pt, tag| {
-            std.testing.expectEqual(tag, pt) catch |err| {
-                print("Input: {s}\n", .{ins.input});
-                print("Failed On: {s}\n", .{@tagName(tag)});
-                return err;
-            };
+            try std.testing.expectEqual(tag, pt);
         }
     }
 }
