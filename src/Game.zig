@@ -73,7 +73,27 @@ pub fn manual() !void {
                     else => unreachable,
                 }
             },
-            2 => {},
+            2 => {
+                // redo/undo num
+                // dir num
+                // num dir
+                const pt0 = parsed_tokens.items[0];
+                const pt1 = parsed_tokens.items[1];
+                switch (pt0.tag) {
+                    .undo => board.undoMove(pt1.num),
+                    .redo => board.redoMove(pt1.num),
+                    .num => |n| {
+                        const d = pt1.dir;
+                        board.chooseMove(.{ .idx = n }, d);
+                    },
+                    .dir => |d| {
+                        const n = pt1.num;
+                        board.chooseMove();
+                        board.chooseMove(.{ .idx = n }, d);
+                    },
+                    else => unreachable,
+                }
+            },
             3 => {},
             4 => {},
             5 => {},

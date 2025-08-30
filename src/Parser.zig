@@ -51,8 +51,8 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                 .alpha => {
                     const start = token.start;
                     const end = token.end;
-                    const diff = end - start;
-                    switch (diff) {
+                    const n_chars = end - start;
+                    switch (n_chars) {
                         0 => unreachable,
                         1 => switch (input[start]) {
                             'a' => arr.appendAssumeCapacity(.auto),
