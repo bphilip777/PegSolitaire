@@ -34,7 +34,10 @@ const ParserError = error{
     InvalidParse,
 };
 
-pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError || ParserError || std.fmt.ParseIntError)!std.ArrayList(Tag) {
+pub fn Parser(
+    allo: Allocator,
+    input: []const u8,
+) (Allocator.Error || LexerError || ParserError || std.fmt.ParseIntError)!std.ArrayList(Tag) {
     var arr: std.ArrayList(Tag) = try .initCapacity(allo, 10);
     errdefer arr.deinit(allo);
 
@@ -215,6 +218,7 @@ test "Positive Parser" {
         // quadruple
         .{ .input = "1 1 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 } } },
     };
+
     for (instructions) |ins| {
         var parsed_tokens = try Parser(allo, ins.input);
         defer parsed_tokens.deinit(allo);
