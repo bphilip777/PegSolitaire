@@ -18,6 +18,7 @@ const T = @import("Helpers.zig").T;
 // Extends direction from helpers
 const Tag = union(enum) {
     empty,
+    auto,
     help,
     redo,
     undo,
@@ -54,6 +55,7 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     switch (diff) {
                         0 => unreachable,
                         1 => switch (input[start]) {
+                            'a' => arr.appendAssumeCapacity(.auto),
                             'r' => arr.appendAssumeCapacity(.redo),
                             'R' => arr.appendAssumeCapacity(.reset),
                             'q', 'Q' => arr.appendAssumeCapacity(.quit),
@@ -62,14 +64,17 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                             else => return ParserError.InvalidInput,
                         },
                         4 => {
-                            if (eql(u8, input[start..end], "redo")) arr.appendAssumeCapacity(.redo);
-                            if (eql(u8, input[start..end], "undo")) arr.appendAssumeCapacity(.undo);
-                            if (eql(u8, input[start..end], "quit")) arr.appendAssumeCapacity(.quit);
+                            const word = input[start..end];
+                            if (eql(u8, word, "auto")) arr.appendAssumeCapacity(.auto);
+                            if (eql(u8, word, "redo")) arr.appendAssumeCapacity(.redo);
+                            if (eql(u8, word, "undo")) arr.appendAssumeCapacity(.undo);
+                            if (eql(u8, word, "quit")) arr.appendAssumeCapacity(.quit);
                             return ParserError.InvalidInput;
                         },
                         5 => {
-                            if (eql(u8, input[start..end], "moves")) arr.appendAssumeCapacity(.moves);
-                            if (eql(u8, input[start..end], "reset")) arr.appendAssumeCapacity(.reset);
+                            const word = input[start..end];
+                            if (eql(u8, word, "moves")) arr.appendAssumeCapacity(.moves);
+                            if (eql(u8, word, "reset")) arr.appendAssumeCapacity(.reset);
                             return ParserError.InvalidInput;
                         },
                         else => return ParserError.InvalidInput,
