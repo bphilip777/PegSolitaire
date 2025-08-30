@@ -29,8 +29,7 @@ pub fn manual() !void {
     defer std.debug.assert(gpa.deinit() == .ok);
 
     var board: Board = try .init(0);
-    print("Welcome To Peg Solitaire!!!\n\n", .{});
-    print("Choose a position and direction!\nEx: (1, 1) DownRight\n\n", .{});
+    greetings();
 
     // while (!board.isGameOver()) {
     var buf = [_]u8{' '} ** MAX_BUFFER_LEN; // resets buffer every loop
@@ -72,6 +71,14 @@ pub fn auto() !void {
     defer std.debug.assert(gpa.deinit() == .ok);
     // try dfsFirst(allo, try .init(0));
     try dfsAll(allo, try .init(0));
+}
+
+fn greetings() void {
+    const strs = [_][]const u8{
+        "Welcome To Peg Solitaire!!!",
+        "Press ? for help menu",
+    };
+    for (strs) |str| print("{s}\n", .{str});
 }
 
 fn helpStatement() void {

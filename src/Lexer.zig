@@ -97,6 +97,8 @@ test "Positiive Lexer Tests" {
         .{ .input = "hello goodbye", .tags = &.{ .alpha, .alpha } },
         .{ .input = "12 45", .tags = &.{ .num, .num } },
         .{ .input = "redo undo quit", .tags = &.{ .alpha, .alpha, .alpha } },
+        .{ .input = "0 dr", .tags = &.{ .num, .alpha } },
+        .{ .input = "dr 0", .tags = &.{ .alpha, .num } },
     };
 
     for (instructions) |ins| {
