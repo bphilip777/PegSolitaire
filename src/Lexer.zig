@@ -78,15 +78,17 @@ pub fn Lexer(input: []const u8, tokens: *[N_TOKENS]Token) !void {
                 tokens[token_position] = .{ .start = i, .end = i + 1, .tag = tag };
             },
             ' ' => continue,
-            else => return LexerError.InvalidCharacter, // try printError(input, i),
+            else => {
+                printError(input, i);
+                return LexerError.InvalidCharacter;
+            },
         }
         token_position += 1;
     }
 }
 
-fn printError(input: []const u8, i: u8) !void {
+fn printError(input: []const u8, i: u8) void {
     print("Failed On: {s}\nAt {}: {c}\n", .{ input, i, input[i] });
-    return LexerError.InvalidCharacter;
 }
 
 test "Positiive Lexer Tests" {
