@@ -17,11 +17,13 @@ const N_ROWS: T = 5; // 7 -> 86 -> 768
 const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
+// Parser
+const Parser = @import("Parser.zig").Parser;
+
 pub fn manual() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-    _ = allo;
 
     var board: Board = try .init(0);
     print("Welcome To Peg Solitaire!!!\n\n", .{});
@@ -40,18 +42,11 @@ pub fn manual() !void {
     const len = try in.read(&buf); // EndOfStream, ReadFailed
     const input = buf[0..len];
 
-    // trim trailing + starting whitespace
-    const trim_input = std.mem.trim(u8, input, " ");
-    print("Input: {s}\n", .{trim_input});
+    // parse input
+    var parsed_tokens = try Parser(allo, input);
+    defer parsed_tokens.deinit(allo);
 
-    // parse spaces
-    const n_spaces = std.mem.count(u8, input, " ");
-    if (n_spaces != 3) return error.InvalidInput;
-
-    var it = std.mem.splitScalar(u8, input, ',');
-    while (it.next()) |item| {
-        print("{s}\n", .{item});
-    }
+    // call appropriate functions
 
     // output result
     try out.writeAll(input);
