@@ -9,11 +9,12 @@ const idxFromPos = @import("Helpers.zig").idxFromPos;
 const posFromIdx = @import("Helpers.zig").posFromIdx;
 const flipFromIdx = @import("Helpers.zig").flipFromIdx;
 const Direction = @import("Helpers.zig").Direction;
+const Position = @import("Helpers.zig").Position;
 const T = @import("Helpers.zig").T;
 
 // board
 const createBoard = @import("Board.zig").createBoard;
-const N_ROWS: T = 5; // 7 -> 86 -> 768
+const N_ROWS: T = 5;
 const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
@@ -130,10 +131,23 @@ pub fn manual() !void {
                     },
                     else => unreachable,
                 }
+
+                try board.chooseMove(.{
+                    .pos = .{ .start = num1, .end = num2 },
+                }, dir);
             },
-            4 => {},
-            5 => {},
-            else => unreachable,
+            4 => {
+                var nums: [4]u16 = undefined;
+                for (parsed_tokens.inputs, 0..) |pt, i| {
+                    switch (pt.tag) {
+                        .num => |n| nums[i] = n,
+                    }
+                }
+                const pos1: Position = .{ .start = nums[0], .end = nums[1] };
+                const pos2: Position = .{ .start = nums[2], .end = nums[3] };
+                const dir = pos1.dir(pos2);
+                try board.chooseMove(.{ .pos = pos1 }, dir);
+            },
         }
         // output result
         try out.writeAll(input);

@@ -97,22 +97,54 @@ pub const Position = struct {
     row: T,
     col: T,
 
-    pub fn eql(pos1: Position, pos2: Position) bool {
-        return pos1.row == pos2.row and pos1.col == pos2.col;
+    pub fn eql(self: *const @This(), other: *const @This()) bool {
+        return self.row == other.row and self.col == other.col;
     }
 
-    pub fn dst(pos1: Position, pos2: Position) T {
-        const max_row = @max(pos1.row, pos2.row);
-        const min_row = @min(pos1.row, pos2.row);
-        const max_col = @max(pos1.col, pos2.col);
-        const min_col = @min(pos1.col, pos2.col);
+    pub fn dst(self: *const @This(), other: *const @This()) T {
+        const max_row = @max(self.row, other.row);
+        const min_row = @min(self.row, other.row);
+        const max_col = @max(self.col, other.col);
+        const min_col = @min(self.col, other.col);
         return @max(max_row - min_row, max_col - min_col);
     }
 
-    pub fn flip(pos: *const Position) Position {
-        return Position{
-            .row = pos.row,
-            .col = pos.row - pos.col,
+    pub fn flip(self: *const @This()) @This() {
+        return @This(){
+            .row = self.row,
+            .col = self.row - self.col,
+        };
+    }
+
+    pub fn dir(self: *const @This(), other: *const @This()) Direction {
+        const DirEnum = enum { less, eq, more };
+        // get dist
+        const row_enum: DirEnum = if (self.row < other.row) .less else .more;
+        const col_enum: DirEnum = if (self.col < other.col) .less else if (self.col == other.col) .eq else .more;
+
+        return switch (row_enum) {
+            .less => {
+                switch (col_enum) {
+                    .less => .UpLeft,
+                    .eq => .UpRight,
+                    .more => unreachable,
+                }
+            },
+            .eq => {
+                switch (col_enum) {
+                    .less => .Left,
+                    .more => .Right,
+                    .eq => unreachable,
+                }
+            },
+            .more => {
+                switch (col_enum) {
+                    .eq => .DownLeft,
+                    .more => .DownRight,
+                    .left => unreachable,
+                }
+            },
+            else => unreachable,
         };
     }
 };
