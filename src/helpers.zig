@@ -1,5 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const eql = std.mem.eql;
+const toLower = std.ascii.toLower;
 
 pub const T: type = u16;
 
@@ -214,6 +216,45 @@ pub const Direction: type = enum(u8) {
             .DownLeft => .DownRight,
             else => .None,
         };
+    }
+
+    pub fn parse(input: []const u8) Direction {
+        switch (input.len) {
+            0 => return .None,
+            1 => {
+                return switch (toLower(input[0])) {
+                    'l' => .Left,
+                    'r' => .Right,
+                    else => .None,
+                };
+            },
+            2 => {
+                const in = (@as(u16, toLower(input[0])) << 8) + toLower(input[1]);
+                const kws = [4]u16{
+                    (@as(u16, 'd') << 8) + 'r',
+                    (@as(u16, 'd') << 8) + 'l',
+                    (@as(u16, 'u') << 8) + 'r',
+                    (@as(u16, 'u') << 8) + 'l',
+                };
+                return switch (in) {
+                    kws[0] => .DownRight,
+                    kws[1] => .DownLeft,
+                    kws[2] => .UpRight,
+                    kws[3] => .UpLeft,
+                    else => .None,
+                };
+            },
+            else => {
+                for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
+                    const tag_name = @tagName(dir);
+                    for (tag_name, input) |ch1, ch2| {
+                        if (toLower(ch1) != toLower(ch2)) break;
+                    }
+                    return dir;
+                }
+                return .None;
+            },
+        }
     }
 };
 
