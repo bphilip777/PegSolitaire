@@ -247,10 +247,11 @@ pub const Direction: type = enum(u8) {
             else => {
                 for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
                     const tag_name = @tagName(dir);
+                    if (tag_name.len != input.len) continue;
                     for (tag_name, input) |ch1, ch2| {
                         if (toLower(ch1) != toLower(ch2)) break;
+                        return dir;
                     }
-                    return dir;
                 }
                 return .None;
             },

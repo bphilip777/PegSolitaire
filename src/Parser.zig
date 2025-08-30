@@ -88,6 +88,7 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     const t1 = tokens[1];
                     const seg = input[t0.start..t0.end];
                     const dir = Direction.parse(seg);
+                    print("Dir: {s}\n", .{@tagName(dir)});
                     if (dir != .None) {
                         arr.appendAssumeCapacity(.{ .dir = dir });
                     } else if (eql(u8, seg, "redo")) {
