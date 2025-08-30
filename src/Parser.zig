@@ -88,7 +88,6 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     const t1 = tokens[1];
                     const seg = input[t0.start..t0.end];
                     const dir = Direction.parse(seg);
-                    print("Dir: {s}\n", .{@tagName(dir)});
                     if (dir != .None) {
                         arr.appendAssumeCapacity(.{ .dir = dir });
                     } else if (eql(u8, seg, "redo")) {
@@ -133,7 +132,6 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                             num2 = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
                             switch (t2.tag) {
                                 .alpha => {
-                                    print("Input: {} - {s}\n", .{ t2.end - t2.start, input[t2.start..t2.end] });
                                     dir = Direction.parse(input[t2.start..t2.end]);
                                     if (dir == .None) return ParserError.InvalidInput;
                                 },
@@ -160,7 +158,6 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     }
                 },
                 else => {
-                    std.log.info("Failed To Parse: {s}", .{input});
                     return ParserError.InvalidInput;
                 },
             }
@@ -213,8 +210,8 @@ test "Positive Parser" {
         // quadruple
         .{ .input = "1 1 1 1", .tags = &.{ .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 }, .{ .num = 1 } } },
     };
-    for (instructions, 0..) |ins, i| {
-        var parsed_tokens = Parser(allo, ins.input);
+    for (instructions) |ins| {
+        var parsed_tokens = try Parser(allo, ins.input);
         defer parsed_tokens.deinit(allo);
 
         try std.testing.expectEqual(ins.tags.len, parsed_tokens.items.len);
