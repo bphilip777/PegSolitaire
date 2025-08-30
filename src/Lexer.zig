@@ -42,6 +42,7 @@ pub fn Lexer(input: []const u8, tokens: *[N_TOKENS]Token) !void {
     var token_position: u8 = 0;
     var i: u8 = 0;
     while (i < input.len) : (i += 1) {
+        print("{}:\n", .{i});
         switch (input[i]) {
             'a'...'z', 'A'...'Z' => {
                 if (token_position == tokens.len) return LexerError.TooManyTokens;
@@ -77,7 +78,7 @@ pub fn Lexer(input: []const u8, tokens: *[N_TOKENS]Token) !void {
                 };
                 tokens[token_position] = .{ .start = i, .end = i + 1, .tag = tag };
             },
-            ' ' => continue,
+            ' ', '\r', '\n' => continue,
             else => {
                 printError(input, i);
                 return LexerError.InvalidCharacter;

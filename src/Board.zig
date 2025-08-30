@@ -651,7 +651,217 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
             return flipped;
         }
+
+        fn dfsFirst(self: *const Board, allo: Allocator) !void {
+            const new_board: Board = self.*;
+            // Finds First Solution And Prints It
+            // stack
+            var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            defer stack.deinit(allo);
+            // append initial board state
+            try stack.append(allo, start);
+            // previously visited boards
+            var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            defer visited.deinit(allo);
+            // check if won
+            var winning_board: ?Board = null;
+            // // loop
+            while (stack.items.len > 0) {
+                // pop previous board
+                const prev_board = stack.pop().?;
+                if (prev_board.isLost()) continue;
+                if (prev_board.isWon()) {
+                    winning_board = prev_board;
+                    break;
+                }
+                const search = binarySearch(&visited, &prev_board);
+                var board = if (search.visited) visited.items[search.idx] //
+                    else prev_board;
+                // get move
+                const move = board.getMove();
+                if (move.dir == .None) continue;
+                // choose move
+                var new_board = board;
+                new_board.chooseMove(.{ .idx = move.idx }, move.dir);
+                // Get symmetrical board
+                const flip_prev_board = prev_board.flip();
+                const search2 = binarySearch(&visited, &flip_prev_board);
+                var flipped_board = if (search2.visited) visited.items[search2.idx] //
+                    else flip_prev_board;
+                const flip_move = move.flip();
+                { // Remove Moves
+                    board.moves[move.idx].remove(move.dir);
+                    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
+                    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+                    const other_dir = move.dir.opposite();
+                    board.moves[other_idx].remove(other_dir);
+                    // if board has moves, append onto stack
+                    if (board.numMovesLeft() > 0) {
+                        try stack.append(allo, board);
+                    }
+                    // if board was visited, modify, if board wasn't append
+                    if (search.visited) {
+                        visited.items[search.idx] = board;
+                    } else {
+                        try visited.append(allo, board);
+                    }
+                }
+                { // Remove symmetrical moves
+                    flipped_board.moves[flip_move.idx].remove(flip_move.dir);
+                    const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+                    const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+                    const flip_other_dir = flip_move.dir.opposite();
+                    flipped_board.moves[flip_other_idx].remove(flip_other_dir);
+                    // if flipboard was visited, modify, if flipped board wasn't append
+                    if (search2.visited) {
+                        visited.items[search2.idx] = flipped_board;
+                    } else {
+                        try visited.append(allo, flipped_board);
+                    }
+                }
+                // update stack with new board
+                try stack.append(allo, new_board);
+            }
+            if (winning_board) |win| {
+                print("Winning Sequence:\n", .{});
+                for (0..win.chosen_idxs.len) |i| {
+                    const j = win.board.capacity() - i - 1;
+                    if (winning_board.?.chosen_dirs[j] == .None) break;
+                    print("{}: {s}\n", .{ win.chosen_idxs[j], @tagName(win.chosen_dirs[j]) });
+                }
+            } else {
+                print("No Solutions Found for {} rows!\n", .{N_ROWS});
+            }
+        }
+
+        fn dfsAll(self: *const Board, allo: Allocator) !void {
+            const new_board: Board = self.*;
+            // stack
+            var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            defer stack.deinit(allo);
+            // append initial board state
+            try stack.append(allo, start);
+            // previously visited boards
+            var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            defer visited.deinit(allo);
+            // store wins
+            var wins: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            defer wins.deinit(allo);
+            // loop
+            while (stack.items.len > 0) {
+                // pop previous board
+                const prev_board = stack.pop().?;
+                if (prev_board.isWon()) {
+                    // ordered insert into list
+                    const search = binarySearch(&wins, &prev_board);
+                    if (search.visited) {
+                        try wins.insert(allo, search.idx, prev_board);
+                    } else {
+                        if (search.idx < wins.items.len) {
+                            try wins.insert(allo, search.idx, prev_board);
+                        } else {
+                            try wins.append(allo, prev_board);
+                        }
+                    }
+                }
+                if (prev_board.isGameOver()) continue;
+                const search = binarySearch(&visited, &prev_board);
+                var board = if (search.visited) visited.items[search.idx] //
+                    else prev_board;
+                // get move
+                const move = board.getMove();
+                if (move.dir == .None) continue;
+                // choose move
+                var new_board = board;
+                new_board.chooseMove(.{ .idx = move.idx }, move.dir);
+
+                { // Remove Moves
+                    board.moves[move.idx].remove(move.dir);
+                    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
+                    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+                    const other_dir = move.dir.opposite();
+                    board.moves[other_idx].remove(other_dir);
+                    if (board.numMovesLeft() > 0) { // append to stack
+                        try stack.append(allo, board);
+                    }
+                    if (search.visited) { // modify visited
+                        visited.items[search.idx] = board;
+                    } else { // append visited
+                        try visited.append(allo, board);
+                    }
+                }
+                { // Remove symmetrical moves
+                    // Get symmetrical board
+                    const flip_prev_board = prev_board.flip();
+                    const search2 = binarySearch(&visited, &flip_prev_board);
+                    var flipped_board = if (search2.visited) visited.items[search2.idx] //
+                        else flip_prev_board;
+                    const flip_move = move.flip();
+                    // make sure it has that move
+                    if (flipped_board.moves[flip_move.idx].contains(flip_move.dir)) {
+                        // remove moves
+                        flipped_board.moves[flip_move.idx].remove(flip_move.dir);
+                        const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+                        const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+                        const flip_other_dir = flip_move.dir.opposite();
+                        flipped_board.moves[flip_other_idx].remove(flip_other_dir);
+                        // if flipped was visited, modify, if flipped board wasn't append
+                        if (search2.visited) {
+                            visited.items[search2.idx] = flipped_board;
+                        } else {
+                            try visited.append(allo, flipped_board);
+                        }
+                    }
+                }
+                // update stack with new board
+                try stack.append(allo, new_board);
+            }
+            // Prune Wins
+            if (wins.items.len > 0) {
+                print("# of Wins: {}\n", .{wins.items.len});
+                var i: usize = 0;
+                var n_wins: usize = wins.items.len;
+                while (i <= n_wins - 2) : (i += 1) {
+                    var j: usize = i + 1;
+                    const curr = wins.items[i];
+                    const flip = curr.flip();
+                    while (j <= n_wins - 1) : (j += 1) {
+                        const next = wins.items[j];
+                        if (curr.board.mask == next.board.mask or flip.board.mask == next.board.mask) {
+                            _ = wins.swapRemove(j);
+                            n_wins -= 1;
+                        }
+                    }
+                }
+                print("# of Wins: {}\n", .{wins.items.len});
+            } else {
+                print("No Solutions Found for {} rows!\n", .{N_ROWS});
+            }
+            // Print All Wins
+            for (0..wins.items.len) |i| {
+                const curr = wins.items[i];
+                print("Solution {}:\n", .{i});
+                var initial: Board = start;
+                for (0..N_INDICES) |j| {
+                    const k = N_INDICES - j - 1;
+                    const idx = curr.chosen_idxs[k];
+                    const dir = curr.chosen_dirs[k];
+                    if (dir == .None) break;
+                    print("{}: {s} ", .{ idx, @tagName(dir) });
+                    initial.chooseMove(.{ .idx = idx }, dir);
+                    initial.printBoard();
+                }
+                print("\n", .{});
+            }
+        }
     };
+}
+
+test "Will MultiArrayList Help" {
+    const Board = createBoard(5) catch unreachable;
+    const al = std.ArrayList(Board);
+    const ma = std.MultiArrayList(Board);
+    try std.testing.expect(@sizeOf(al) == @sizeOf(ma));
 }
 
 test "Flip Board" {

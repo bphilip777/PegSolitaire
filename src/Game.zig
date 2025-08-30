@@ -31,7 +31,13 @@ pub fn manual() !void {
     var board: Board = try .init(0);
     greetings();
 
-    // while (!board.isGameOver()) {
+    var quit:bool = false;
+
+    while (!quit) {
+    if (board.isGameOver()) {
+        is_quit = true;
+        continue;
+    }
     var buf = [_]u8{' '} ** MAX_BUFFER_LEN; // resets buffer every loop
     var in = std.fs.File.stdin().reader(&buf);
     var out = std.fs.File.stdout();
@@ -46,14 +52,31 @@ pub fn manual() !void {
     var parsed_tokens = try Parser(allo, input);
     defer parsed_tokens.deinit(allo);
     // print parsed input
+    print("Parsed Tokens:\n", .{});
     for (parsed_tokens.items, 0..) |pt, i| {
         print("{}: {any}\n", .{ i, pt });
     }
     // call appropriate functions
     switch (parsed_tokens.items.len) {
         0 => {}, // continue,
-        1 => {},
-        2 => {},
+        1 => {
+            switch (parsed_tokens.items[0]) {
+                .auto => dfs(),
+                .redo => board.redo(),
+                .reset => board.reset(),
+                .quit => {
+                    is_quit = true;
+                    continue;
+                }
+                .undo => board.undo(),
+                .moves => try board.printMoves(allo),
+                else => unreachable,
+            },
+    },
+        2 => {
+            var n_
+            if ()
+    },
         3 => {},
         4 => {},
         5 => {},
@@ -61,7 +84,7 @@ pub fn manual() !void {
     }
     // output result
     try out.writeAll(input);
-    // }
+    }
 }
 
 pub fn auto() !void {
@@ -69,6 +92,8 @@ pub fn auto() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
+
+
     // try dfsFirst(allo, try .init(0));
     try dfsAll(allo, try .init(0));
 }
@@ -164,7 +189,8 @@ test "Binary Search" {
     }
 }
 
-fn dfsFirst(allo: Allocator, start: Board) !void {
+fn dfsFirst(self: *const Board, allo: Allocator) !void {
+    const new_board: Board = self.*;
     // Finds First Solution And Prints It
     // stack
     var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
@@ -251,7 +277,8 @@ test "Will MultiArrayList Help" {
     try std.testing.expect(@sizeOf(al) == @sizeOf(ma));
 }
 
-fn dfsAll(allo: Allocator, start: Board) !void {
+fn dfsAll(self: *const Board, allo: Allocator) !void {
+    const new_board: Board = self.*;
     // stack
     var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
     defer stack.deinit(allo);
