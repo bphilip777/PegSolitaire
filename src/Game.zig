@@ -67,7 +67,7 @@ pub fn manual() !void {
                 .quit => {
                     is_quit = true;
                     continue;
-                }
+                },
                 .undo => board.undo(),
                 .moves => try board.printMoves(allo),
                 else => unreachable,
@@ -124,67 +124,5 @@ fn helpStatement() void {
         } else {
             print("{s}\n", .{@tagName(dir)});
         }
-    }
-}
-
-// Move All Of Below Into Auto Section of Game
-const Search = struct {
-    idx: T,
-    visited: bool,
-};
-
-fn binarySearch(visited: *const std.ArrayList(Board), board: *const Board) Search {
-    if (visited.items.len == 0) return .{ .idx = 0, .visited = false };
-    var lo: T = 0;
-    var hi: T = @truncate(visited.items.len - 1);
-    var mid: T = lo + (hi - lo) / 2;
-    while (lo <= hi) {
-        mid = lo + (hi - lo) / 2;
-        if (visited.items[mid].board.mask == board.board.mask) {
-            return .{ .idx = mid, .visited = true };
-        } else if (visited.items[mid].board.mask > board.board.mask) {
-            if (mid == 0) break;
-            hi = mid - 1;
-        } else if (visited.items[mid].board.mask < board.board.mask) {
-            if (mid == visited.items.len) break;
-            lo = mid + 1;
-        } else unreachable;
-    }
-    return .{ .idx = mid, .visited = false };
-}
-
-test "Binary Search" {
-    // allocator
-    const allo = std.testing.allocator;
-    // values
-    const values = [_]T{ 0, 1, 5, 9, 20, 30, 100 };
-    // array containing boards
-    var boards: std.ArrayList(Board) = try .initCapacity(allo, values.len);
-    defer boards.deinit(allo);
-    // create board values
-    for (0..values.len) |i| {
-        const value = values[i];
-        try boards.append(allo, try Board.init(0));
-        boards.items[i].board.mask = @truncate(value);
-    }
-    // create search values
-    const search_values = [_]T{ 0, 4, 10, 30, 1_000 };
-    var search_boards = [_]Board{try .init(0)} ** search_values.len;
-    for (search_values, 0..search_boards.len) |value, i| {
-        search_boards[i].board.mask = @truncate(value);
-    }
-    // create answers
-    const answers = [_]Search{
-        .{ .idx = 0, .visited = true },
-        .{ .idx = 2, .visited = false },
-        .{ .idx = 4, .visited = false },
-        .{ .idx = 5, .visited = true },
-        .{ .idx = 6, .visited = false },
-    };
-    // Test
-    for (search_boards, answers) |search_board, answer| {
-        const search = binarySearch(&boards, &search_board);
-        try std.testing.expectEqual(search.visited, answer.visited);
-        try std.testing.expectEqual(search.idx, answer.idx);
     }
 }
