@@ -652,19 +652,18 @@ pub fn createBoard(comptime n_rows: T) !type {
             return flipped;
         }
 
-        fn dfsFirst(self: *const Board, allo: Allocator) !void {
-            const new_board: Board = self.*;
+        fn dfsFirst(start: *const @This(), allo: Allocator) !void {
             // Finds First Solution And Prints It
             // stack
-            var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            var stack: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer stack.deinit(allo);
             // append initial board state
             try stack.append(allo, start);
             // previously visited boards
-            var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            var visited: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer visited.deinit(allo);
             // check if won
-            var winning_board: ?Board = null;
+            var winning_board: ?@This() = null;
             // // loop
             while (stack.items.len > 0) {
                 // pop previous board
@@ -691,8 +690,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const flip_move = move.flip();
                 { // Remove Moves
                     board.moves[move.idx].remove(move.dir);
-                    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
-                    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+                    const mid_idx = getRotation(posFromIdx(move.idx), move.dir, .full).?;
+                    const other_idx = idxFromPos(getRotation(mid_idx, move.dir, .full).?);
                     const other_dir = move.dir.opposite();
                     board.moves[other_idx].remove(other_dir);
                     // if board has moves, append onto stack
@@ -708,8 +707,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 { // Remove symmetrical moves
                     flipped_board.moves[flip_move.idx].remove(flip_move.dir);
-                    const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
-                    const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+                    const flip_mid_idx = getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+                    const flip_other_idx = idxFromPos(getRotation(flip_mid_idx, flip_move.dir, .full).?);
                     const flip_other_dir = flip_move.dir.opposite();
                     flipped_board.moves[flip_other_idx].remove(flip_other_dir);
                     // if flipboard was visited, modify, if flipped board wasn't append
@@ -730,22 +729,21 @@ pub fn createBoard(comptime n_rows: T) !type {
                     print("{}: {s}\n", .{ win.chosen_idxs[j], @tagName(win.chosen_dirs[j]) });
                 }
             } else {
-                print("No Solutions Found for {} rows!\n", .{N_ROWS});
+                print("No Solutions Found for {} rows!\n", .{MAX_ROWS});
             }
         }
 
-        fn dfsAll(self: *const Board, allo: Allocator) !void {
-            const new_board: Board = self.*;
+        fn dfsAll(start: *const @This(), allo: Allocator) !void {
             // stack
-            var stack: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            var stack: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer stack.deinit(allo);
             // append initial board state
             try stack.append(allo, start);
             // previously visited boards
-            var visited: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            var visited: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer visited.deinit(allo);
             // store wins
-            var wins: std.ArrayList(Board) = try .initCapacity(allo, 5);
+            var wins: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer wins.deinit(allo);
             // loop
             while (stack.items.len > 0) {
@@ -777,8 +775,8 @@ pub fn createBoard(comptime n_rows: T) !type {
 
                 { // Remove Moves
                     board.moves[move.idx].remove(move.dir);
-                    const mid_idx = Board.getRotation(posFromIdx(move.idx), move.dir, .full).?;
-                    const other_idx = idxFromPos(Board.getRotation(mid_idx, move.dir, .full).?);
+                    const mid_idx = getRotation(posFromIdx(move.idx), move.dir, .full).?;
+                    const other_idx = idxFromPos(getRotation(mid_idx, move.dir, .full).?);
                     const other_dir = move.dir.opposite();
                     board.moves[other_idx].remove(other_dir);
                     if (board.numMovesLeft() > 0) { // append to stack
@@ -801,8 +799,8 @@ pub fn createBoard(comptime n_rows: T) !type {
                     if (flipped_board.moves[flip_move.idx].contains(flip_move.dir)) {
                         // remove moves
                         flipped_board.moves[flip_move.idx].remove(flip_move.dir);
-                        const flip_mid_idx = Board.getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
-                        const flip_other_idx = idxFromPos(Board.getRotation(flip_mid_idx, flip_move.dir, .full).?);
+                        const flip_mid_idx = getRotation(posFromIdx(flip_move.idx), flip_move.dir, .full).?;
+                        const flip_other_idx = idxFromPos(getRotation(flip_mid_idx, flip_move.dir, .full).?);
                         const flip_other_dir = flip_move.dir.opposite();
                         flipped_board.moves[flip_other_idx].remove(flip_other_dir);
                         // if flipped was visited, modify, if flipped board wasn't append
@@ -824,10 +822,10 @@ pub fn createBoard(comptime n_rows: T) !type {
                 while (i <= n_wins - 2) : (i += 1) {
                     var j: usize = i + 1;
                     const curr = wins.items[i];
-                    const flip = curr.flip();
+                    const curr_flip = curr.flip();
                     while (j <= n_wins - 1) : (j += 1) {
                         const next = wins.items[j];
-                        if (curr.board.mask == next.board.mask or flip.board.mask == next.board.mask) {
+                        if (curr.board.mask == next.board.mask or curr_flip.board.mask == next.board.mask) {
                             _ = wins.swapRemove(j);
                             n_wins -= 1;
                         }
@@ -835,15 +833,15 @@ pub fn createBoard(comptime n_rows: T) !type {
                 }
                 print("# of Wins: {}\n", .{wins.items.len});
             } else {
-                print("No Solutions Found for {} rows!\n", .{N_ROWS});
+                print("No Solutions Found for {} rows!\n", .{MAX_ROWS});
             }
             // Print All Wins
             for (0..wins.items.len) |i| {
                 const curr = wins.items[i];
                 print("Solution {}:\n", .{i});
-                var initial: Board = start;
-                for (0..N_INDICES) |j| {
-                    const k = N_INDICES - j - 1;
+                var initial: @This() = start;
+                for (0..n_indices) |j| {
+                    const k = n_indices - j - 1;
                     const idx = curr.chosen_idxs[k];
                     const dir = curr.chosen_dirs[k];
                     if (dir == .None) break;
@@ -854,7 +852,69 @@ pub fn createBoard(comptime n_rows: T) !type {
                 print("\n", .{});
             }
         }
+
+        fn binarySearch(board: *const @This(), visited: *const std.ArrayList(@This())) Search {
+            if (visited.items.len == 0) return .{ .idx = 0, .visited = false };
+            var lo: T = 0;
+            var hi: T = @truncate(visited.items.len - 1);
+            var mid: T = lo + (hi - lo) / 2;
+            while (lo <= hi) {
+                mid = lo + (hi - lo) / 2;
+                if (visited.items[mid].board.mask == board.board.mask) {
+                    return .{ .idx = mid, .visited = true };
+                } else if (visited.items[mid].board.mask > board.board.mask) {
+                    if (mid == 0) break;
+                    hi = mid - 1;
+                } else if (visited.items[mid].board.mask < board.board.mask) {
+                    if (mid == visited.items.len) break;
+                    lo = mid + 1;
+                } else unreachable;
+            }
+            return .{ .idx = mid, .visited = false };
+        }
     };
+}
+
+const Search = struct {
+    idx: T,
+    visited: bool,
+};
+
+test "Binary Search" {
+    const Board = createBoard(5) catch unreachable;
+    // allocator
+    const allo = std.testing.allocator;
+    // values
+    const values = [_]T{ 0, 1, 5, 9, 20, 30, 100 };
+    // array containing boards
+    var boards: std.ArrayList(Board) = try .initCapacity(allo, values.len);
+    defer boards.deinit(allo);
+    // create board values
+    for (0..values.len) |i| {
+        const value = values[i];
+        try boards.append(allo, try Board.init(0));
+        boards.items[i].board.mask = @truncate(value);
+    }
+    // create search values
+    const search_values = [_]T{ 0, 4, 10, 30, 1_000 };
+    var search_boards = [_]Board{try .init(0)} ** search_values.len;
+    for (search_values, 0..search_boards.len) |value, i| {
+        search_boards[i].board.mask = @truncate(value);
+    }
+    // create answers
+    const answers = [_]Search{
+        .{ .idx = 0, .visited = true },
+        .{ .idx = 2, .visited = false },
+        .{ .idx = 4, .visited = false },
+        .{ .idx = 5, .visited = true },
+        .{ .idx = 6, .visited = false },
+    };
+    // Test
+    for (search_boards, answers) |search_board, answer| {
+        const search = search_board.binarySearch(&boards);
+        try std.testing.expectEqual(search.visited, answer.visited);
+        try std.testing.expectEqual(search.idx, answer.idx);
+    }
 }
 
 test "Will MultiArrayList Help" {
