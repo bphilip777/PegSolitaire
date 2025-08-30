@@ -90,16 +90,15 @@ pub fn Parser(allo: Allocator, input: []const u8) (Allocator.Error || LexerError
                     const dir = Direction.parse(seg);
                     if (dir != .None) {
                         arr.appendAssumeCapacity(.{ .dir = dir });
-                        arr.appendAssumeCapacity(.{ .num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10) });
                     } else if (eql(u8, seg, "redo")) {
                         arr.appendAssumeCapacity(.redo);
-                        arr.appendAssumeCapacity(.{ .num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10) });
                     } else if (eql(u8, seg, "undo")) {
                         arr.appendAssumeCapacity(.undo);
-                        arr.appendAssumeCapacity(.{ .num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10) });
                     } else {
                         return ParserError.InvalidInput;
                     }
+                    const num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
+                    arr.appendAssumeCapacity(.{ .num = num });
                 },
                 .num => {
                     const num = try std.fmt.parseInt(T, input[t0.start..t0.end], 10);
