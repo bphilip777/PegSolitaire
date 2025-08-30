@@ -34,20 +34,22 @@ pub fn manual() !void {
     var out = std.fs.File.stdout();
 
     // while (!board.isGameOver()) {
-    // print board
-    board.printBoard();
     // show board
-    try out.writeAll("(Row, Col) Dir: ");
-
+    board.printBoard();
+    // get input
     const len = try in.read(&buf); // EndOfStream, ReadFailed
     const input = buf[0..len];
-
     // parse input
     var parsed_tokens = try Parser(allo, input);
     defer parsed_tokens.deinit(allo);
-
     // call appropriate functions
-
+    switch (parsed_tokens.items.len) {
+        0 => {},
+        1 => {},
+        2 => {},
+        3 => {},
+        4 => {},
+    }
     // output result
     try out.writeAll(input);
     // }
