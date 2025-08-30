@@ -94,7 +94,43 @@ pub fn manual() !void {
                     else => unreachable,
                 }
             },
-            3 => {},
+            3 => {
+                // num num dir
+                // dir num num
+                const pt0 = parsed_tokens.items[0];
+                const pt1 = parsed_tokens.items[1];
+                const pt2 = parsed_tokens.items[2];
+
+                var dir: Direction = undefined;
+                var num1: u16 = undefined;
+                var num2: u16 = undefined;
+
+                switch (pt0.tag) {
+                    .dir => |d| {
+                        dir = d;
+                        switch (pt1.tag) {
+                            .num => |n| num1 = n,
+                            else => unreachable,
+                        }
+                        switch (pt2.tag) {
+                            .num => |n| num2 = n,
+                            else => unreachable,
+                        }
+                    },
+                    .num => |n| {
+                        num1 = n;
+                        switch (pt1.tag) {
+                            .num => |n2| num2 = n2,
+                            else => unreachable,
+                        }
+                        switch (pt2.tag) {
+                            .dir => |d| dir = d,
+                            else => unreachable,
+                        }
+                    },
+                    else => unreachable,
+                }
+            },
             4 => {},
             5 => {},
             else => unreachable,
