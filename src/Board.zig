@@ -652,7 +652,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             return flipped;
         }
 
-        fn dfsFirst(start: *const @This(), allo: Allocator) !void {
+        pub fn dfs(start: *const @This(), allo: Allocator) !void {
             // Finds First Solution And Prints It
             // stack
             var stack: std.ArrayList(@This()) = try .initCapacity(allo, 5);
@@ -733,7 +733,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             }
         }
 
-        fn dfsAll(start: *const @This(), allo: Allocator) !void {
+        pub fn dfsAll(start: *const @This(), allo: Allocator) !void {
             // stack
             var stack: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer stack.deinit(allo);
@@ -835,7 +835,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             } else {
                 print("No Solutions Found for {} rows!\n", .{MAX_ROWS});
             }
-            // Print All Wins
+            // Print All Wins - Should separate these features
             for (0..wins.items.len) |i| {
                 const curr = wins.items[i];
                 print("Solution {}:\n", .{i});
