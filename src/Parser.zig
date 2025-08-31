@@ -61,12 +61,12 @@ pub fn Parser(
                     switch (n_chars) {
                         1 => switch (input[start]) {
                             'a' => arr.appendAssumeCapacity(.auto),
+                            'h', '?' => arr.appendAssumeCapacity(.help),
                             'm', 'M' => arr.appendAssumeCapacity(.moves),
                             'q', 'Q' => arr.appendAssumeCapacity(.quit),
                             'r' => arr.appendAssumeCapacity(.redo),
                             'R' => arr.appendAssumeCapacity(.reset),
                             'u', 'U' => arr.appendAssumeCapacity(.undo),
-                            'h', '?' => arr.appendAssumeCapacity(.help),
                             else => return ParserError.InvalidInput,
                         },
                         4 => {
