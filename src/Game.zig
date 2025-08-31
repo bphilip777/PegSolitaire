@@ -2,9 +2,6 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-// TODO:
-// ability to load and unload a game - should be automatic
-
 // GamerErrors:
 // print out the error ->continue to next line
 
