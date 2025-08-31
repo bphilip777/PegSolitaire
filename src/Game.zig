@@ -274,14 +274,9 @@ pub fn manual(allo: Allocator) !void {
     }
 }
 
-pub fn auto() !void {
-    // Auto-Solve Board
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allo = gpa.allocator();
-    defer std.debug.assert(gpa.deinit() == .ok);
-
+pub fn auto(allo: Allocator) !void {
     const board: Board = try .init(0);
-    // try dfs(allo, try .init(0));
+    // try board.dfs(allo);
     try board.dfsAll(allo);
 }
 
