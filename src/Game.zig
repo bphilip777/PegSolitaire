@@ -4,6 +4,8 @@ const Allocator = std.mem.Allocator;
 
 // TODO:
 // need to add start + num = changes start posiiton so long as board is at the start
+// ability to load and unload a game
+//
 
 // helpers
 const triNum = @import("Helpers.zig").triNum;
@@ -28,24 +30,26 @@ const MAX_BUFFER_LEN: u16 = 255; // should match input to lexer
 const Parser = @import("Parser.zig").Parser;
 
 pub fn manual() !void {
+    // handle memory
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allo = gpa.allocator();
     defer std.debug.assert(gpa.deinit() == .ok);
-
+    // init board
     var board: Board = try .init(0);
+    // print greetings
     greetings();
-
+    // ending check
     var is_quit: bool = false;
-
+    // handle input output
+    var buf = [_]u8{' '} ** MAX_BUFFER_LEN;
+    var in = std.fs.File.stdin().reader(&buf);
+    var out = std.fs.File.stdout();
+    // loop
     while (!is_quit) {
         if (board.isGameOver()) {
             is_quit = true;
             continue;
         }
-        var buf = [_]u8{' '} ** MAX_BUFFER_LEN; // resets buffer every loop
-        var in = std.fs.File.stdin().reader(&buf);
-        var out = std.fs.File.stdout();
-
         // show board
         board.printBoard();
         // get input
@@ -65,7 +69,7 @@ pub fn manual() !void {
             0 => {}, // continue,
             1 => {
                 switch (parsed_tokens.items[0]) {
-                    .auto => board.dfs(),
+                    .auto => board.dfs(allo),
                     .redo => board.redo(),
                     .reset => board.reset(),
                     .quit => {
@@ -84,6 +88,7 @@ pub fn manual() !void {
                 const pt0 = parsed_tokens.items[0];
                 const pt1 = parsed_tokens.items[1];
                 switch (pt0.tag) {
+                    .start => board.changeStart(.{ .idx = pt1.num }),
                     .undo => board.undoMove(pt1.num),
                     .redo => board.redoMove(pt1.num),
                     .num => |n| {
@@ -132,6 +137,17 @@ pub fn manual() !void {
                             else => unreachable,
                         }
                     },
+                    .start => {
+                        switch (pt1.tag) {
+                            .num => |n1| num1 = n1,
+                            else => unreachable,
+                        }
+                        switch (pt2.tag) {
+                            .num => |n2| num2 = n2,
+                            else => unreachable,
+                        }
+                        board.changeStart(.{ .pos = .{ .start = num1, .end = num2 } });
+                    },
                     else => unreachable,
                 }
 
@@ -151,6 +167,7 @@ pub fn manual() !void {
                 const dir = pos1.dir(pos2);
                 try board.chooseMove(.{ .pos = pos1 }, dir);
             },
+            else => unreachable,
         }
         // output result
         try out.writeAll(input);
