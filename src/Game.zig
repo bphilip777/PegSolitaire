@@ -66,10 +66,11 @@ pub fn manual(allo: Allocator) !void {
             1 => {
                 // Empty, auto, redo, reset, quit, undo, moves
                 switch (parsed_tokens.items[0]) {
-                    .empty => continue :loop,
                     .auto => {
                         board.dfs(allo) catch unreachable;
                     },
+                    .help => help(),
+                    .empty => continue :loop,
                     .redo => board.redo(.{}),
                     .reset => board.reset(),
                     .quit => is_quit = true,
@@ -78,7 +79,7 @@ pub fn manual(allo: Allocator) !void {
                     else => {
                         print("Invalid Input\n", .{});
                         print("Valid Single Inputs:\n", .{});
-                        const tags = [_]Tag{ .empty, .auto, .redo, .reset, .quit, .undo, .moves };
+                        const tags = [_]Tag{ .auto, .empty, .help, .redo, .reset, .quit, .undo, .moves };
                         for (0..tags.len) |i| {
                             const tag_name = @tagName(tags[i]);
                             print("{c}\n", .{tag_name[0]});
