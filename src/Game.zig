@@ -5,7 +5,9 @@ const Allocator = std.mem.Allocator;
 // TODO:
 // need to add start + num = changes start posiiton so long as board is at the start
 // ability to load and unload a game - should be automatic
-// need to handle error cases
+
+// GamerErrors:
+// print out the error ->continue to next line
 
 // helpers
 const triNum = @import("Helpers.zig").triNum;
@@ -113,53 +115,55 @@ pub fn manual(allo: Allocator) !void {
                     else => unreachable,
                 }
             },
-            // 3 => {
-            //
-            //     // start num num
-            //     // num num dir
-            //     // dir num num
-            //     const pt0 = parsed_tokens.items[0];
-            //     const pt1 = parsed_tokens.items[1];
-            //     const pt2 = parsed_tokens.items[2];
-            //
-            //     var dir: Direction = undefined;
-            //     var num1: u16 = undefined;
-            //     var num2: u16 = undefined;
-            //
-            //     switch (pt0) {
-            //         .dir => |d| {
-            //             dir = d;
-            //             num1 = pt1.num;
-            //             num2 = pt2.num;
-            //         },
-            //         // .num => |n| {
-            //         //     num1 = n;
-            //         //     switch (pt1) {
-            //         //         .num => |n2| num2 = n2,
-            //         //         else => unreachable,
-            //         //     }
-            //         //     switch (pt2) {
-            //         //         .dir => |d| dir = d,
-            //         //         else => unreachable,
-            //         //     }
-            //         // },
-            //         // .start => {
-            //         //     switch (pt1) {
-            //         //         .num => |n1| num1 = n1,
-            //         //         else => unreachable,
-            //         //     }
-            //         //     switch (pt2) {
-            //         //         .num => |n2| num2 = n2,
-            //         //         else => unreachable,
-            //         //     }
-            //         //     const pos: Position = .{ .row = num1, .col = num2 };
-            //         //     try board.changeStart(.{ .pos = pos });
-            //         // },
-            //         else => unreachable,
-            //     }
-            //     const pos: Position = .{ .row = num1, .col = num2 };
-            //     board.chooseMove(.{ .pos = pos }, dir);
-            // },
+            3 => {
+                // start num num
+                // num num dir
+                // dir num num
+                const pt0 = parsed_tokens.items[0];
+                const pt1 = parsed_tokens.items[1];
+                const pt2 = parsed_tokens.items[2];
+
+                switch (pt0) {
+                    .dir => |d| {
+                        const dir = d;
+                        const num1 = switch (pt1) {
+                            .num => |n| n,
+                            else => return error.InvalidToken,
+                        };
+                        const num2 = switch (pt2) {
+                            .num => |n| n,
+                            else => return error.InvalidToken,
+                        };
+                        const pos: Position = .{ .row = num1, .col = num2 };
+                        board.chooseMove(.{ .pos = pos }, dir);
+                    },
+                    .num => |num1| {
+                        const num2 = switch (pt1) {
+                            .num => |n2| n2,
+                            else => return error.InvalidToken,
+                        };
+                        const dir = switch (pt2) {
+                            .dir => |d| d,
+                            else => unreachable,
+                        };
+                        const pos: Position = .{ .row = num1, .col = num2 };
+                        board.chooseMove(.{ .pos = pos }, dir);
+                    },
+                    .start => {
+                        const num1 = switch (pt1) {
+                            .num => |n1| n1,
+                            else => return error.InvalidToken,
+                        };
+                        const num2 = switch (pt2) {
+                            .num => |n2| n2,
+                            else => return error.InvalidToken,
+                        };
+                        const pos: Position = .{ .row = num1, .col = num2 };
+                        try board.changeStart(.{ .pos = pos });
+                    },
+                    else => unreachable,
+                }
+            },
             // 4 => {
             //     // num num num num
             //     var nums: [4]u16 = undefined;
