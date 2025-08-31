@@ -652,6 +652,26 @@ pub fn createBoard(comptime n_rows: T) !type {
             return flipped;
         }
 
+        pub fn changeStart(self: *@This(), input: Input) !void {
+            switch (input) {
+                .idx => |idx| self.changeStartIdx(idx),
+                .pos => |pos| self.changeStartPos(pos),
+            }
+        }
+
+        fn changeStartPos(self: *@This(), pos: Position) !void {
+            const idx = idxFromPos(pos);
+            try self.changeStart(idx);
+        }
+
+        fn changeStartIdx(self: *@This(), idx: u16) !void {
+            if (self.board.capacity() - 1 != self.board.count()) //
+                return error.BoardInPlay;
+            const prev_start = self.chosen_idxs[n_indices - 1];
+            self.board.set(prev_start);
+            self.board.unset(idx);
+        }
+
         pub fn dfs(start: *const @This(), allo: Allocator) !void {
             // Finds First Solution And Prints It
             // stack
