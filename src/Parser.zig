@@ -109,6 +109,7 @@ pub fn Parser(
                         const n_chars = word.len;
                         switch (n_chars) {
                             1 => {
+                                match = true;
                                 switch (input[t0.start]) {
                                     's' => arr.appendAssumeCapacity(.start),
                                     'r' => arr.appendAssumeCapacity(.redo),

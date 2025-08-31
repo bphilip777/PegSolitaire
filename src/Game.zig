@@ -109,7 +109,10 @@ pub fn manual(allo: Allocator) !void {
                                 continue :loop;
                             }
                         };
-                        try board.changeStart(.{ .idx = num });
+                        board.changeStart(.{ .idx = num }) catch |err| {
+                            print("{}\n", .{err});
+                            continue :loop;
+                        };
                     },
                     .undo => {
                         const num = switch (pt1) {
