@@ -2,9 +2,6 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-// GamerErrors:
-// print out the error ->continue to next line
-
 // helpers
 const triNum = @import("Helpers.zig").triNum;
 const numMoves = @import("Helpers.zig").numMoves;
@@ -26,7 +23,7 @@ const N_INDICES: T = triNum(N_ROWS);
 const Board: type = createBoard(N_ROWS) catch unreachable;
 
 // Game
-const MAX_BUFFER_LEN: u16 = 255; // should match input to lexer
+const MAX_BUFFER_LEN: u16 = 255;
 
 pub fn manual(allo: Allocator) !void {
     // init board
@@ -48,7 +45,7 @@ pub fn manual(allo: Allocator) !void {
         // show board
         board.printBoard();
         // get input
-        const len = try in.read(&buf); // EndOfStream, ReadFailed
+        const len = try in.read(&buf);
         const input = buf[0..len];
         print("{}: {s}\n", .{ len, input });
         // parse input
@@ -67,6 +64,7 @@ pub fn manual(allo: Allocator) !void {
         // call appropriate functions
         switch (parsed_tokens.items.len) {
             1 => {
+                // Empty, auto, redo, reset, quit, undo, moves
                 switch (parsed_tokens.items[0]) {
                     .empty => continue :loop,
                     .auto => {
@@ -82,7 +80,8 @@ pub fn manual(allo: Allocator) !void {
                         print("Valid Single Inputs:\n", .{});
                         const tags = [_]Tag{ .empty, .auto, .redo, .reset, .quit, .undo, .moves };
                         for (0..tags.len) |i| {
-                            print("{s}\n", .{@tagName(tags[i])});
+                            const tag_name = @tagName(tags[i]);
+                            print("{c}\n", .{tag_name[0]});
                             // print("{}: {s}\n", .{ i, @tagName(tags[i]) });
                         }
                         print("\n", .{});

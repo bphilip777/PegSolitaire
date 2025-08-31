@@ -46,10 +46,12 @@ pub fn Parser(
     try Lexer(input, &tokens);
 
     const n_tokens: u8 = numTokens(&tokens);
+    print("Number Of Tokens: {}\n", .{n_tokens});
     switch (n_tokens) {
         0 => arr.appendAssumeCapacity(.empty),
         1 => {
             const token = tokens[0];
+            print("Input: {s}\n", .{input[token.start..token.end]});
             switch (token.tag) {
                 .help => arr.appendAssumeCapacity(.help),
                 .alpha => {
@@ -57,7 +59,6 @@ pub fn Parser(
                     const end = token.end;
                     const n_chars = end - start;
                     switch (n_chars) {
-                        0 => unreachable,
                         1 => switch (input[start]) {
                             'a' => arr.appendAssumeCapacity(.auto),
                             'm', 'M' => arr.appendAssumeCapacity(.moves),
@@ -65,11 +66,12 @@ pub fn Parser(
                             'r' => arr.appendAssumeCapacity(.redo),
                             'R' => arr.appendAssumeCapacity(.reset),
                             'u', 'U' => arr.appendAssumeCapacity(.undo),
+                            'h', '?' => arr.appendAssumeCapacity(.help),
                             else => return ParserError.InvalidInput,
                         },
                         4 => {
                             const word = input[start..end];
-                            const tags = [_]Tag{ .auto, .redo, .undo, .quit };
+                            const tags = [_]Tag{ .auto, .help, .redo, .undo, .quit };
                             for (tags) |tag| {
                                 if (eql(u8, word, @tagName(tag))) //
                                     arr.appendAssumeCapacity(tag);
