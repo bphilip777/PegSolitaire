@@ -56,7 +56,7 @@ pub fn manual(allo: Allocator) !void {
         print("{}: {s}\n", .{ len, input });
         // parse input
         var parsed_tokens = Parser(allo, input) catch |err| {
-            print("Failed: {s}\n", .{err});
+            print("Failed: {}\n", .{err});
             print("To exit: press q\n", .{});
             print("For help: press ?\n", .{});
             continue :loop;
@@ -190,7 +190,7 @@ pub fn manual(allo: Allocator) !void {
                         };
                         const pos: Position = .{ .row = num1, .col = num2 };
                         board.changeStart(.{ .pos = pos }) catch |err| {
-                            print("{s}\n", .{err});
+                            print("{}\n", .{err});
                             continue :loop;
                         };
                     },
@@ -252,7 +252,11 @@ pub fn manual(allo: Allocator) !void {
                 }
                 const pos1: Position = .{ .row = nums[0], .col = nums[1] };
                 const pos2: Position = .{ .row = nums[2], .col = nums[3] };
-                const dir = pos1.dir(&pos2);
+                const dir = pos1.dir(&pos2) catch |err| {
+                    print("{}\n", .{err});
+                    print("Choose Two Valid Positions\n", .{});
+                    continue :loop;
+                };
                 board.chooseMove(.{ .pos = pos1 }, dir);
             },
             else => {

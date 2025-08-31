@@ -60,11 +60,11 @@ pub fn Parser(
                         0 => unreachable,
                         1 => switch (input[start]) {
                             'a' => arr.appendAssumeCapacity(.auto),
+                            'm', 'M' => arr.appendAssumeCapacity(.moves),
+                            'q', 'Q' => arr.appendAssumeCapacity(.quit),
                             'r' => arr.appendAssumeCapacity(.redo),
                             'R' => arr.appendAssumeCapacity(.reset),
-                            'q', 'Q' => arr.appendAssumeCapacity(.quit),
                             'u', 'U' => arr.appendAssumeCapacity(.undo),
-                            'm', 'M' => arr.appendAssumeCapacity(.moves),
                             else => return ParserError.InvalidInput,
                         },
                         4 => {
@@ -99,25 +99,42 @@ pub fn Parser(
             const t0 = tokens[0];
             switch (t0.tag) {
                 .alpha => {
-                    const t1 = tokens[1];
-                    const seg = input[t0.start..t0.end];
-                    const dir = Direction.parse(seg);
+                    const word = input[t0.start..t0.end];
+                    const dir = Direction.parse(word);
                     var match: bool = false;
                     if (dir != .None) {
                         arr.appendAssumeCapacity(.{ .dir = dir });
                         match = true;
                     } else {
-                        const tags = [_]Tag{ .undo, .redo, .start };
-                        for (tags) |tag| {
-                            if (eql(u8, seg, @tagName(tag))) {
-                                match = true;
-                                arr.appendAssumeCapacity(tag);
-                                break;
-                            }
+                        const n_chars = word.len;
+                        switch (n_chars) {
+                            1 => {
+                                switch (input[t0.start]) {
+                                    's' => arr.appendAssumeCapacity(.start),
+                                    'r' => arr.appendAssumeCapacity(.redo),
+                                    'u' => arr.appendAssumeCapacity(.undo),
+                                    else => match = false,
+                                }
+                            },
+                            4 => {
+                                const tags = [_]Tag{ .start, .redo, .undo };
+                                for (tags) |tag| {
+                                    match = (eql(u8, word, @tagName(tag)));
+                                    if (match) {
+                                        arr.appendAssumeCapacity(tag);
+                                        break;
+                                    }
+                                }
+                            },
+                            else => return error.InvalidInput,
                         }
                     }
                     if (!match) return ParserError.InvalidInput;
-                    const num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
+                    const num = try std.fmt.parseInt(
+                        T,
+                        input[tokens[1].start..tokens[1].end],
+                        10,
+                    );
                     arr.appendAssumeCapacity(.{ .num = num });
                 },
                 .num => {

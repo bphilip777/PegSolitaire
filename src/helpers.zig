@@ -116,38 +116,20 @@ pub const Position = struct {
         };
     }
 
-    pub fn dir(self: *const @This(), other: *const @This()) Direction {
-        // called by user -> need to explicitly handle this case
-        std.debug.assert(self.row != other.row and self.col != other.col);
-        const DirEnum = enum { less, eq, more };
-        // get dist
-        const row_enum: DirEnum = if (self.row < other.row) .less else .more;
-        const col_enum: DirEnum = if (self.col < other.col) .less else if (self.col == other.col) .eq else .more;
-
-        return switch (row_enum) {
-            .less => {
-                switch (col_enum) {
-                    .less => .UpLeft,
-                    .eq => .UpRight,
-                    .more => unreachable,
-                }
-            },
-            .eq => {
-                switch (col_enum) {
-                    .less => .Left,
-                    .more => .Right,
-                    .eq => unreachable,
-                }
-            },
-            .more => {
-                switch (col_enum) {
-                    .eq => .DownLeft,
-                    .more => .DownRight,
-                    .left => unreachable,
-                }
-            },
-            else => unreachable,
-        };
+    pub fn dir(self: *const @This(), other: *const @This()) !Direction {
+        if (self.row > other.row) {
+            if (self.col > other.col) return .UpLeft;
+            if (self.col == other.col) return .UpRight;
+            return error.InvalidInput;
+        } else if (self.row == other.row) {
+            if (self.col < other.col) return .Right;
+            if (self.col > other.col) return .Left;
+            return error.InvalidInput;
+        } else if (self.row < other.row) {
+            if (self.col == other.col) return .DownLeft;
+            if (self.col < other.col) return .DownRight;
+            return error.InvalidInput;
+        } else unreachable;
     }
 };
 
@@ -279,17 +261,28 @@ pub const Direction: type = enum(u8) {
                 };
             },
             else => {
-                for ([_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft }) |dir| {
-                    const tag_name = @tagName(dir);
+                for ([_]Direction{
+                    .Left,
+                    .UpLeft,
+                    .UpRight,
+                    .Right,
+                    .DownRight,
+                    .DownLeft,
+                }) |d| {
+                    const tag_name = @tagName(d);
                     if (tag_name.len != input.len) continue;
                     for (tag_name, input) |ch1, ch2| {
                         if (toLower(ch1) != toLower(ch2)) break;
-                        return dir;
+                        return d;
                     }
                 }
                 return .None;
             },
         }
+    }
+
+    pub fn dir(first: *const Position, second: *const Position) @This() {
+        return try first.dir(second);
     }
 };
 
