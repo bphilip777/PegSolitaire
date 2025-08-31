@@ -45,17 +45,11 @@ pub fn Parser(
     var tokens = [_]Token{.{ .start = 0, .end = 0, .tag = .null }} ** N_TOKENS;
     try Lexer(input, &tokens);
 
-    print("Tokens:\n", .{});
-    for (tokens) |token| print("{s} ", .{input[token.start..token.end]});
-    print("\n", .{});
-
     const n_tokens: u8 = numTokens(&tokens);
-    print("Number Of Tokens: {}\n", .{n_tokens});
     switch (n_tokens) {
         0 => arr.appendAssumeCapacity(.empty),
         1 => {
             const token = tokens[0];
-            print("Input: {s}\n", .{input[token.start..token.end]});
             switch (token.tag) {
                 .help => arr.appendAssumeCapacity(.help),
                 .alpha => {
