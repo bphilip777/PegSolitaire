@@ -16,7 +16,7 @@ const T = @import("Helpers.zig").T;
 
 // Tag = List Of Commands
 // Extends direction from helpers
-const Tag = union(enum) {
+pub const Tag = union(enum) {
     empty,
     start,
     auto,

@@ -3,7 +3,6 @@ const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
 // TODO:
-// need to add start + num = changes start posiiton so long as board is at the start
 // ability to load and unload a game - should be automatic
 
 // GamerErrors:
@@ -19,6 +18,10 @@ const Direction = @import("Helpers.zig").Direction;
 const Position = @import("Helpers.zig").Position;
 const T = @import("Helpers.zig").T;
 
+// Parser
+const Parser = @import("Parser.zig").Parser;
+const Tag = @import("Parser.zig").Tag;
+
 // board
 const createBoard = @import("Board.zig").createBoard;
 const N_ROWS: T = 5;
@@ -27,9 +30,6 @@ const Board: type = createBoard(N_ROWS) catch unreachable;
 
 // Game
 const MAX_BUFFER_LEN: u16 = 255; // should match input to lexer
-
-// Parser
-const Parser = @import("Parser.zig").Parser;
 
 pub fn manual(allo: Allocator) !void {
     // init board
@@ -55,7 +55,12 @@ pub fn manual(allo: Allocator) !void {
         const input = buf[0..len];
         print("{}: {s}\n", .{ len, input });
         // parse input
-        var parsed_tokens = try Parser(allo, input);
+        var parsed_tokens = Parser(allo, input) catch |err| {
+            print("Failed: {s}\n", .{err});
+            print("To exit: press q\n", .{});
+            print("For help: press ?\n", .{});
+            continue :loop;
+        };
         defer parsed_tokens.deinit(allo);
         // print parsed input
         print("Parsed Tokens:\n", .{});
@@ -78,8 +83,10 @@ pub fn manual(allo: Allocator) !void {
                     else => {
                         print("Invalid Input\n", .{});
                         print("Valid Single Inputs:\n", .{});
-                        for ([_]Parser.Tag{ .empty, .auto, .redo, .reset, .quit, .undo, .moves }) |tag| {
-                            print("{s} ", .{@tagName(tag)});
+                        const tags = [_]Tag{ .empty, .auto, .redo, .reset, .quit, .undo, .moves };
+                        for (0..tags.len) |i| {
+                            print("{s}\n", .{@tagName(tags[i])});
+                            // print("{}: {s}\n", .{ i, @tagName(tags[i]) });
                         }
                         print("\n", .{});
                         continue :loop;
@@ -147,8 +154,10 @@ pub fn manual(allo: Allocator) !void {
                     else => {
                         print("Invalid Input\n", .{});
                         print("Valid Double Inputs:\n", .{});
-                        for ([_]Parser.Tag{ .start, .undo, .redo, .num, .dir }) |tag| {
-                            print("{s}\n", .{@tagName(tag)});
+                        const tags = [_]Tag{ .start, .undo, .redo, .{ .num = 0 }, .{ .dir = .None } };
+                        for (0..tags.len) |i| {
+                            const tag = tags[i];
+                            print("{}: {s}\n", .{ i, @tagName(tag) });
                         }
                         print("\n", .{});
                         continue :loop;
@@ -180,7 +189,10 @@ pub fn manual(allo: Allocator) !void {
                             },
                         };
                         const pos: Position = .{ .row = num1, .col = num2 };
-                        try board.changeStart(.{ .pos = pos });
+                        board.changeStart(.{ .pos = pos }) catch |err| {
+                            print("{s}\n", .{err});
+                            continue :loop;
+                        };
                     },
                     .dir => |dir| {
                         const error_str = "Choosing a move takes dir num num\nEx: dr 0 0\n";
@@ -244,7 +256,8 @@ pub fn manual(allo: Allocator) !void {
                 board.chooseMove(.{ .pos = pos1 }, dir);
             },
             else => {
-                print("Game not take more than 4 inputs\n");
+                print("Game not take more than 4 inputs\n", .{});
+                // change below to a help page
                 print("For help, enter ?\n", .{});
                 continue;
             },
@@ -273,7 +286,7 @@ fn greetings() void {
     for (strs) |str| print("{s}\n", .{str});
 }
 
-fn helpStatement() void {
+fn help() void {
     // if they choose help 3x -> show them auto
     const help_strs = [_][]const u8{
         "Choose Eiter:\n",
