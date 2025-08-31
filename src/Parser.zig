@@ -45,6 +45,10 @@ pub fn Parser(
     var tokens = [_]Token{.{ .start = 0, .end = 0, .tag = .null }} ** N_TOKENS;
     try Lexer(input, &tokens);
 
+    print("Tokens:\n", .{});
+    for (tokens) |token| print("{s} ", .{input[token.start..token.end]});
+    print("\n", .{});
+
     const n_tokens: u8 = numTokens(&tokens);
     print("Number Of Tokens: {}\n", .{n_tokens});
     switch (n_tokens) {
@@ -72,20 +76,28 @@ pub fn Parser(
                         4 => {
                             const word = input[start..end];
                             const tags = [_]Tag{ .auto, .help, .redo, .undo, .quit };
+                            var is_match: bool = false;
                             for (tags) |tag| {
-                                if (eql(u8, word, @tagName(tag))) //
+                                is_match = eql(u8, word, @tagName(tag));
+                                if (is_match) {
                                     arr.appendAssumeCapacity(tag);
+                                    break;
+                                }
                             }
-                            return ParserError.InvalidInput;
+                            if (!is_match) return ParserError.InvalidInput;
                         },
                         5 => {
                             const word = input[start..end];
                             const tags = [_]Tag{ .moves, .reset, .start };
+                            var is_match: bool = false;
                             for (tags) |tag| {
-                                if (eql(u8, word, @tagName(tag))) //
+                                is_match = eql(u8, word, @tagName(tag));
+                                if (is_match) {
                                     arr.appendAssumeCapacity(tag);
+                                    break;
+                                }
                             }
-                            return ParserError.InvalidInput;
+                            if (!is_match) return ParserError.InvalidInput;
                         },
                         else => return ParserError.InvalidInput,
                     }
@@ -133,11 +145,7 @@ pub fn Parser(
                         }
                     }
                     if (!match) return ParserError.InvalidInput;
-                    const num = try std.fmt.parseInt(
-                        T,
-                        input[tokens[1].start..tokens[1].end],
-                        10,
-                    );
+                    const num = try std.fmt.parseInt(T, input[tokens[1].start..tokens[1].end], 10);
                     arr.appendAssumeCapacity(.{ .num = num });
                 },
                 .num => {
