@@ -43,7 +43,7 @@ pub fn manual(allo: Allocator) !void {
     var in = std.fs.File.stdin().reader(&buf);
     var out = std.fs.File.stdout();
     // loop
-    while (!is_quit) {
+    loop: while (!is_quit) {
         if (board.isGameOver()) {
             is_quit = true;
             continue;
@@ -66,19 +66,24 @@ pub fn manual(allo: Allocator) !void {
         switch (parsed_tokens.items.len) {
             1 => {
                 switch (parsed_tokens.items[0]) {
-                    .empty => continue,
+                    .empty => continue :loop,
                     .auto => {
-                        _ = try board.dfs(allo);
+                        board.dfs(allo) catch unreachable;
                     },
                     .redo => board.redo(.{}),
                     .reset => board.reset(),
-                    .quit => {
-                        is_quit = true;
-                        continue;
-                    },
+                    .quit => is_quit = true,
                     .undo => board.undo(.{}),
-                    .moves => try board.printMoves(allo),
-                    else => unreachable,
+                    .moves => board.printMoves(allo) catch unreachable,
+                    else => {
+                        print("Invalid Input\n", .{});
+                        print("Valid Single Inputs:\n", .{});
+                        for ([_]Parser.Tag{ .empty, .auto, .redo, .reset, .quit, .undo, .moves }) |tag| {
+                            print("{s} ", .{@tagName(tag)});
+                        }
+                        print("\n", .{});
+                        continue :loop;
+                    },
                 }
             },
             2 => {
@@ -92,27 +97,62 @@ pub fn manual(allo: Allocator) !void {
                     .start => {
                         const num = switch (pt1) {
                             .num => |n| n,
-                            else => return error.StartTakesTwoNums,
+                            else => {
+                                print("start takes a num\nEx: start 1\n", .{});
+                                continue :loop;
+                            }
                         };
                         try board.changeStart(.{ .idx = num });
                     },
                     .undo => {
                         const num = switch (pt1) {
                             .num => |n| n,
-                            else => return error.UndoTakesANum,
+                            else => {
+                                print("undo takes a num\nEx: undo 1\n", .{});
+                                continue :loop;
+                            }
                         };
                         board.undo(.{ .n = num });
                     },
-                    .redo => board.redo(.{ .n = pt1.num }),
-                    .num => |n| {
-                        const d = pt1.dir;
-                        board.chooseMove(.{ .idx = n }, d);
+                    .redo => {
+                        const num = switch (pt1) {
+                            .num => |n| n,
+                            else => {
+                                print("redo takes a num\nEx: redo 1\n", .{});
+                                continue :loop;
+                            }
+                        };
+                        board.redo(.{ .n = num });
                     },
-                    .dir => |d| {
-                        const n = pt1.num;
-                        board.chooseMove(.{ .idx = n }, d);
+                    .num => |num| {
+                        const dir = switch (pt1) {
+                            .dir => |d| d,
+                            else => {
+                                print("Choosing a move takes num and dir\nEx: 0 downright\n", .{});
+                                continue :loop;
+                            },
+                        };
+                        board.chooseMove(.{ .idx = num }, dir);
                     },
-                    else => unreachable,
+                    .dir => |dir| {
+                        const num = switch (pt1) {
+                            .num => |n| n,
+                            else => {
+                                print("Choosing a move takes dir and num\nEx: downright 0\n", .{});
+                                continue :loop;
+                            },
+                        };
+                        board.chooseMove(.{ .idx = num }, dir);
+                    },
+                    else => {
+                        print("Invalid Input\n", .{});
+                        print("Valid Double Inputs:\n", .{});
+                        for ([_]Parser.Tag{ .start, .undo, .redo, .num, .dir }) |tag| {
+                            print("{s}\n", .{@tagName(tag)});
+                        }
+                        print("\n", .{});
+                        continue :loop;
+                    },
                 }
             },
             3 => {
@@ -122,63 +162,92 @@ pub fn manual(allo: Allocator) !void {
                 const pt0 = parsed_tokens.items[0];
                 const pt1 = parsed_tokens.items[1];
                 const pt2 = parsed_tokens.items[2];
-
                 switch (pt0) {
-                    .dir => |d| {
-                        const dir = d;
+                    .start => {
+                        const error_str = "start takes num and num\nEx: start 2 2\n";
+                        const num1 = switch (pt1) {
+                            .num => |n1| n1,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
+                        };
+                        const num2 = switch (pt2) {
+                            .num => |n2| n2,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
+                        };
+                        const pos: Position = .{ .row = num1, .col = num2 };
+                        try board.changeStart(.{ .pos = pos });
+                    },
+                    .dir => |dir| {
+                        const error_str = "Choosing a move takes dir num num\nEx: dr 0 0\n";
                         const num1 = switch (pt1) {
                             .num => |n| n,
-                            else => return error.InvalidToken,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
                         };
                         const num2 = switch (pt2) {
                             .num => |n| n,
-                            else => return error.InvalidToken,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
                         };
                         const pos: Position = .{ .row = num1, .col = num2 };
                         board.chooseMove(.{ .pos = pos }, dir);
                     },
                     .num => |num1| {
+                        const error_str = "Choosing a move takes num num dir\nEx: 0 0 dr\n";
                         const num2 = switch (pt1) {
                             .num => |n2| n2,
-                            else => return error.InvalidToken,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
                         };
                         const dir = switch (pt2) {
                             .dir => |d| d,
-                            else => unreachable,
+                            else => {
+                                print("{s}", .{error_str});
+                                continue :loop;
+                            },
                         };
                         const pos: Position = .{ .row = num1, .col = num2 };
                         board.chooseMove(.{ .pos = pos }, dir);
                     },
-                    .start => {
-                        const num1 = switch (pt1) {
-                            .num => |n1| n1,
-                            else => return error.InvalidToken,
-                        };
-                        const num2 = switch (pt2) {
-                            .num => |n2| n2,
-                            else => return error.InvalidToken,
-                        };
-                        const pos: Position = .{ .row = num1, .col = num2 };
-                        try board.changeStart(.{ .pos = pos });
+                    else => {
+                        print("Only 3 commands take 3 inputs:\n1. Start: num num\n2. Dir: num num\n3. Num: num dir\n", .{});
+                        continue :loop;
                     },
-                    else => unreachable,
                 }
             },
-            // 4 => {
-            //     // num num num num
-            //     var nums: [4]u16 = undefined;
-            //     for (parsed_tokens.items, 0..) |pt, i| {
-            //         switch (pt) {
-            //             .num => |n| nums[i] = n,
-            //             else => unreachable,
-            //         }
-            //     }
-            //     const pos1: Position = .{ .row = nums[0], .col = nums[1] };
-            //     const pos2: Position = .{ .row = nums[2], .col = nums[3] };
-            //     const dir = pos1.dir(&pos2);
-            //     board.chooseMove(.{ .pos = pos1 }, dir);
-            // },
-            else => unreachable,
+            4 => {
+                // num num num num
+                var nums: [4]u16 = undefined;
+                for (parsed_tokens.items, 0..) |pt, i| {
+                    switch (pt) {
+                        .num => |n| nums[i] = n,
+                        else => {
+                            print("Only 1 commands take 4 inputs:\nPosition Position\nEx 0 0 2 0\n", .{});
+                            continue :loop;
+                        },
+                    }
+                }
+                const pos1: Position = .{ .row = nums[0], .col = nums[1] };
+                const pos2: Position = .{ .row = nums[2], .col = nums[3] };
+                const dir = pos1.dir(&pos2);
+                board.chooseMove(.{ .pos = pos1 }, dir);
+            },
+            else => {
+                print("Game not take more than 4 inputs\n");
+                print("For help, enter ?\n", .{});
+                continue;
+            },
         }
         // output result
         try out.writeAll(input);
