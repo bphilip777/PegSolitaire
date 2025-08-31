@@ -68,16 +68,20 @@ pub fn Parser(
                         },
                         4 => {
                             const word = input[start..end];
-                            if (eql(u8, word, "auto")) arr.appendAssumeCapacity(.auto);
-                            if (eql(u8, word, "redo")) arr.appendAssumeCapacity(.redo);
-                            if (eql(u8, word, "undo")) arr.appendAssumeCapacity(.undo);
-                            if (eql(u8, word, "quit")) arr.appendAssumeCapacity(.quit);
+                            const tags = [_]Tag{ .auto, .redo, .undo, .quit };
+                            for (tags) |tag| {
+                                if (eql(u8, word, @tagName(tag))) //
+                                    arr.appendAssumeCapacity(tag);
+                            }
                             return ParserError.InvalidInput;
                         },
                         5 => {
                             const word = input[start..end];
-                            if (eql(u8, word, "moves")) arr.appendAssumeCapacity(.moves);
-                            if (eql(u8, word, "reset")) arr.appendAssumeCapacity(.reset);
+                            const tags = [_]Tag{ .moves, .reset, .start };
+                            for (tags) |tag| {
+                                if (eql(u8, word, @tagName(tag))) //
+                                    arr.appendAssumeCapacity(tag);
+                            }
                             return ParserError.InvalidInput;
                         },
                         else => return ParserError.InvalidInput,

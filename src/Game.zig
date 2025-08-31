@@ -2,6 +2,9 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
+// TODO:
+// need to add start + num = changes start posiiton so long as board is at the start
+
 // helpers
 const triNum = @import("Helpers.zig").triNum;
 const numMoves = @import("Helpers.zig").numMoves;
