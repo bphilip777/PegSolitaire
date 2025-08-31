@@ -44,7 +44,7 @@ const GameErrors = error{
 };
 
 const Repeats = struct {
-    n: u8 = 1,
+    n: T = 1,
 };
 
 pub fn createBoard(comptime n_rows: T) !type {
@@ -529,14 +529,14 @@ pub fn createBoard(comptime n_rows: T) !type {
             // set board to all on
             for (0..self.board.capacity()) |i| self.board.set(i);
             // set start pposition off
-            self.board.unset(self.start_idx);
+            self.board.unset(self.chosen_idxs[n_indices - 1]);
 
             for (0..n_indices) |i| {
                 // undo all moves
                 self.moves[i] = .initEmpty();
                 // reset chosen_moves
                 self.chosen_idxs[i] = 0;
-                self.chosen_dirs[i] = .initEmpty();
+                self.chosen_dirs[i] = .None;
             }
             // recompute start moves
             self.computeAllMoves();
@@ -664,14 +664,14 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         pub fn changeStart(self: *@This(), input: Input) !void {
             switch (input) {
-                .idx => |idx| self.changeStartIdx(idx),
-                .pos => |pos| self.changeStartPos(pos),
+                .idx => |idx| try self.changeStartIdx(idx),
+                .pos => |pos| try self.changeStartPos(pos),
             }
         }
 
         fn changeStartPos(self: *@This(), pos: Position) !void {
             const idx = idxFromPos(pos);
-            try self.changeStart(idx);
+            try self.changeStartIdx(idx);
         }
 
         fn changeStartIdx(self: *@This(), idx: u16) !void {
@@ -688,7 +688,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             var stack: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer stack.deinit(allo);
             // append initial board state
-            try stack.append(allo, start);
+            try stack.append(allo, start.*);
             // previously visited boards
             var visited: std.ArrayList(@This()) = try .initCapacity(allo, 5);
             defer visited.deinit(allo);
@@ -703,7 +703,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     winning_board = prev_board;
                     break;
                 }
-                const search = binarySearch(&visited, &prev_board);
+                const search = prev_board.binarySearch(&visited);
                 var board = if (search.visited) visited.items[search.idx] //
                     else prev_board;
                 // get move
@@ -714,7 +714,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 new_board.chooseMove(.{ .idx = move.idx }, move.dir);
                 // Get symmetrical board
                 const flip_prev_board = prev_board.flip();
-                const search2 = binarySearch(&visited, &flip_prev_board);
+                const search2 = flip_prev_board.binarySearch(&visited);
                 var flipped_board = if (search2.visited) visited.items[search2.idx] //
                     else flip_prev_board;
                 const flip_move = move.flip();
@@ -1220,13 +1220,13 @@ test "Undo Move + Redo Move" {
     for (0..list_of_instructions.len - 1) |i| {
         const j = list_of_instructions.len - i - 2;
         const instruction = list_of_instructions[j];
-        board.undo();
+        board.undo(.{});
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
     // Redo
     for (0..list_of_instructions.len - 1) |i| {
         const instruction = list_of_instructions[i + 1];
-        board.redo();
+        board.redo(.{});
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
 }

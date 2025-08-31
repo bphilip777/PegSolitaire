@@ -66,44 +66,47 @@ pub fn manual() !void {
         }
         // call appropriate functions
         switch (parsed_tokens.items.len) {
-            0 => {}, // continue,
+            0 => continue,
             1 => {
                 switch (parsed_tokens.items[0]) {
-                    .auto => board.dfs(allo),
-                    .redo => board.redo(),
+                    .auto => {
+                        _ = try board.dfs(allo);
+                    },
+                    .redo => board.redo(.{}),
                     .reset => board.reset(),
                     .quit => {
                         is_quit = true;
                         continue;
                     },
-                    .undo => board.undo(),
+                    .undo => board.undo(.{}),
                     .moves => try board.printMoves(allo),
                     else => unreachable,
                 }
             },
             2 => {
+                // start num
                 // redo/undo num
                 // dir num
                 // num dir
                 const pt0 = parsed_tokens.items[0];
                 const pt1 = parsed_tokens.items[1];
-                switch (pt0.tag) {
-                    .start => board.changeStart(.{ .idx = pt1.num }),
-                    .undo => board.undoMove(pt1.num),
-                    .redo => board.redoMove(pt1.num),
+                switch (pt0) {
+                    .start => try board.changeStart(.{ .idx = pt1.num }),
+                    .undo => board.undo(.{ .n = pt1.num }),
+                    .redo => board.redo(.{ .n = pt1.num }),
                     .num => |n| {
                         const d = pt1.dir;
                         board.chooseMove(.{ .idx = n }, d);
                     },
                     .dir => |d| {
                         const n = pt1.num;
-                        board.chooseMove();
                         board.chooseMove(.{ .idx = n }, d);
                     },
                     else => unreachable,
                 }
             },
             3 => {
+                // start num num
                 // num num dir
                 // dir num num
                 const pt0 = parsed_tokens.items[0];
@@ -114,51 +117,51 @@ pub fn manual() !void {
                 var num1: u16 = undefined;
                 var num2: u16 = undefined;
 
-                switch (pt0.tag) {
+                switch (pt0) {
                     .dir => |d| {
                         dir = d;
-                        switch (pt1.tag) {
+                        switch (pt1) {
                             .num => |n| num1 = n,
                             else => unreachable,
                         }
-                        switch (pt2.tag) {
+                        switch (pt2) {
                             .num => |n| num2 = n,
                             else => unreachable,
                         }
                     },
                     .num => |n| {
                         num1 = n;
-                        switch (pt1.tag) {
+                        switch (pt1) {
                             .num => |n2| num2 = n2,
                             else => unreachable,
                         }
-                        switch (pt2.tag) {
+                        switch (pt2) {
                             .dir => |d| dir = d,
                             else => unreachable,
                         }
                     },
                     .start => {
-                        switch (pt1.tag) {
+                        switch (pt1) {
                             .num => |n1| num1 = n1,
                             else => unreachable,
                         }
-                        switch (pt2.tag) {
+                        switch (pt2) {
                             .num => |n2| num2 = n2,
                             else => unreachable,
                         }
-                        board.changeStart(.{ .pos = .{ .start = num1, .end = num2 } });
+                        const pos: Position = .{ .row = num1, .col = num2 };
+                        try board.changeStart(.{ .pos = pos });
                     },
                     else => unreachable,
                 }
 
-                try board.chooseMove(.{
-                    .pos = .{ .start = num1, .end = num2 },
-                }, dir);
+                const pos: Position = .{ .row = num1, .col = num2 };
+                try board.chooseMove(.{ .pos = pos }, dir);
             },
             4 => {
                 var nums: [4]u16 = undefined;
                 for (parsed_tokens.inputs, 0..) |pt, i| {
-                    switch (pt.tag) {
+                    switch (pt) {
                         .num => |n| nums[i] = n,
                     }
                 }
