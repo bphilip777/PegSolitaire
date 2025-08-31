@@ -18,6 +18,7 @@ const T = @import("Helpers.zig").T;
 // Extends direction from helpers
 const Tag = union(enum) {
     empty,
+    start,
     auto,
     help,
     redo,
@@ -100,15 +101,21 @@ pub fn Parser(
                     const t1 = tokens[1];
                     const seg = input[t0.start..t0.end];
                     const dir = Direction.parse(seg);
+                    var match: bool = false;
                     if (dir != .None) {
                         arr.appendAssumeCapacity(.{ .dir = dir });
-                    } else if (eql(u8, seg, "redo")) {
-                        arr.appendAssumeCapacity(.redo);
-                    } else if (eql(u8, seg, "undo")) {
-                        arr.appendAssumeCapacity(.undo);
+                        match = true;
                     } else {
-                        return ParserError.InvalidInput;
+                        const tags = [_]Tag{ .undo, .redo };
+                        for (tags) |tag| {
+                            if (eql(u8, seg, @tagName(tag))) {
+                                match = true;
+                                arr.appendAssumeCapacity(tag);
+                                break;
+                            }
+                        }
                     }
+                    if (!match) return ParserError.InvalidInput;
                     const num = try std.fmt.parseInt(T, input[t1.start..t1.end], 10);
                     arr.appendAssumeCapacity(.{ .num = num });
                 },
