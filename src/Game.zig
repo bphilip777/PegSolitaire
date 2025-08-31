@@ -29,11 +29,7 @@ const MAX_BUFFER_LEN: u16 = 255; // should match input to lexer
 // Parser
 const Parser = @import("Parser.zig").Parser;
 
-pub fn manual() !void {
-    // handle memory
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allo = gpa.allocator();
-    defer std.debug.assert(gpa.deinit() == .ok);
+pub fn manual(allo: Allocator) !void {
     // init board
     var board: Board = try .init(0);
     // print greetings
@@ -91,8 +87,20 @@ pub fn manual() !void {
                 const pt0 = parsed_tokens.items[0];
                 const pt1 = parsed_tokens.items[1];
                 switch (pt0) {
-                    .start => try board.changeStart(.{ .idx = pt1.num }),
-                    .undo => board.undo(.{ .n = pt1.num }),
+                    .start => {
+                        const num = switch (pt1) {
+                            .num => |n| n,
+                            else => return error.StartTakesTwoNums,
+                        };
+                        try board.changeStart(.{ .idx = num });
+                    },
+                    .undo => {
+                        const num = switch (pt1) {
+                            .num => |n| n,
+                            else => return error.UndoTakesANum,
+                        };
+                        board.undo(.{ .n = num });
+                    },
                     .redo => board.redo(.{ .n = pt1.num }),
                     .num => |n| {
                         const d = pt1.dir;
@@ -211,4 +219,8 @@ fn helpStatement() void {
             print("{s}\n", .{@tagName(dir)});
         }
     }
+}
+
+test "Game" {
+    // Goal = test all inputs to game.zig
 }

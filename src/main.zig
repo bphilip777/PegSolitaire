@@ -3,8 +3,12 @@ const auto = @import("Game.zig").auto;
 const manual = @import("Game.zig").manual;
 
 pub fn main() !void {
-    // try auto();
-    try manual();
+    // handle memory - should be moved to main
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allo = gpa.allocator();
+    defer std.debug.assert(gpa.deinit() == .ok);
+    // try auto(allo);
+    try manual(allo);
 }
 
 test "Run All Tests" {
