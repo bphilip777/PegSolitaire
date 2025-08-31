@@ -8,9 +8,9 @@ pub fn main() !void {
 }
 
 test "Run All Tests" {
-    _ = @import("Board.zig");
     _ = @import("Helpers.zig");
     _ = @import("Lexer.zig");
     _ = @import("Parser.zig");
+    _ = @import("Board.zig");
     _ = @import("Game.zig");
 }
