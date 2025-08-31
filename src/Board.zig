@@ -674,12 +674,15 @@ pub fn createBoard(comptime n_rows: T) !type {
             try self.changeStartIdx(idx);
         }
 
-        fn changeStartIdx(self: *@This(), idx: u16) !void {
+        fn changeStartIdx(self: *@This(), new_start: u16) !void {
             if (self.board.capacity() - 1 != self.board.count()) //
                 return error.BoardInPlay;
+            if (new_start >= self.board.capacity()) //
+                return error.NewStartGTNumIndices;
             const prev_start = self.chosen_idxs[n_indices - 1];
             self.board.set(prev_start);
-            self.board.unset(idx);
+            self.board.unset(new_start);
+            self.chosen_idxs[n_indices - 1] = new_start;
         }
 
         pub fn dfs(start: *const @This(), allo: Allocator) !void {

@@ -117,6 +117,8 @@ pub const Position = struct {
     }
 
     pub fn dir(self: *const @This(), other: *const @This()) Direction {
+        // called by user -> need to explicitly handle this case
+        std.debug.assert(self.row != other.row and self.col != other.col);
         const DirEnum = enum { less, eq, more };
         // get dist
         const row_enum: DirEnum = if (self.row < other.row) .less else .more;

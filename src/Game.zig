@@ -4,8 +4,8 @@ const Allocator = std.mem.Allocator;
 
 // TODO:
 // need to add start + num = changes start posiiton so long as board is at the start
-// ability to load and unload a game
-//
+// ability to load and unload a game - should be automatic
+// need to handle error cases
 
 // helpers
 const triNum = @import("Helpers.zig").triNum;
@@ -66,9 +66,9 @@ pub fn manual() !void {
         }
         // call appropriate functions
         switch (parsed_tokens.items.len) {
-            0 => continue,
             1 => {
                 switch (parsed_tokens.items[0]) {
+                    .empty => continue,
                     .auto => {
                         _ = try board.dfs(allo);
                     },
@@ -105,71 +105,67 @@ pub fn manual() !void {
                     else => unreachable,
                 }
             },
-            3 => {
-                // start num num
-                // num num dir
-                // dir num num
-                const pt0 = parsed_tokens.items[0];
-                const pt1 = parsed_tokens.items[1];
-                const pt2 = parsed_tokens.items[2];
-
-                var dir: Direction = undefined;
-                var num1: u16 = undefined;
-                var num2: u16 = undefined;
-
-                switch (pt0) {
-                    .dir => |d| {
-                        dir = d;
-                        switch (pt1) {
-                            .num => |n| num1 = n,
-                            else => unreachable,
-                        }
-                        switch (pt2) {
-                            .num => |n| num2 = n,
-                            else => unreachable,
-                        }
-                    },
-                    .num => |n| {
-                        num1 = n;
-                        switch (pt1) {
-                            .num => |n2| num2 = n2,
-                            else => unreachable,
-                        }
-                        switch (pt2) {
-                            .dir => |d| dir = d,
-                            else => unreachable,
-                        }
-                    },
-                    .start => {
-                        switch (pt1) {
-                            .num => |n1| num1 = n1,
-                            else => unreachable,
-                        }
-                        switch (pt2) {
-                            .num => |n2| num2 = n2,
-                            else => unreachable,
-                        }
-                        const pos: Position = .{ .row = num1, .col = num2 };
-                        try board.changeStart(.{ .pos = pos });
-                    },
-                    else => unreachable,
-                }
-
-                const pos: Position = .{ .row = num1, .col = num2 };
-                try board.chooseMove(.{ .pos = pos }, dir);
-            },
-            4 => {
-                var nums: [4]u16 = undefined;
-                for (parsed_tokens.inputs, 0..) |pt, i| {
-                    switch (pt) {
-                        .num => |n| nums[i] = n,
-                    }
-                }
-                const pos1: Position = .{ .start = nums[0], .end = nums[1] };
-                const pos2: Position = .{ .start = nums[2], .end = nums[3] };
-                const dir = pos1.dir(pos2);
-                try board.chooseMove(.{ .pos = pos1 }, dir);
-            },
+            // 3 => {
+            //
+            //     // start num num
+            //     // num num dir
+            //     // dir num num
+            //     const pt0 = parsed_tokens.items[0];
+            //     const pt1 = parsed_tokens.items[1];
+            //     const pt2 = parsed_tokens.items[2];
+            //
+            //     var dir: Direction = undefined;
+            //     var num1: u16 = undefined;
+            //     var num2: u16 = undefined;
+            //
+            //     switch (pt0) {
+            //         .dir => |d| {
+            //             dir = d;
+            //             num1 = pt1.num;
+            //             num2 = pt2.num;
+            //         },
+            //         // .num => |n| {
+            //         //     num1 = n;
+            //         //     switch (pt1) {
+            //         //         .num => |n2| num2 = n2,
+            //         //         else => unreachable,
+            //         //     }
+            //         //     switch (pt2) {
+            //         //         .dir => |d| dir = d,
+            //         //         else => unreachable,
+            //         //     }
+            //         // },
+            //         // .start => {
+            //         //     switch (pt1) {
+            //         //         .num => |n1| num1 = n1,
+            //         //         else => unreachable,
+            //         //     }
+            //         //     switch (pt2) {
+            //         //         .num => |n2| num2 = n2,
+            //         //         else => unreachable,
+            //         //     }
+            //         //     const pos: Position = .{ .row = num1, .col = num2 };
+            //         //     try board.changeStart(.{ .pos = pos });
+            //         // },
+            //         else => unreachable,
+            //     }
+            //     const pos: Position = .{ .row = num1, .col = num2 };
+            //     board.chooseMove(.{ .pos = pos }, dir);
+            // },
+            // 4 => {
+            //     // num num num num
+            //     var nums: [4]u16 = undefined;
+            //     for (parsed_tokens.items, 0..) |pt, i| {
+            //         switch (pt) {
+            //             .num => |n| nums[i] = n,
+            //             else => unreachable,
+            //         }
+            //     }
+            //     const pos1: Position = .{ .row = nums[0], .col = nums[1] };
+            //     const pos2: Position = .{ .row = nums[2], .col = nums[3] };
+            //     const dir = pos1.dir(&pos2);
+            //     board.chooseMove(.{ .pos = pos1 }, dir);
+            // },
             else => unreachable,
         }
         // output result

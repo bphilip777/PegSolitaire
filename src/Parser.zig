@@ -92,6 +92,7 @@ pub fn Parser(
             }
         },
         2 => {
+            // start num
             // redo/undo num
             // dir num
             // num dir
@@ -106,7 +107,7 @@ pub fn Parser(
                         arr.appendAssumeCapacity(.{ .dir = dir });
                         match = true;
                     } else {
-                        const tags = [_]Tag{ .undo, .redo };
+                        const tags = [_]Tag{ .undo, .redo, .start };
                         for (tags) |tag| {
                             if (eql(u8, seg, @tagName(tag))) {
                                 match = true;
