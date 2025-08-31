@@ -43,6 +43,10 @@ const GameErrors = error{
     InvalidPosition,
 };
 
+const Repeats = struct {
+    n: u8 = 1,
+};
+
 pub fn createBoard(comptime n_rows: T) !type {
     if (n_rows < 3) return GameErrors.NRowsTooSmall;
     if (n_rows > MAX_ROWS) return GameErrors.NRowsTooLarge;
@@ -294,42 +298,48 @@ pub fn createBoard(comptime n_rows: T) !type {
             self.computeAllMoves();
         }
 
-        pub fn undoMove(self: *@This()) void {
+        pub fn undo(self: *@This(), repeats: Repeats) void {
             // assumes NOT auto mode
-            // get idx
-            const idx = self.board.count() + 1;
-            // if idx == n_indices = @ start
-            if (idx >= n_indices - 1) return;
-            // get move idx + move direction
-            const move_idx = self.chosen_idxs[idx];
-            const move_dir = self.chosen_dirs[idx];
-            std.debug.assert(move_dir != .None);
-            // get positions
-            const pos0 = posFromIdx(move_idx);
-            const pos1 = getRotation(pos0, move_dir, .full).?;
-            const pos2 = getRotation(pos1, move_dir, .full).?;
-            // get idxs
-            const idx1 = idxFromPos(pos1);
-            const idx2 = idxFromPos(pos2);
-            // reset board positions
-            self.unsetNegMove([3]T{ move_idx, idx1, idx2 });
-            // reset moves
-            // self.computeAllMoves();
-            self.computeOptimally(move_idx, move_dir);
+            var num_undos: u8 = 0;
+            while (num_undos <= repeats.n) : (num_undos += 1) {
+                // get idx
+                const idx = self.board.count() + 1;
+                // if idx == n_indices = @ start
+                if (idx >= n_indices - 1) return;
+                // get move idx + move direction
+                const move_idx = self.chosen_idxs[idx];
+                const move_dir = self.chosen_dirs[idx];
+                std.debug.assert(move_dir != .None);
+                // get positions
+                const pos0 = posFromIdx(move_idx);
+                const pos1 = getRotation(pos0, move_dir, .full).?;
+                const pos2 = getRotation(pos1, move_dir, .full).?;
+                // get idxs
+                const idx1 = idxFromPos(pos1);
+                const idx2 = idxFromPos(pos2);
+                // reset board positions
+                self.unsetNegMove([3]T{ move_idx, idx1, idx2 });
+                // reset moves
+                // self.computeAllMoves();
+                self.computeOptimally(move_idx, move_dir);
+            }
         }
 
-        pub fn redoMove(self: *@This()) void {
+        pub fn redo(self: *@This(), repeats: Repeats) void {
             // assumes NOT auto mode
-            // get board idx
-            const idx = self.board.count();
-            if (idx >= self.board.capacity()) return;
-            // grab chosen values
-            const chosen_idx = self.chosen_idxs[idx];
-            const chosen_dir = self.chosen_dirs[idx];
-            // assert that it is not a none case
-            std.debug.assert(chosen_dir != .None);
-            // choose move
-            self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
+            var num_redos: u8 = 0;
+            while (num_redos <= repeats.n) : (num_redos += 1) {
+                // get board idx
+                const idx = self.board.count();
+                if (idx >= self.board.capacity()) return;
+                // grab chosen values
+                const chosen_idx = self.chosen_idxs[idx];
+                const chosen_dir = self.chosen_dirs[idx];
+                // assert that it is not a none case
+                std.debug.assert(chosen_dir != .None);
+                // choose move
+                self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
+            }
         }
 
         fn setNegMove(self: *@This(), idxs: [3]T) void {
@@ -1210,13 +1220,13 @@ test "Undo Move + Redo Move" {
     for (0..list_of_instructions.len - 1) |i| {
         const j = list_of_instructions.len - i - 2;
         const instruction = list_of_instructions[j];
-        board.undoMove();
+        board.undo();
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
     // Redo
     for (0..list_of_instructions.len - 1) |i| {
         const instruction = list_of_instructions[i + 1];
-        board.redoMove();
+        board.redo();
         try std.testing.expectEqual(instruction.value, board.board.mask);
     }
 }
