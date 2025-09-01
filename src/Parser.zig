@@ -126,7 +126,7 @@ pub fn parser(
                             4 => {
                                 const tags = [_]Tag{ .start, .redo, .undo };
                                 for (tags) |tag| {
-                                    match = (eql(u8, word, @tagName(tag)));
+                                    match = isMatch(word, @tagName(tag));
                                     if (match) {
                                         arr.appendAssumeCapacity(tag);
                                         break;
