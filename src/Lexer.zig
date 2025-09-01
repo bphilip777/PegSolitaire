@@ -102,8 +102,6 @@ test "Positiive Lexer Tests" {
     };
 
     for (instructions) |ins| {
-        // print("\nInput: {s}\n", .{ins.input});
-
         var tokens = [_]Token{.{
             .start = 0,
             .end = 0,

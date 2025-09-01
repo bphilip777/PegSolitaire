@@ -47,7 +47,6 @@ pub fn manual(allo: Allocator) !void {
         // get input
         const len = try in.read(&buf);
         const input = buf[0..len];
-        print("{}: {s}\n", .{ len, input });
         // parse input
         var parsed_tokens = Parser(allo, input) catch |err| {
             print("Failed: {}\n", .{err});
@@ -56,11 +55,6 @@ pub fn manual(allo: Allocator) !void {
             continue :loop;
         };
         defer parsed_tokens.deinit(allo);
-        // print parsed input
-        print("Parsed Tokens:\n", .{});
-        for (parsed_tokens.items, 0..) |pt, i| {
-            print("{}: {any}\n", .{ i, pt });
-        }
         // call appropriate functions
         switch (parsed_tokens.items.len) {
             1 => {
@@ -286,26 +280,43 @@ fn greetings() void {
 }
 
 fn help() void {
-    // if they choose help 3x -> show them auto
     const help_strs = [_][]const u8{
-        "Choose Eiter:\n",
+        " --------------  HELP PAGE  --------------\n",
+        "Goal:\n",
+        "Pegs can jump over another to an empty spot\n",
+        "Reduce the number of pegs to 1!\n\n",
+        "Board:\n",
+        "Top -> Down, Left -> Right\n",
+        "Can select a spot via an index (0 - # of pegs - 1) or positions (row col)\n",
+        "\n",
+        "Moves You Can Play:\n",
         "1. Index + Direction: 0 DownRight\n",
         "2. Index + Index: 0 2\n",
-        "3. Position + Direction\n",
-        "4. Position + Position: 0 0 1 1\n",
-        "Choose a row and col and a direction to play\n",
+        "3. Position + Direction: 0 0 DownRight\n",
+        "4. Position + Position: 0 0 2 0\n",
+        "\n",
+        "Commands:\n",
+        "?, h, H, help, Help, HELP = Help page\n",
+        "a, A, auto, Auto, AUTO = Auto solve the current board\n",
+        "q, Q, quit, Quit, QUIT = Quit game\n",
+        "u, U, undo, Undo, UNDO = Undo last move\n",
+        "r, redo, REDO = Redo a previously undone move\n",
+        "R, reset, Reset, RESET = Reset board\n",
+        "s, S, start, Start, START = Start board at different peg (board must be reset!)\n",
+        "m, M, moves, Moves, MOVES = Show possible moves\n",
+        "\n",
     };
-    for (help_strs) |help_str| print("{s}\n", .{help_str});
-    const main_dirs = [_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft };
-    for (main_dirs, 0..main_dirs.len) |dir, i| {
-        if (i < main_dirs.len - 1) {
-            print("{s} ", .{@tagName(dir)});
-        } else {
-            print("{s}\n", .{@tagName(dir)});
-        }
-    }
-}
+    for (help_strs) |help_str| print("{s}", .{help_str});
 
-test "Game" {
-    // Goal = test all inputs to game.zig
+    const main_dirs = [_]Direction{ .Left, .UpLeft, .UpRight, .Right, .DownRight, .DownLeft };
+    const new_strs = [_][]const u8{ "L", "UL", "UR", "R", "DR", "DL" };
+    print("Directions:\n", .{});
+    for (main_dirs, new_strs) |dir, new_str| {
+        const tag_name = @tagName(dir);
+        print("[", .{});
+        for (new_str) |ch| print("{c}", .{std.ascii.toLower(ch)});
+        print("], ", .{});
+        print("[{s}] {s}\n", .{ new_str, tag_name });
+    }
+    print("\n", .{});
 }

@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const eql = std.mem.eql;
-const print = std.debug.print;
 
 const Lexer = @import("Lexer.zig").Lexer;
 const Token = @import("Lexer.zig").Token;
@@ -11,8 +10,6 @@ const LexerError = @import("Lexer.zig").LexerError;
 
 const Direction = @import("Helpers.zig").Direction;
 const T = @import("Helpers.zig").T;
-
-// TODO: Handle inputs correctly
 
 // Tag = List Of Commands
 // Extends direction from helpers
