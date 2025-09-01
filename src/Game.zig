@@ -2,6 +2,9 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
+// TODO:
+// - need to fix some bugs
+
 // helpers
 const triNum = @import("Helpers.zig").triNum;
 const numMoves = @import("Helpers.zig").numMoves;
@@ -13,7 +16,7 @@ const Position = @import("Helpers.zig").Position;
 const T = @import("Helpers.zig").T;
 
 // Parser
-const Parser = @import("Parser.zig").Parser;
+const parser = @import("Parser.zig").parser;
 const Tag = @import("Parser.zig").Tag;
 
 // board
@@ -47,7 +50,7 @@ pub fn manual(allo: Allocator) !void {
         const len = try in.read(&buf);
         const input = buf[0..len];
         // parse input
-        var parsed_tokens = Parser(allo, input) catch |err| {
+        var parsed_tokens = parser(allo, input) catch |err| {
             print("Failed: {}\n", .{err});
             print("To exit: press q\n", .{});
             print("For help: press ?\n", .{});

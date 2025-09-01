@@ -26,7 +26,7 @@ pub const LexerError = error{
     InvalidCharacter,
 };
 
-pub fn Lexer(input: []const u8, tokens: *[N_TOKENS]Token) !void {
+pub fn lexer(input: []const u8, tokens: *[N_TOKENS]Token) !void {
     if (input.len == 0) {
         tokens[0] = .{
             .start = 0,
@@ -107,7 +107,7 @@ test "Positiive Lexer Tests" {
             .end = 0,
             .tag = .null,
         }} ** N_TOKENS;
-        try Lexer(ins.input, &tokens);
+        try lexer(ins.input, &tokens);
 
         const len = ins.tags.len;
         for (0..len) |i| {
@@ -137,7 +137,7 @@ test "Negative Lexer Tests" {
     };
     for (instructions) |ins| {
         var tokens = [_]Token{.{ .start = 0, .end = 0, .tag = .null }} ** N_TOKENS;
-        try std.testing.expectError(ins.token_error, Lexer(ins.input, &tokens));
+        try std.testing.expectError(ins.token_error, lexer(ins.input, &tokens));
     }
 }
 
@@ -163,7 +163,7 @@ test "Num Tokens" {
             .end = 0,
             .tag = .null,
         }} ** N_TOKENS;
-        try Lexer(ins.input, &tokens);
+        try lexer(ins.input, &tokens);
 
         const num_tokens = numTokens(&tokens);
         try std.testing.expectEqual(num_tokens, ins.tags.len);

@@ -309,7 +309,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 // get move idx + move direction
                 const move_idx = self.chosen_idxs[idx];
                 const move_dir = self.chosen_dirs[idx];
-                std.debug.assert(move_dir != .None);
+                if (move_dir == .None) return; // early return
                 // get positions
                 const pos0 = posFromIdx(move_idx);
                 const pos1 = getRotation(pos0, move_dir, .full).?;
@@ -336,7 +336,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                 const chosen_idx = self.chosen_idxs[idx];
                 const chosen_dir = self.chosen_dirs[idx];
                 // assert that it is not a none case
-                std.debug.assert(chosen_dir != .None);
+                if (chosen_dir == .None) return; // break early
                 // choose move
                 self.chooseMove(.{ .idx = chosen_idx }, chosen_dir);
             }

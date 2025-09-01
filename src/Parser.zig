@@ -2,7 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const eql = std.mem.eql;
 
-const Lexer = @import("Lexer.zig").Lexer;
+const lexer = @import("Lexer.zig").lexer;
 const Token = @import("Lexer.zig").Token;
 const N_TOKENS = @import("Lexer.zig").N_TOKENS;
 const numTokens = @import("Lexer.zig").numTokens;
@@ -32,7 +32,7 @@ const ParserError = error{
     InvalidParse,
 };
 
-pub fn Parser(
+pub fn parser(
     allo: Allocator,
     input: []const u8,
 ) (Allocator.Error || LexerError || ParserError || std.fmt.ParseIntError)!std.ArrayList(Tag) {
@@ -40,7 +40,7 @@ pub fn Parser(
     errdefer arr.deinit(allo);
 
     var tokens = [_]Token{.{ .start = 0, .end = 0, .tag = .null }} ** N_TOKENS;
-    try Lexer(input, &tokens);
+    try lexer(input, &tokens);
 
     const n_tokens: u8 = numTokens(&tokens);
     switch (n_tokens) {
@@ -251,7 +251,7 @@ test "Positive Parser" {
     };
 
     for (instructions) |ins| {
-        var parsed_tokens = try Parser(allo, ins.input);
+        var parsed_tokens = try parser(allo, ins.input);
         defer parsed_tokens.deinit(allo);
 
         try std.testing.expectEqual(ins.tags.len, parsed_tokens.items.len);
