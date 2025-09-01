@@ -42,7 +42,7 @@ pub fn manual(allo: Allocator) !void {
         board.printBoard();
         // Terminal Screen
         if (board.isWon()) print("You Won!!!!\n", .{});
-        if (board.isLost()) print("You Lost! Try Again!\n", .{});
+        if (board.isLost()) print("You Lost!\nTry Again!\n", .{});
         // get input
         const len = try in.read(&buf);
         const input = buf[0..len];
