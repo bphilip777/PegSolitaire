@@ -55,6 +55,8 @@ pub fn manual(allo: Allocator) !void {
             continue :loop;
         };
         defer parsed_tokens.deinit(allo);
+        // print parsed tokens
+        print("Num Tokens: {}\n", .{parsed_tokens.items.len});
         // call appropriate functions
         switch (parsed_tokens.items.len) {
             1 => {

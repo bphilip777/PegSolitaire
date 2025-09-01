@@ -515,7 +515,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn isLost(self: *const @This()) bool {
-            return (self.hasRemainingMoves() and !self.isWon());
+            return (!self.hasRemainingMoves() and !self.isWon());
         }
 
         pub fn reset(self: *@This()) void {
