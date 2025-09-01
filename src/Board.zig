@@ -515,7 +515,7 @@ pub fn createBoard(comptime n_rows: T) !type {
         }
 
         pub fn isLost(self: *const @This()) bool {
-            return (self.numMovesLeft() == 0 and self.board.count() > 1);
+            return (self.hasRemainingMoves() and !self.isWon());
         }
 
         pub fn reset(self: *@This()) void {
@@ -726,7 +726,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const other_dir = move.dir.opposite();
                     board.moves[other_idx].remove(other_dir);
                     // if board has moves, append onto stack
-                    if (board.numMovesLeft() > 0) {
+                    if (board.hasRemainingMoves()) {
                         try stack.append(allo, board);
                     }
                     // if board was visited, modify, if board wasn't append
@@ -810,7 +810,7 @@ pub fn createBoard(comptime n_rows: T) !type {
                     const other_idx = idxFromPos(getRotation(mid_idx, move.dir, .full).?);
                     const other_dir = move.dir.opposite();
                     board.moves[other_idx].remove(other_dir);
-                    if (board.numMovesLeft() > 0) { // append to stack
+                    if (board.hasRemainingMoves()) { // append to stack
                         try stack.append(allo, board);
                     }
                     if (search.visited) { // modify visited
