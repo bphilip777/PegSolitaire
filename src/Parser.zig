@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const eql = std.mem.eql;
+const toLower = std.ascii.toLower;
 
 const lexer = @import("Lexer.zig").lexer;
 const Token = @import("Lexer.zig").Token;
@@ -55,8 +56,8 @@ pub fn parser(
                     const n_chars = end - start;
                     switch (n_chars) {
                         1 => switch (input[start]) {
-                            'a' => arr.appendAssumeCapacity(.auto),
-                            'h', '?' => arr.appendAssumeCapacity(.help),
+                            'a', 'A' => arr.appendAssumeCapacity(.auto),
+                            'h', 'H', '?' => arr.appendAssumeCapacity(.help),
                             'm', 'M' => arr.appendAssumeCapacity(.moves),
                             'q', 'Q' => arr.appendAssumeCapacity(.quit),
                             'r' => arr.appendAssumeCapacity(.redo),
@@ -69,7 +70,7 @@ pub fn parser(
                             const tags = [_]Tag{ .auto, .help, .redo, .undo, .quit };
                             var is_match: bool = false;
                             for (tags) |tag| {
-                                is_match = eql(u8, word, @tagName(tag));
+                                is_match = isMatch(word, @tagName(tag));
                                 if (is_match) {
                                     arr.appendAssumeCapacity(tag);
                                     break;
@@ -82,7 +83,7 @@ pub fn parser(
                             const tags = [_]Tag{ .moves, .reset, .start };
                             var is_match: bool = false;
                             for (tags) |tag| {
-                                is_match = eql(u8, word, @tagName(tag));
+                                is_match = isMatch(word, @tagName(tag));
                                 if (is_match) {
                                     arr.appendAssumeCapacity(tag);
                                     break;
@@ -259,4 +260,12 @@ test "Positive Parser" {
             try std.testing.expectEqual(tag, pt);
         }
     }
+}
+
+fn isMatch(word1: []const u8, word2: []const u8) bool {
+    std.debug.assert(word1.len == word2.len);
+    for (word1, word2) |ch1, ch2| {
+        if (toLower(ch1) != toLower(ch2)) return false;
+    }
+    return true;
 }

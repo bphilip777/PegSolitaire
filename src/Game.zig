@@ -4,6 +4,7 @@ const Allocator = std.mem.Allocator;
 
 // TODO:
 // - need to fix some bugs
+// Failed: HElP, H, HELP
 
 // helpers
 const triNum = @import("Helpers.zig").triNum;
