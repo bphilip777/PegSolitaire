@@ -344,7 +344,6 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         fn setNegMove(self: *@This(), idxs: [3]T) void {
             // asserts
-            std.debug.assert(idxs.len == 3);
             std.debug.assert(!self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
                 self.board.isSet(idxs[2]));
@@ -356,7 +355,6 @@ pub fn createBoard(comptime n_rows: T) !type {
 
         fn setPosMove(self: *@This(), idxs: [3]T) void {
             // asserts
-            std.debug.assert(idxs.len == 3);
             std.debug.assert(self.board.isSet(idxs[0]) or //
                 self.board.isSet(idxs[1]) or //
                 !self.board.isSet(idxs[2]));
