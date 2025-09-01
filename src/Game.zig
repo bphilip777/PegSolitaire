@@ -38,12 +38,11 @@ pub fn manual(allo: Allocator) !void {
     var out = std.fs.File.stdout();
     // loop
     loop: while (!is_quit) {
-        if (board.isGameOver()) {
-            is_quit = true;
-            continue;
-        }
         // show board
         board.printBoard();
+        // Terminal Screen
+        if (board.isWon()) print("You Won!!!!\n", .{});
+        if (board.isLost()) print("You Lost! Try Again!\n", .{});
         // get input
         const len = try in.read(&buf);
         const input = buf[0..len];
@@ -55,8 +54,6 @@ pub fn manual(allo: Allocator) !void {
             continue :loop;
         };
         defer parsed_tokens.deinit(allo);
-        // print parsed tokens
-        print("Num Tokens: {}\n", .{parsed_tokens.items.len});
         // call appropriate functions
         switch (parsed_tokens.items.len) {
             1 => {
