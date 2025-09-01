@@ -230,21 +230,21 @@ pub fn createBoard(comptime n_rows: T) !type {
         pub fn chooseMoveIdx(self: *@This(), idx0: T, dir: Direction) void {
             // if idx is not valid return
             if (!self.isValidIdx(idx0)) {
-                print("Idx: {} not valid\n", .{idx0});
+                print("Idx: {} = Not Valid!\n", .{idx0});
                 return;
             }
             // get positions
             const p0 = posFromIdx(idx0);
             const p1 = getRotation(p0, dir, .full) orelse {
                 print(
-                    "1. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                    "Pos: ({}, {}), Dir: {s} = Not A Valid Move!\n",
                     .{ p0.row, p0.col, @tagName(dir) },
                 );
                 return;
             };
             const p2 = getRotation(p1, dir, .full) orelse {
                 print(
-                    "2. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                    "Pos: ({}, {}), Dir: {s} = Not A Valid Move!\n",
                     .{ p1.row, p1.col, @tagName(dir) },
                 );
                 return;
@@ -256,7 +256,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             if (self.board.isSet(idx0)) { // pos
                 if (!self.moves[idx2].contains(dir.opposite())) {
                     print(
-                        "3. Pos: ({}, {}), Dir: {s}, Does Not Exist",
+                        "Pos: ({}, {}), Dir: {s} = Not A Valid Move!\n",
                         .{ p2.row, p2.col, @tagName(dir) },
                     );
                     return;
@@ -268,7 +268,7 @@ pub fn createBoard(comptime n_rows: T) !type {
             } else { // neg
                 if (!self.moves[idx0].contains(dir)) {
                     print(
-                        "4. Pos: ({}, {}), Dir: {s}, Does Not Exist\n",
+                        "Pos: ({}, {}), Dir: {s} = Not A Valid Move!\n",
                         .{ p0.row, p0.col, @tagName(dir) },
                     );
                     return;
