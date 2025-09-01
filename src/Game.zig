@@ -2,10 +2,6 @@ const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 
-// TODO:
-// - need to fix some bugs
-// Failed: HElP, H, HELP
-
 // helpers
 const triNum = @import("Helpers.zig").triNum;
 const numMoves = @import("Helpers.zig").numMoves;
@@ -39,7 +35,6 @@ pub fn manual(allo: Allocator) !void {
     // handle input output
     var buf = [_]u8{' '} ** MAX_BUFFER_LEN;
     var in = std.fs.File.stdin().reader(&buf);
-    var out = std.fs.File.stdout();
     // loop
     loop: while (!is_quit) {
         // show board
@@ -263,8 +258,6 @@ pub fn manual(allo: Allocator) !void {
                 continue;
             },
         }
-        // output result
-        try out.writeAll(input);
     }
 }
 

@@ -214,7 +214,6 @@ pub fn parser(
         },
         else => unreachable,
     }
-
     return arr;
 }
 
